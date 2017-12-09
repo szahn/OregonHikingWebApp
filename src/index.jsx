@@ -29,11 +29,16 @@ class App extends Component {
 
   constructor(){
     super();
+    this.onDifficultyChangedLocal = this.onDifficultyChanged.bind(this);
+    this.onSortByChangedLocal = this.onSortByChanged.bind(this);
+    this.onMinMilesChangedLocal = this.onMinMilesChanged.bind(this);
+    this.onMaxMilesChangedLocal = this.onMaxMilesChanged.bind(this);
+
     this.state = {
       maxMiles: 3,
       minMiles: 1,
       skill: 0,
-      sortBy: 0,
+      sortBy: 1,
       origin: {lat: 0, lon:0},
       trailsList: [],
     };
@@ -49,7 +54,7 @@ onDifficultyChanged(event, value){
 onSortByChanged(event, value){
   this.setState({
     sortBy: value,
-    trailsList: buildTrailsList(this.state.minMiles, this.state.maxMiles, value, this.state.origin, this.state.sortBy)
+    trailsList: buildTrailsList(this.state.minMiles, this.state.maxMiles, this.state.skill, this.state.origin, value)
   });
 }
 
@@ -100,21 +105,21 @@ refreshLocation(){
 }
 
 componentWillMount(){
-  setTimeout(this.refreshLocation.bind(this), 1000);
+  setTimeout(this.refreshLocation.bind(this), 500);
 }
 
 render() {   
-    const title = `Nearby Trails`;
+    const title = `${this.state.trailsList.length} Oregon Trails`;
     return (
         <MuiThemeProvider>
         <div>
-          <AppBar className='green900-bg' title='Oregon Trails' iconStyleLeft={styles.appBarIconStyleLeft}></AppBar>        
+          <AppBar className='green900-bg' title={title} iconStyleLeft={styles.appBarIconStyleLeft}></AppBar>        
           <div style={styles.container}>
             <p>My Location: {this.state.origin ? `${this.state.origin.lat}, ${this.state.origin.lon}` : ''} <Button label="Refresh"/></p>
             <div>
               <div style={styles.sliderContainer}>
               Skill:
-              <RadioButtonGroup name="difficulty" defaultSelected={0} onChange={this.onDifficultyChanged.bind(this)} valueSelected={this.state.skill}>
+              <RadioButtonGroup name="difficulty" defaultSelected={0} onChange={this.onDifficultyChangedLocal} valueSelected={this.state.skill}>
                 <RadioButton value={0} label="Any Difficulty"/>
                 <RadioButton value={1} label="Easy"/>
                 <RadioButton value={2} label="Moderate"/>
@@ -123,20 +128,20 @@ render() {
               </div>
               <div style={styles.sliderContainer}>
               Order By:
-              <RadioButtonGroup name="orderBy" defaultSelected={0} onChange={this.onSortByChanged.bind(this)} valueSelected={this.state.sortBy}>
-                <RadioButton value={0} label="Distance"/>
-                <RadioButton value={1} label="Miles"/>
+              <RadioButtonGroup name="orderBy" defaultSelected={1} onChange={this.onSortByChangedLocal} valueSelected={this.state.sortBy}>
+                <RadioButton value={1} label="Distance"/>
+                <RadioButton value={2} label="Miles"/>
               </RadioButtonGroup>
               </div>
             </div>
             <div>
               <div style={styles.sliderContainer}>
                 <p>Min. Miles: {this.state.minMiles}</p>
-                <Slider sliderStyle={styles.sliderStyle} min={0} max={20} step={1} value={this.state.minMiles} onChange={this.onMinMilesChanged.bind(this)} />
+                <Slider sliderStyle={styles.sliderStyle} min={0} max={20} step={1} value={this.state.minMiles} onChange={this.onMinMilesChangedLocal} />
               </div>
               <div style={styles.sliderContainer}>
                 <p>Max. Miles: {this.state.maxMiles}</p>
-                <Slider sliderStyle={styles.sliderStyle} min={0} max={20} step={1} value={this.state.maxMiles} onChange={this.onMaxMilesChanged.bind(this)} />
+                <Slider sliderStyle={styles.sliderStyle} min={0} max={20} step={1} value={this.state.maxMiles} onChange={this.onMaxMilesChangedLocal} />
               </div>
             </div>
             <List primaryText={title}>

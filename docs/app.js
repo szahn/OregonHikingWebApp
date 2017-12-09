@@ -120,11 +120,16 @@
 
 	    var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
 
+	    _this.onDifficultyChangedLocal = _this.onDifficultyChanged.bind(_this);
+	    _this.onSortByChangedLocal = _this.onSortByChanged.bind(_this);
+	    _this.onMinMilesChangedLocal = _this.onMinMilesChanged.bind(_this);
+	    _this.onMaxMilesChangedLocal = _this.onMaxMilesChanged.bind(_this);
+
 	    _this.state = {
 	      maxMiles: 3,
 	      minMiles: 1,
 	      skill: 0,
-	      sortBy: 0,
+	      sortBy: 1,
 	      origin: { lat: 0, lon: 0 },
 	      trailsList: []
 	    };
@@ -144,7 +149,7 @@
 	    value: function onSortByChanged(event, value) {
 	      this.setState({
 	        sortBy: value,
-	        trailsList: (0, _trailListBuilder2.default)(this.state.minMiles, this.state.maxMiles, value, this.state.origin, this.state.sortBy)
+	        trailsList: (0, _trailListBuilder2.default)(this.state.minMiles, this.state.maxMiles, this.state.skill, this.state.origin, value)
 	      });
 	    }
 	  }, {
@@ -201,19 +206,19 @@
 	  }, {
 	    key: 'componentWillMount',
 	    value: function componentWillMount() {
-	      setTimeout(this.refreshLocation.bind(this), 1000);
+	      setTimeout(this.refreshLocation.bind(this), 500);
 	    }
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      var title = 'Nearby Trails';
+	      var title = this.state.trailsList.length + ' Oregon Trails';
 	      return _react2.default.createElement(
 	        _MuiThemeProvider2.default,
 	        null,
 	        _react2.default.createElement(
 	          'div',
 	          null,
-	          _react2.default.createElement(_AppBar2.default, { className: 'green900-bg', title: 'Oregon Trails', iconStyleLeft: styles.appBarIconStyleLeft }),
+	          _react2.default.createElement(_AppBar2.default, { className: 'green900-bg', title: title, iconStyleLeft: styles.appBarIconStyleLeft }),
 	          _react2.default.createElement(
 	            'div',
 	            { style: styles.container },
@@ -234,7 +239,7 @@
 	                'Skill:',
 	                _react2.default.createElement(
 	                  _RadioButton.RadioButtonGroup,
-	                  { name: 'difficulty', defaultSelected: 0, onChange: this.onDifficultyChanged.bind(this), valueSelected: this.state.skill },
+	                  { name: 'difficulty', defaultSelected: 0, onChange: this.onDifficultyChangedLocal, valueSelected: this.state.skill },
 	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 0, label: 'Any Difficulty' }),
 	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 1, label: 'Easy' }),
 	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 2, label: 'Moderate' }),
@@ -247,9 +252,9 @@
 	                'Order By:',
 	                _react2.default.createElement(
 	                  _RadioButton.RadioButtonGroup,
-	                  { name: 'orderBy', defaultSelected: 0, onChange: this.onSortByChanged.bind(this), valueSelected: this.state.sortBy },
-	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 0, label: 'Distance' }),
-	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 1, label: 'Miles' })
+	                  { name: 'orderBy', defaultSelected: 1, onChange: this.onSortByChangedLocal, valueSelected: this.state.sortBy },
+	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 1, label: 'Distance' }),
+	                  _react2.default.createElement(_RadioButton.RadioButton, { value: 2, label: 'Miles' })
 	                )
 	              )
 	            ),
@@ -265,7 +270,7 @@
 	                  'Min. Miles: ',
 	                  this.state.minMiles
 	                ),
-	                _react2.default.createElement(_Slider2.default, { sliderStyle: styles.sliderStyle, min: 0, max: 20, step: 1, value: this.state.minMiles, onChange: this.onMinMilesChanged.bind(this) })
+	                _react2.default.createElement(_Slider2.default, { sliderStyle: styles.sliderStyle, min: 0, max: 20, step: 1, value: this.state.minMiles, onChange: this.onMinMilesChangedLocal })
 	              ),
 	              _react2.default.createElement(
 	                'div',
@@ -276,7 +281,7 @@
 	                  'Max. Miles: ',
 	                  this.state.maxMiles
 	                ),
-	                _react2.default.createElement(_Slider2.default, { sliderStyle: styles.sliderStyle, min: 0, max: 20, step: 1, value: this.state.maxMiles, onChange: this.onMaxMilesChanged.bind(this) })
+	                _react2.default.createElement(_Slider2.default, { sliderStyle: styles.sliderStyle, min: 0, max: 20, step: 1, value: this.state.maxMiles, onChange: this.onMaxMilesChangedLocal })
 	              )
 	            ),
 	            _react2.default.createElement(
@@ -35715,6 +35720,10 @@
 
 	var _trailListItem2 = _interopRequireDefault(_trailListItem);
 
+	var _trailList = __webpack_require__(390);
+
+	var _trailList2 = _interopRequireDefault(_trailList);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	var skills = {
@@ -35725,12 +35734,14 @@
 
 	module.exports = function (minMiles, maxMiles, skill, origin, orderBy) {
 	  var filtered = [];
+
+	  var trails = (0, _trailList2.default)();
 	  var _iteratorNormalCompletion = true;
 	  var _didIteratorError = false;
 	  var _iteratorError = undefined;
 
 	  try {
-	    for (var _iterator = _trails2.default.items[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	    for (var _iterator = trails[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 	      var trail = _step.value;
 
 
@@ -35754,6 +35765,7 @@
 	        }
 	      }
 
+	      trail.distMiles = 0;
 	      if (trail.locations && trail.locations.trailStart && trail.locations.trailStart.latitude && trail.locations.trailStart.longitude && origin && origin.lat && origin.lon) {
 	        var distMiles = (0, _distanceFromLatLon2.default)(origin.lat, origin.lon, trail.locations.trailStart.latitude, trail.locations.trailStart.longitude).miles;
 	        trail.distMiles = distMiles;
@@ -35779,32 +35791,17 @@
 
 	  filtered.sort(function (a, b) {
 
-	    var aCMp = orderBy === 0 ? a.distMiles : a.milesVal;
-	    var bCMp = orderBy === 0 ? b.distMiles : b.milesVal;
-
-	    if (aCMp && bCMp) {
-	      if (aCMp < bCMp) {
-	        return -1;
-	      }
-	      if (aCMp > bCMp) {
-	        return 1;
-	      }
-
-	      return 0;
-	    } else {
-	      if (a.name < b.name) {
-	        return -1;
-	      }
-	      if (a.name > b.name) {
-	        return 1;
-	      }
-
-	      return 0;
+	    if (orderBy === 2) {
+	      return a.milesVal - b.milesVal;
+	    } else if (orderBy === 1) {
+	      return a.distMiles - b.distMiles;
 	    }
+
+	    return 0;
 	  });
 
-	  return filtered.map(function (trail) {
-	    return _react2.default.createElement(_trailListItem2.default, { trail: trail });
+	  return filtered.map(function (trail, i) {
+	    return _react2.default.createElement(_trailListItem2.default, { trail: trail, index: i });
 	  });
 	};
 
@@ -35888,26 +35885,69 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	var styles = {
+	    contentItem: { display: 'inline-block', marginRight: '10px' },
+	    skill: {
+	        'Easy': { color: '#01579B', display: 'inline-block', marginRight: '10px' },
+	        'Moderate': { color: '#FF6F00', display: 'inline-block', marginRight: '10px' },
+	        'Difficult': { color: '#D50000', display: 'inline-block', marginRight: '10px' }
+	    }
+	};
+
 	module.exports = function (props) {
 	    var trail = props.trail;
 
 
-	    var chips = [];
+	    var contentItems = [];
 	    if (trail.difficulty) {
-	        chips.push(trail.difficulty);
+	        contentItems.push(_react2.default.createElement(
+	            'span',
+	            { style: styles.skill[trail.difficulty] },
+	            trail.difficulty
+	        ));
 	    }
-	    if (trail.miles) {
-	        chips.push(trail.miles);
+	    if (trail.milesVal) {
+	        contentItems.push(_react2.default.createElement(
+	            'span',
+	            { style: styles.contentItem },
+	            _react2.default.createElement(
+	                'b',
+	                null,
+	                trail.milesVal
+	            ),
+	            '\xA0miles'
+	        ));
 	    }
-	    if (trail.milesAway) {
-	        chips.push(trail.milesAway);
+	    if (trail.distMiles) {
+	        contentItems.push(_react2.default.createElement(
+	            'span',
+	            null,
+	            _react2.default.createElement(
+	                'b',
+	                null,
+	                trail.distMiles
+	            ),
+	            '\xA0miles away'
+	        ));
 	    }
-
-	    var content = chips.join(', ');
 
 	    var trailUrl = trail.locations && trail.locations.trailStart ? 'https://www.google.com/maps/?q=' + trail.locations.trailStart.latitude + ',' + trail.locations.trailStart.longitude : trail.urls.absoluteSource ? trail.urls.absoluteSource : "#";
 
-	    return _react2.default.createElement(_List.ListItem, { key: trail.id, rightIconButton: _react2.default.createElement(_RaisedButton2.default, { primary: true, className: 'green800-bg', icon: _react2.default.createElement(_directionsWalk2.default, null), target: '_blank', href: trailUrl }), primaryText: trail.name, secondaryText: content });
+	    return _react2.default.createElement(
+	        _List.ListItem,
+	        { key: trail.id,
+	            rightIconButton: _react2.default.createElement(_RaisedButton2.default, { primary: true, style: { width: 50, height: 50, marginTop: 10 }, className: 'green800-bg', icon: _react2.default.createElement(_directionsWalk2.default, null), target: '_blank', href: trailUrl }) },
+	        _react2.default.createElement(
+	            'div',
+	            { style: { fontSize: '1.1em', marginBottom: 6 } },
+	            trail.name
+	        ),
+	        _react2.default.createElement(
+	            'div',
+	            null,
+	            contentItems
+	        )
+	    );
 	};
 
 /***/ }),
@@ -36418,6 +36458,24 @@
 	  muiTheme: _react.PropTypes.object.isRequired
 	};
 	exports.default = RaisedButton;
+
+/***/ }),
+/* 390 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _trails = __webpack_require__(382);
+
+	var _trails2 = _interopRequireDefault(_trails);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	module.exports = function () {
+	    return [].concat(_trails2.default.items).map(function (trail) {
+	        return Object.assign({}, trail);
+	    });
+	};
 
 /***/ })
 /******/ ]);

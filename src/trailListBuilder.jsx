@@ -2,6 +2,7 @@ import React from 'react';
 import trailsJson from 'json-loader!./trails';
 import distanceFromLatLon from "./common/distanceFromLatLon";
 import TrailListItem from './trailListItem.jsx';
+import trailList from './trailList';
 
 const skills = {
   'Easy':1,
@@ -11,7 +12,9 @@ const skills = {
 
 module.exports = (minMiles, maxMiles, skill, origin, orderBy) => {
     const filtered = [];
-    for (var trail of trailsJson.items){
+
+    const trails = trailList();
+    for (var trail of trails){
   
       if (trail.measures.difficulty){
         trail.difficulty = trail.measures.difficulty || "";
@@ -33,6 +36,7 @@ module.exports = (minMiles, maxMiles, skill, origin, orderBy) => {
         }
       }
   
+      trail.distMiles = 0;
       if (trail.locations && trail.locations.trailStart && trail.locations.trailStart.latitude && trail.locations.trailStart.longitude && origin && origin.lat && origin.lon){
         const distMiles = distanceFromLatLon(origin.lat, origin.lon, trail.locations.trailStart.latitude, trail.locations.trailStart.longitude).miles;            
         trail.distMiles = distMiles;
@@ -44,31 +48,16 @@ module.exports = (minMiles, maxMiles, skill, origin, orderBy) => {
   
     filtered.sort((a, b)=>{
 
-      const aCMp = (orderBy === 0) ? a.distMiles : a.milesVal;
-      const bCMp = (orderBy === 0) ? b.distMiles : b.milesVal;
-      
-      if (aCMp && bCMp){
-        if (aCMp < bCMp){
-          return -1;
-        }
-        if (aCMp > bCMp){
-          return 1;
-        }
-  
-        return 0;
+      if (orderBy === 2){
+        return a.milesVal - b.milesVal;
       }
-      else{
-        if (a.name < b.name){
-          return -1;
-        }
-        if (a.name > b.name){
-          return 1;
-        }
-  
-        return 0;
+      else if (orderBy === 1){
+        return a.distMiles - b.distMiles;
       }
+
+      return 0;
     });
   
-    return filtered.map((trail)=> <TrailListItem trail={trail}/>);
+    return filtered.map((trail, i)=> <TrailListItem trail={trail} index={i}/>);
 }
   
