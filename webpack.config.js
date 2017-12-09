@@ -13,7 +13,7 @@ const common = {
 module.exports = {
     entry: [ './src/index.jsx'],
     output: {
-        path: path.join(__dirname, 'wwwroot'),
+        path: path.join(__dirname, 'docs'),
         publicPath: '/',
         filename: 'app.js'
     },

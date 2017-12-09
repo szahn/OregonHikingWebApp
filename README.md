@@ -1,3 +1,4 @@
 # Oregon Trail Finder
-Find nearby hiking trails by difficulty and distance.
-<img src="screemshot.png"/>
+Uses location API to find nearby hiking trails by difficulty and distance.
+
+<img src="screenshot.png"/>
