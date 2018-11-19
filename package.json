@@ -15,14 +15,16 @@
     "json-loader": "^0.5.4"
   },
   "dependencies": {
+    "lodash": "^4.17.11",
     "material-ui": "^0.15.0",
     "react": "^15.0.1",
     "react-dom": "^15.0.1",
     "react-tap-event-plugin": "^1.0.0"
   },
   "scripts": {
-    "build": "webpack",
-    "start": "webpack-dev-server"
+    "dev": "webpack",
+    "start": "webpack-dev-server --port 3000",
+    "prod": "webpack --config webpack.config.prod.js"
   },
   "author": "",
   "license": "ISC"

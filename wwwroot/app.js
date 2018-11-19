@@ -67,27 +67,33 @@
 
 	var _MuiThemeProvider2 = _interopRequireDefault(_MuiThemeProvider);
 
-	var _Chip = __webpack_require__(315);
-
-	var _Chip2 = _interopRequireDefault(_Chip);
-
-	var _AppBar = __webpack_require__(349);
+	var _AppBar = __webpack_require__(316);
 
 	var _AppBar2 = _interopRequireDefault(_AppBar);
 
-	var _List = __webpack_require__(360);
+	var _List = __webpack_require__(358);
 
-	var _Slider = __webpack_require__(369);
+	var _Slider = __webpack_require__(367);
 
 	var _Slider2 = _interopRequireDefault(_Slider);
 
-	var _RadioButton = __webpack_require__(371);
+	var _RadioButton = __webpack_require__(369);
 
-	var _FlatButton = __webpack_require__(378);
+	var _FlatButton = __webpack_require__(376);
 
 	var _FlatButton2 = _interopRequireDefault(_FlatButton);
 
-	var _trailListBuilder = __webpack_require__(381);
+	var _ribbon = __webpack_require__(379);
+
+	var _ribbon2 = _interopRequireDefault(_ribbon);
+
+	var _lodash = __webpack_require__(380);
+
+	var _CircularProgress = __webpack_require__(381);
+
+	var _CircularProgress2 = _interopRequireDefault(_CircularProgress);
+
+	var _trailListBuilder = __webpack_require__(383);
 
 	var _trailListBuilder2 = _interopRequireDefault(_trailListBuilder);
 
@@ -98,11 +104,6 @@
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	//import injectTapEventPlugin from 'react-tap-event-plugin';
-
-	// Needed for onTouchTap
-	// http://stackoverflow.com/a/34015469/988941
-	//injectTapEventPlugin();
 
 	var styles = {
 	  appBarIconStyleLeft: { display: 'none' },
@@ -120,10 +121,11 @@
 
 	    var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
 
-	    _this.onDifficultyChangedLocal = _this.onDifficultyChanged.bind(_this);
-	    _this.onSortByChangedLocal = _this.onSortByChanged.bind(_this);
-	    _this.onMinMilesChangedLocal = _this.onMinMilesChanged.bind(_this);
-	    _this.onMaxMilesChangedLocal = _this.onMaxMilesChanged.bind(_this);
+	    _this.onDifficultyChangedLocal = (0, _lodash.throttle)(_this.onDifficultyChanged.bind(_this), 60);
+	    _this.onSortByChangedLocal = (0, _lodash.throttle)(_this.onSortByChanged.bind(_this), 60);
+	    _this.onMinMilesChangedLocal = (0, _lodash.throttle)(_this.onMinMilesChanged.bind(_this), 60);
+	    _this.onMaxMilesChangedLocal = (0, _lodash.throttle)(_this.onMaxMilesChanged.bind(_this), 60);
+	    _this.refreshLocationLocal = _this.refreshLocation.bind(_this);
 
 	    _this.state = {
 	      maxMiles: 3,
@@ -131,7 +133,8 @@
 	      skill: 0,
 	      sortBy: 1,
 	      origin: { lat: 0, lon: 0 },
-	      trailsList: []
+	      trailsList: [],
+	      isBusy: true
 	    };
 	    return _this;
 	  }
@@ -185,7 +188,15 @@
 	    value: function refreshLocation() {
 	      var _this2 = this;
 
+	      this.setState({
+	        isBusy: true
+	      });
+
 	      if (!navigator.geolocation) {
+	        alert("Geolocation API not available.");
+	        this.setState({
+	          isBusy: false
+	        });
 	        return;
 	      }
 
@@ -193,10 +204,14 @@
 	        var crd = pos.coords;
 	        _this2.setState({
 	          origin: { lat: crd.latitude, lon: crd.longitude },
-	          trailsList: (0, _trailListBuilder2.default)(_this2.state.minMiles, _this2.state.maxMiles, _this2.state.skill, { lat: crd.latitude, lon: crd.longitude }, _this2.state.sortBy)
+	          trailsList: (0, _trailListBuilder2.default)(_this2.state.minMiles, _this2.state.maxMiles, _this2.state.skill, { lat: crd.latitude, lon: crd.longitude }, _this2.state.sortBy),
+	          isBusy: false
 	        });
 	      }, function (err) {
-	        console.log('ERROR(' + err.code + '): ' + err.message);
+	        alert(err.message);
+	        _this2.setState({
+	          isBusy: false
+	        });
 	      }, {
 	        enableHighAccuracy: true,
 	        timeout: 5000,
@@ -206,7 +221,7 @@
 	  }, {
 	    key: 'componentWillMount',
 	    value: function componentWillMount() {
-	      setTimeout(this.refreshLocation.bind(this), 500);
+	      setTimeout(this.refreshLocation.bind(this), 250);
 	    }
 	  }, {
 	    key: 'render',
@@ -226,9 +241,7 @@
 	              'p',
 	              null,
 	              'My Location: ',
-	              this.state.origin ? this.state.origin.lat + ', ' + this.state.origin.lon : '',
-	              ' ',
-	              _react2.default.createElement(_FlatButton2.default, { label: 'Refresh' })
+	              _react2.default.createElement(_FlatButton2.default, { onClick: this.refreshLocationLocal, label: 'Refresh Location' })
 	            ),
 	            _react2.default.createElement(
 	              'div',
@@ -286,9 +299,15 @@
 	            ),
 	            _react2.default.createElement(
 	              _List.List,
-	              { primaryText: title },
+	              null,
 	              this.state.trailsList
 	            )
+	          ),
+	          _react2.default.createElement(_ribbon2.default, null),
+	          this.state.isBusy && _react2.default.createElement(
+	            'div',
+	            { style: { background: '#FFFA', position: 'fixed', left: 0, right: 0, top: 0, bottom: 0 } },
+	            _react2.default.createElement(_CircularProgress2.default, { style: { position: 'fixed', right: '50%', top: '50px', zIndex: 9999, margin: '50px auto' } })
 	          )
 	        )
 	      );
@@ -20849,37 +20868,37 @@
 
 	var _merge2 = _interopRequireDefault(_merge);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _lightBaseTheme = __webpack_require__(270);
+	var _lightBaseTheme = __webpack_require__(271);
 
 	var _lightBaseTheme2 = _interopRequireDefault(_lightBaseTheme);
 
-	var _zIndex = __webpack_require__(273);
+	var _zIndex = __webpack_require__(274);
 
 	var _zIndex2 = _interopRequireDefault(_zIndex);
 
-	var _autoprefixer = __webpack_require__(274);
+	var _autoprefixer = __webpack_require__(275);
 
 	var _autoprefixer2 = _interopRequireDefault(_autoprefixer);
 
-	var _callOnce = __webpack_require__(311);
+	var _callOnce = __webpack_require__(312);
 
 	var _callOnce2 = _interopRequireDefault(_callOnce);
 
-	var _rtl = __webpack_require__(312);
+	var _rtl = __webpack_require__(313);
 
 	var _rtl2 = _interopRequireDefault(_rtl);
 
-	var _compose = __webpack_require__(313);
+	var _compose = __webpack_require__(314);
 
 	var _compose2 = _interopRequireDefault(_compose);
 
-	var _typography = __webpack_require__(314);
+	var _typography = __webpack_require__(315);
 
 	var _typography2 = _interopRequireDefault(_typography);
 
-	var _colors = __webpack_require__(271);
+	var _colors = __webpack_require__(272);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21219,7 +21238,7 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 	var baseMerge = __webpack_require__(174),
-	    createAssigner = __webpack_require__(259);
+	    createAssigner = __webpack_require__(260);
 
 	/**
 	 * This method is like `_.assign` except that it recursively merges own and
@@ -21268,7 +21287,8 @@
 	    baseFor = __webpack_require__(222),
 	    baseMergeDeep = __webpack_require__(224),
 	    isObject = __webpack_require__(199),
-	    keysIn = __webpack_require__(253);
+	    keysIn = __webpack_require__(254),
+	    safeGet = __webpack_require__(250);
 
 	/**
 	 * The base implementation of `_.merge` without support for multiple sources.
@@ -21292,7 +21312,7 @@
 	    }
 	    else {
 	      var newValue = customizer
-	        ? customizer(object[key], srcValue, (key + ''), object, source, stack)
+	        ? customizer(safeGet(object, key), srcValue, (key + ''), object, source, stack)
 	        : undefined;
 
 	      if (newValue === undefined) {
@@ -22659,7 +22679,8 @@
 	    isObject = __webpack_require__(199),
 	    isPlainObject = __webpack_require__(245),
 	    isTypedArray = __webpack_require__(246),
-	    toPlainObject = __webpack_require__(250);
+	    safeGet = __webpack_require__(250),
+	    toPlainObject = __webpack_require__(251);
 
 	/**
 	 * A specialized version of `baseMerge` for arrays and objects which performs
@@ -22677,8 +22698,8 @@
 	 *  counterparts.
 	 */
 	function baseMergeDeep(object, source, key, srcIndex, mergeFunc, customizer, stack) {
-	  var objValue = object[key],
-	      srcValue = source[key],
+	  var objValue = safeGet(object, key),
+	      srcValue = safeGet(source, key),
 	      stacked = stack.get(srcValue);
 
 	  if (stacked) {
@@ -22721,7 +22742,7 @@
 	      if (isArguments(objValue)) {
 	        newValue = toPlainObject(objValue);
 	      }
-	      else if (!isObject(objValue) || (srcIndex && isFunction(objValue))) {
+	      else if (!isObject(objValue) || isFunction(objValue)) {
 	        newValue = initCloneObject(srcValue);
 	      }
 	    }
@@ -23527,6 +23548,14 @@
 	/** Used to access faster Node.js helpers. */
 	var nodeUtil = (function() {
 	  try {
+	    // Use `util.types` for Node.js 10+.
+	    var types = freeModule && freeModule.require && freeModule.require('util').types;
+
+	    if (types) {
+	      return types;
+	    }
+
+	    // Legacy `process.binding('util')` for Node.js < 10.
 	    return freeProcess && freeProcess.binding && freeProcess.binding('util');
 	  } catch (e) {}
 	}());
@@ -23537,10 +23566,33 @@
 
 /***/ }),
 /* 250 */
+/***/ (function(module, exports) {
+
+	/**
+	 * Gets the value at `key`, unless `key` is "__proto__".
+	 *
+	 * @private
+	 * @param {Object} object The object to query.
+	 * @param {string} key The key of the property to get.
+	 * @returns {*} Returns the property value.
+	 */
+	function safeGet(object, key) {
+	  if (key == '__proto__') {
+	    return;
+	  }
+
+	  return object[key];
+	}
+
+	module.exports = safeGet;
+
+
+/***/ }),
+/* 251 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var copyObject = __webpack_require__(251),
-	    keysIn = __webpack_require__(253);
+	var copyObject = __webpack_require__(252),
+	    keysIn = __webpack_require__(254);
 
 	/**
 	 * Converts `value` to a plain object flattening inherited enumerable string
@@ -23574,10 +23626,10 @@
 
 
 /***/ }),
-/* 251 */
+/* 252 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var assignValue = __webpack_require__(252),
+	var assignValue = __webpack_require__(253),
 	    baseAssignValue = __webpack_require__(220);
 
 	/**
@@ -23620,7 +23672,7 @@
 
 
 /***/ }),
-/* 252 */
+/* 253 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var baseAssignValue = __webpack_require__(220),
@@ -23654,11 +23706,11 @@
 
 
 /***/ }),
-/* 253 */
+/* 254 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var arrayLikeKeys = __webpack_require__(254),
-	    baseKeysIn = __webpack_require__(257),
+	var arrayLikeKeys = __webpack_require__(255),
+	    baseKeysIn = __webpack_require__(258),
 	    isArrayLike = __webpack_require__(241);
 
 	/**
@@ -23692,14 +23744,14 @@
 
 
 /***/ }),
-/* 254 */
+/* 255 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var baseTimes = __webpack_require__(255),
+	var baseTimes = __webpack_require__(256),
 	    isArguments = __webpack_require__(236),
 	    isArray = __webpack_require__(239),
 	    isBuffer = __webpack_require__(243),
-	    isIndex = __webpack_require__(256),
+	    isIndex = __webpack_require__(257),
 	    isTypedArray = __webpack_require__(246);
 
 	/** Used for built-in method references. */
@@ -23747,7 +23799,7 @@
 
 
 /***/ }),
-/* 255 */
+/* 256 */
 /***/ (function(module, exports) {
 
 	/**
@@ -23773,7 +23825,7 @@
 
 
 /***/ }),
-/* 256 */
+/* 257 */
 /***/ (function(module, exports) {
 
 	/** Used as references for various `Number` constants. */
@@ -23791,22 +23843,25 @@
 	 * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
 	 */
 	function isIndex(value, length) {
+	  var type = typeof value;
 	  length = length == null ? MAX_SAFE_INTEGER : length;
+
 	  return !!length &&
-	    (typeof value == 'number' || reIsUint.test(value)) &&
-	    (value > -1 && value % 1 == 0 && value < length);
+	    (type == 'number' ||
+	      (type != 'symbol' && reIsUint.test(value))) &&
+	        (value > -1 && value % 1 == 0 && value < length);
 	}
 
 	module.exports = isIndex;
 
 
 /***/ }),
-/* 257 */
+/* 258 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(199),
 	    isPrototype = __webpack_require__(235),
-	    nativeKeysIn = __webpack_require__(258);
+	    nativeKeysIn = __webpack_require__(259);
 
 	/** Used for built-in method references. */
 	var objectProto = Object.prototype;
@@ -23840,7 +23895,7 @@
 
 
 /***/ }),
-/* 258 */
+/* 259 */
 /***/ (function(module, exports) {
 
 	/**
@@ -23866,11 +23921,11 @@
 
 
 /***/ }),
-/* 259 */
+/* 260 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var baseRest = __webpack_require__(260),
-	    isIterateeCall = __webpack_require__(268);
+	var baseRest = __webpack_require__(261),
+	    isIterateeCall = __webpack_require__(269);
 
 	/**
 	 * Creates a function like `_.assign`.
@@ -23909,12 +23964,12 @@
 
 
 /***/ }),
-/* 260 */
+/* 261 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var identity = __webpack_require__(261),
-	    overRest = __webpack_require__(262),
-	    setToString = __webpack_require__(264);
+	var identity = __webpack_require__(262),
+	    overRest = __webpack_require__(263),
+	    setToString = __webpack_require__(265);
 
 	/**
 	 * The base implementation of `_.rest` which doesn't validate or coerce arguments.
@@ -23932,7 +23987,7 @@
 
 
 /***/ }),
-/* 261 */
+/* 262 */
 /***/ (function(module, exports) {
 
 	/**
@@ -23959,10 +24014,10 @@
 
 
 /***/ }),
-/* 262 */
+/* 263 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var apply = __webpack_require__(263);
+	var apply = __webpack_require__(264);
 
 	/* Built-in method references for those with the same name as other `lodash` methods. */
 	var nativeMax = Math.max;
@@ -24001,7 +24056,7 @@
 
 
 /***/ }),
-/* 263 */
+/* 264 */
 /***/ (function(module, exports) {
 
 	/**
@@ -24028,11 +24083,11 @@
 
 
 /***/ }),
-/* 264 */
+/* 265 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var baseSetToString = __webpack_require__(265),
-	    shortOut = __webpack_require__(267);
+	var baseSetToString = __webpack_require__(266),
+	    shortOut = __webpack_require__(268);
 
 	/**
 	 * Sets the `toString` method of `func` to return `string`.
@@ -24048,12 +24103,12 @@
 
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var constant = __webpack_require__(266),
+	var constant = __webpack_require__(267),
 	    defineProperty = __webpack_require__(221),
-	    identity = __webpack_require__(261);
+	    identity = __webpack_require__(262);
 
 	/**
 	 * The base implementation of `setToString` without support for hot loop shorting.
@@ -24076,7 +24131,7 @@
 
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, exports) {
 
 	/**
@@ -24108,7 +24163,7 @@
 
 
 /***/ }),
-/* 267 */
+/* 268 */
 /***/ (function(module, exports) {
 
 	/** Used to detect hot functions by number of calls within a span of milliseconds. */
@@ -24151,12 +24206,12 @@
 
 
 /***/ }),
-/* 268 */
+/* 269 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var eq = __webpack_require__(180),
 	    isArrayLike = __webpack_require__(241),
-	    isIndex = __webpack_require__(256),
+	    isIndex = __webpack_require__(257),
 	    isObject = __webpack_require__(199);
 
 	/**
@@ -24187,7 +24242,7 @@
 
 
 /***/ }),
-/* 269 */
+/* 270 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -24424,7 +24479,7 @@
 	}
 
 /***/ }),
-/* 270 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -24433,11 +24488,11 @@
 	  value: true
 	});
 
-	var _colors = __webpack_require__(271);
+	var _colors = __webpack_require__(272);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _spacing = __webpack_require__(272);
+	var _spacing = __webpack_require__(273);
 
 	var _spacing2 = _interopRequireDefault(_spacing);
 
@@ -24473,7 +24528,7 @@
 	    */
 
 /***/ }),
-/* 271 */
+/* 272 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -24768,7 +24823,7 @@
 	var lightWhite = exports.lightWhite = 'rgba(255, 255, 255, 0.54)';
 
 /***/ }),
-/* 272 */
+/* 273 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -24792,7 +24847,7 @@
 	};
 
 /***/ }),
-/* 273 */
+/* 274 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -24814,7 +24869,7 @@
 	};
 
 /***/ }),
-/* 274 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -24863,11 +24918,11 @@
 	  }
 	};
 
-	var _inlineStylePrefixer = __webpack_require__(275);
+	var _inlineStylePrefixer = __webpack_require__(276);
 
 	var _inlineStylePrefixer2 = _interopRequireDefault(_inlineStylePrefixer);
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -24876,7 +24931,7 @@
 	var hasWarnedAboutUserAgent = false;
 
 /***/ }),
-/* 275 */
+/* 276 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -24889,67 +24944,67 @@
 	// special flexbox specifications
 
 
-	var _prefixAll2 = __webpack_require__(276);
+	var _prefixAll2 = __webpack_require__(277);
 
 	var _prefixAll3 = _interopRequireDefault(_prefixAll2);
 
-	var _getBrowserInformation = __webpack_require__(293);
+	var _getBrowserInformation = __webpack_require__(294);
 
 	var _getBrowserInformation2 = _interopRequireDefault(_getBrowserInformation);
 
-	var _getPrefixedKeyframes = __webpack_require__(296);
+	var _getPrefixedKeyframes = __webpack_require__(297);
 
 	var _getPrefixedKeyframes2 = _interopRequireDefault(_getPrefixedKeyframes);
 
-	var _capitalizeString = __webpack_require__(278);
+	var _capitalizeString = __webpack_require__(279);
 
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 
-	var _sortPrefixedStyle = __webpack_require__(279);
+	var _sortPrefixedStyle = __webpack_require__(280);
 
 	var _sortPrefixedStyle2 = _interopRequireDefault(_sortPrefixedStyle);
 
-	var _prefixProps = __webpack_require__(297);
+	var _prefixProps = __webpack_require__(298);
 
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 
-	var _position = __webpack_require__(298);
+	var _position = __webpack_require__(299);
 
 	var _position2 = _interopRequireDefault(_position);
 
-	var _calc = __webpack_require__(300);
+	var _calc = __webpack_require__(301);
 
 	var _calc2 = _interopRequireDefault(_calc);
 
-	var _zoomCursor = __webpack_require__(301);
+	var _zoomCursor = __webpack_require__(302);
 
 	var _zoomCursor2 = _interopRequireDefault(_zoomCursor);
 
-	var _grabCursor = __webpack_require__(302);
+	var _grabCursor = __webpack_require__(303);
 
 	var _grabCursor2 = _interopRequireDefault(_grabCursor);
 
-	var _flex = __webpack_require__(303);
+	var _flex = __webpack_require__(304);
 
 	var _flex2 = _interopRequireDefault(_flex);
 
-	var _sizing = __webpack_require__(304);
+	var _sizing = __webpack_require__(305);
 
 	var _sizing2 = _interopRequireDefault(_sizing);
 
-	var _gradient = __webpack_require__(305);
+	var _gradient = __webpack_require__(306);
 
 	var _gradient2 = _interopRequireDefault(_gradient);
 
-	var _transition = __webpack_require__(306);
+	var _transition = __webpack_require__(307);
 
 	var _transition2 = _interopRequireDefault(_transition);
 
-	var _flexboxIE = __webpack_require__(308);
+	var _flexboxIE = __webpack_require__(309);
 
 	var _flexboxIE2 = _interopRequireDefault(_flexboxIE);
 
-	var _flexboxOld = __webpack_require__(309);
+	var _flexboxOld = __webpack_require__(310);
 
 	var _flexboxOld2 = _interopRequireDefault(_flexboxOld);
 
@@ -25110,7 +25165,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 276 */
+/* 277 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25120,51 +25175,51 @@
 	});
 	exports.default = prefixAll;
 
-	var _prefixProps = __webpack_require__(277);
+	var _prefixProps = __webpack_require__(278);
 
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 
-	var _capitalizeString = __webpack_require__(278);
+	var _capitalizeString = __webpack_require__(279);
 
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 
-	var _sortPrefixedStyle = __webpack_require__(279);
+	var _sortPrefixedStyle = __webpack_require__(280);
 
 	var _sortPrefixedStyle2 = _interopRequireDefault(_sortPrefixedStyle);
 
-	var _position = __webpack_require__(281);
+	var _position = __webpack_require__(282);
 
 	var _position2 = _interopRequireDefault(_position);
 
-	var _calc = __webpack_require__(282);
+	var _calc = __webpack_require__(283);
 
 	var _calc2 = _interopRequireDefault(_calc);
 
-	var _cursor = __webpack_require__(285);
+	var _cursor = __webpack_require__(286);
 
 	var _cursor2 = _interopRequireDefault(_cursor);
 
-	var _flex = __webpack_require__(286);
+	var _flex = __webpack_require__(287);
 
 	var _flex2 = _interopRequireDefault(_flex);
 
-	var _sizing = __webpack_require__(287);
+	var _sizing = __webpack_require__(288);
 
 	var _sizing2 = _interopRequireDefault(_sizing);
 
-	var _gradient = __webpack_require__(288);
+	var _gradient = __webpack_require__(289);
 
 	var _gradient2 = _interopRequireDefault(_gradient);
 
-	var _transition = __webpack_require__(289);
+	var _transition = __webpack_require__(290);
 
 	var _transition2 = _interopRequireDefault(_transition);
 
-	var _flexboxIE = __webpack_require__(291);
+	var _flexboxIE = __webpack_require__(292);
 
 	var _flexboxIE2 = _interopRequireDefault(_flexboxIE);
 
-	var _flexboxOld = __webpack_require__(292);
+	var _flexboxOld = __webpack_require__(293);
 
 	var _flexboxOld2 = _interopRequireDefault(_flexboxOld);
 
@@ -25230,7 +25285,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 277 */
+/* 278 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -25242,7 +25297,7 @@
 	module.exports = exports["default"];
 
 /***/ }),
-/* 278 */
+/* 279 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -25259,7 +25314,7 @@
 	module.exports = exports["default"];
 
 /***/ }),
-/* 279 */
+/* 280 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25269,7 +25324,7 @@
 	});
 	exports.default = sortPrefixedStyle;
 
-	var _isPrefixedProperty = __webpack_require__(280);
+	var _isPrefixedProperty = __webpack_require__(281);
 
 	var _isPrefixedProperty2 = _interopRequireDefault(_isPrefixedProperty);
 
@@ -25291,7 +25346,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 280 */
+/* 281 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -25307,7 +25362,7 @@
 	module.exports = exports["default"];
 
 /***/ }),
-/* 281 */
+/* 282 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25324,7 +25379,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 282 */
+/* 283 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25334,11 +25389,11 @@
 	});
 	exports.default = calc;
 
-	var _joinPrefixedValue = __webpack_require__(283);
+	var _joinPrefixedValue = __webpack_require__(284);
 
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 
-	var _isPrefixedValue = __webpack_require__(284);
+	var _isPrefixedValue = __webpack_require__(285);
 
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 
@@ -25354,7 +25409,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 283 */
+/* 284 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25379,7 +25434,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 284 */
+/* 285 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25397,7 +25452,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 285 */
+/* 286 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25407,7 +25462,7 @@
 	});
 	exports.default = cursor;
 
-	var _joinPrefixedValue = __webpack_require__(283);
+	var _joinPrefixedValue = __webpack_require__(284);
 
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 
@@ -25428,7 +25483,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 286 */
+/* 287 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25449,7 +25504,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 287 */
+/* 288 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25459,7 +25514,7 @@
 	});
 	exports.default = sizing;
 
-	var _joinPrefixedValue = __webpack_require__(283);
+	var _joinPrefixedValue = __webpack_require__(284);
 
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 
@@ -25490,7 +25545,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 288 */
+/* 289 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25500,11 +25555,11 @@
 	});
 	exports.default = gradient;
 
-	var _joinPrefixedValue = __webpack_require__(283);
+	var _joinPrefixedValue = __webpack_require__(284);
 
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 
-	var _isPrefixedValue = __webpack_require__(284);
+	var _isPrefixedValue = __webpack_require__(285);
 
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 
@@ -25520,7 +25575,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 289 */
+/* 290 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25530,19 +25585,19 @@
 	});
 	exports.default = transition;
 
-	var _hyphenateStyleName = __webpack_require__(290);
+	var _hyphenateStyleName = __webpack_require__(291);
 
 	var _hyphenateStyleName2 = _interopRequireDefault(_hyphenateStyleName);
 
-	var _capitalizeString = __webpack_require__(278);
+	var _capitalizeString = __webpack_require__(279);
 
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 
-	var _isPrefixedValue = __webpack_require__(284);
+	var _isPrefixedValue = __webpack_require__(285);
 
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 
-	var _prefixProps = __webpack_require__(277);
+	var _prefixProps = __webpack_require__(278);
 
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 
@@ -25607,7 +25662,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 290 */
+/* 291 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25629,7 +25684,7 @@
 
 
 /***/ }),
-/* 291 */
+/* 292 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25666,7 +25721,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 292 */
+/* 293 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -25707,7 +25762,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 293 */
+/* 294 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25716,7 +25771,7 @@
 	  value: true
 	});
 
-	var _bowser = __webpack_require__(294);
+	var _bowser = __webpack_require__(295);
 
 	var _bowser2 = _interopRequireDefault(_bowser);
 
@@ -25820,7 +25875,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 294 */
+/* 295 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/*!
@@ -25831,7 +25886,7 @@
 
 	!function (root, name, definition) {
 	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
-	  else if (true) __webpack_require__(295)(name, definition)
+	  else if (true) __webpack_require__(296)(name, definition)
 	  else root[name] = definition()
 	}(this, 'bowser', function () {
 	  /**
@@ -26441,14 +26496,14 @@
 
 
 /***/ }),
-/* 295 */
+/* 296 */
 /***/ (function(module, exports) {
 
 	module.exports = function() { throw new Error("define cannot be used indirect"); };
 
 
 /***/ }),
-/* 296 */
+/* 297 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -26473,7 +26528,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 297 */
+/* 298 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -26485,7 +26540,7 @@
 	module.exports = exports["default"];
 
 /***/ }),
-/* 298 */
+/* 299 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26495,7 +26550,7 @@
 	});
 	exports.default = position;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26517,7 +26572,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 299 */
+/* 300 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -26533,7 +26588,7 @@
 	module.exports = exports["default"];
 
 /***/ }),
-/* 300 */
+/* 301 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26543,7 +26598,7 @@
 	});
 	exports.default = calc;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26567,7 +26622,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 301 */
+/* 302 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26577,7 +26632,7 @@
 	});
 	exports.default = zoomCursor;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26603,7 +26658,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 302 */
+/* 303 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26613,7 +26668,7 @@
 	});
 	exports.default = grabCursor;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26638,7 +26693,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 303 */
+/* 304 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26648,7 +26703,7 @@
 	});
 	exports.default = flex;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26674,7 +26729,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 304 */
+/* 305 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26684,7 +26739,7 @@
 	});
 	exports.default = sizing;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26724,7 +26779,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 305 */
+/* 306 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26734,7 +26789,7 @@
 	});
 	exports.default = gradient;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26760,7 +26815,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 306 */
+/* 307 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26773,11 +26828,11 @@
 
 	exports.default = transition;
 
-	var _hyphenateStyleName = __webpack_require__(290);
+	var _hyphenateStyleName = __webpack_require__(291);
 
 	var _hyphenateStyleName2 = _interopRequireDefault(_hyphenateStyleName);
 
-	var _unprefixProperty = __webpack_require__(307);
+	var _unprefixProperty = __webpack_require__(308);
 
 	var _unprefixProperty2 = _interopRequireDefault(_unprefixProperty);
 
@@ -26826,7 +26881,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 307 */
+/* 308 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -26843,7 +26898,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 308 */
+/* 309 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26853,7 +26908,7 @@
 	});
 	exports.default = flexboxIE;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26907,7 +26962,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 309 */
+/* 310 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26917,7 +26972,7 @@
 	});
 	exports.default = flexboxOld;
 
-	var _getPrefixedValue = __webpack_require__(299);
+	var _getPrefixedValue = __webpack_require__(300);
 
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 
@@ -26978,7 +27033,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 310 */
+/* 311 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/**
@@ -27044,7 +27099,7 @@
 
 
 /***/ }),
-/* 311 */
+/* 312 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27054,7 +27109,7 @@
 	});
 	exports.default = callOnce;
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -27075,7 +27130,7 @@
 	}
 
 /***/ }),
-/* 312 */
+/* 313 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -27165,7 +27220,7 @@
 	}
 
 /***/ }),
-/* 313 */
+/* 314 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -27199,7 +27254,7 @@
 	}
 
 /***/ }),
-/* 314 */
+/* 315 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27208,7 +27263,7 @@
 	  value: true
 	});
 
-	var _colors = __webpack_require__(271);
+	var _colors = __webpack_require__(272);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -27235,7 +27290,7 @@
 	exports.default = new Typography();
 
 /***/ }),
-/* 315 */
+/* 316 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27245,16 +27300,16 @@
 	});
 	exports.default = undefined;
 
-	var _Chip = __webpack_require__(316);
+	var _AppBar = __webpack_require__(317);
 
-	var _Chip2 = _interopRequireDefault(_Chip);
+	var _AppBar2 = _interopRequireDefault(_AppBar);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	exports.default = _Chip2.default;
+	exports.default = _AppBar2.default;
 
 /***/ }),
-/* 316 */
+/* 317 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27267,7 +27322,9 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	exports.getStyles = getStyles;
+
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -27275,19 +27332,25 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _keycode = __webpack_require__(318);
+	var _IconButton = __webpack_require__(319);
 
-	var _keycode2 = _interopRequireDefault(_keycode);
+	var _IconButton2 = _interopRequireDefault(_IconButton);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _menu = __webpack_require__(346);
 
-	var _EnhancedButton = __webpack_require__(319);
+	var _menu2 = _interopRequireDefault(_menu);
 
-	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
+	var _Paper = __webpack_require__(356);
 
-	var _cancel = __webpack_require__(339);
+	var _Paper2 = _interopRequireDefault(_Paper);
 
-	var _cancel2 = _interopRequireDefault(_cancel);
+	var _propTypes = __webpack_require__(322);
+
+	var _propTypes2 = _interopRequireDefault(_propTypes);
+
+	var _warning = __webpack_require__(311);
+
+	var _warning2 = _interopRequireDefault(_warning);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -27299,290 +27362,320 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	function getStyles(props, context, state) {
-	  var chip = context.muiTheme.chip;
+	function getStyles(props, context) {
+	  var _context$muiTheme = context.muiTheme;
+	  var appBar = _context$muiTheme.appBar;
+	  var iconButtonSize = _context$muiTheme.button.iconButtonSize;
+	  var zIndex = _context$muiTheme.zIndex;
 
 
-	  var backgroundColor = props.backgroundColor || chip.backgroundColor;
-	  var focusColor = (0, _colorManipulator.emphasize)(backgroundColor, 0.08);
-	  var pressedColor = (0, _colorManipulator.emphasize)(backgroundColor, 0.12);
+	  var flatButtonSize = 36;
 
-	  return {
-	    avatar: {
-	      marginRight: -4
-	    },
-	    deleteIcon: {
-	      color: state.deleteHovered ? (0, _colorManipulator.fade)(chip.deleteIconColor, 0.4) : chip.deleteIconColor,
-	      cursor: 'pointer',
-	      margin: '4px 4px 0px -8px'
-	    },
-	    label: {
-	      color: props.labelColor || chip.textColor,
-	      fontSize: chip.fontSize,
-	      fontWeight: chip.fontWeight,
-	      lineHeight: '32px',
-	      paddingLeft: 12,
-	      paddingRight: 12,
-	      userSelect: 'none',
-	      whiteSpace: 'nowrap'
-	    },
+	  var styles = {
 	    root: {
-	      backgroundColor: state.clicked ? pressedColor : state.focused || state.hovered ? focusColor : backgroundColor,
-	      borderRadius: 16,
-	      boxShadow: state.clicked ? chip.shadow : null,
-	      cursor: props.onTouchTap ? 'pointer' : 'default',
+	      position: 'relative',
+	      zIndex: zIndex.appBar,
+	      width: '100%',
 	      display: 'flex',
+	      backgroundColor: appBar.color,
+	      paddingLeft: appBar.padding,
+	      paddingRight: appBar.padding
+	    },
+	    title: {
 	      whiteSpace: 'nowrap',
-	      width: 'fit-content'
+	      overflow: 'hidden',
+	      textOverflow: 'ellipsis',
+	      margin: 0,
+	      paddingTop: 0,
+	      letterSpacing: 0,
+	      fontSize: 24,
+	      fontWeight: appBar.titleFontWeight,
+	      color: appBar.textColor,
+	      height: appBar.height,
+	      lineHeight: appBar.height + 'px'
+	    },
+	    mainElement: {
+	      boxFlex: 1,
+	      flex: '1'
+	    },
+	    iconButtonStyle: {
+	      marginTop: (appBar.height - iconButtonSize) / 2,
+	      marginRight: 8,
+	      marginLeft: -16
+	    },
+	    iconButtonIconStyle: {
+	      fill: appBar.textColor,
+	      color: appBar.textColor
+	    },
+	    flatButton: {
+	      color: appBar.textColor,
+	      marginTop: (iconButtonSize - flatButtonSize) / 2 + 1
 	    }
 	  };
+
+	  return styles;
 	}
 
-	var Chip = function (_Component) {
-	  _inherits(Chip, _Component);
+	var AppBar = function (_Component) {
+	  _inherits(AppBar, _Component);
 
-	  function Chip() {
+	  function AppBar() {
 	    var _Object$getPrototypeO;
 
 	    var _temp, _this, _ret;
 
-	    _classCallCheck(this, Chip);
+	    _classCallCheck(this, AppBar);
 
 	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
 	      args[_key] = arguments[_key];
 	    }
 
-	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(Chip)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
-	      clicked: false,
-	      deleteHovered: false,
-	      focused: false,
-	      hovered: false
-	    }, _this.handleBlur = function (event) {
-	      _this.setState({ clicked: false, focused: false });
-	      _this.props.onBlur(event);
-	    }, _this.handleFocus = function (event) {
-	      if (_this.props.onTouchTap || _this.props.onRequestDelete) {
-	        _this.setState({ focused: true });
+	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(AppBar)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.handleTouchTapLeftIconButton = function (event) {
+	      if (_this.props.onLeftIconButtonTouchTap) {
+	        _this.props.onLeftIconButtonTouchTap(event);
 	      }
-	      _this.props.onFocus(event);
-	    }, _this.handleKeyboardFocus = function (event, keyboardFocused) {
-	      if (keyboardFocused) {
-	        _this.handleFocus();
-	        _this.props.onFocus(event);
-	      } else {
-	        _this.handleBlur();
+	    }, _this.handleTouchTapRightIconButton = function (event) {
+	      if (_this.props.onRightIconButtonTouchTap) {
+	        _this.props.onRightIconButtonTouchTap(event);
 	      }
-
-	      _this.props.onKeyboardFocus(event, keyboardFocused);
-	    }, _this.handleKeyDown = function (event) {
-	      if ((0, _keycode2.default)(event) === 'backspace') {
-	        event.preventDefault();
-	        if (_this.props.onRequestDelete) {
-	          _this.props.onRequestDelete(event);
-	        }
+	    }, _this.handleTitleTouchTap = function (event) {
+	      if (_this.props.onTitleTouchTap) {
+	        _this.props.onTitleTouchTap(event);
 	      }
-	      _this.props.onKeyDown(event);
-	    }, _this.handleMouseDown = function (event) {
-	      // Only listen to left clicks
-	      if (event.button === 0) {
-	        event.stopPropagation();
-	        if (_this.props.onTouchTap) {
-	          _this.setState({ clicked: true });
-	        }
-	      }
-	      _this.props.onMouseDown(event);
-	    }, _this.handleMouseEnter = function (event) {
-	      if (_this.props.onTouchTap) {
-	        _this.setState({ hovered: true });
-	      }
-	      _this.props.onMouseEnter(event);
-	    }, _this.handleMouseEnterDeleteIcon = function () {
-	      _this.setState({ deleteHovered: true });
-	    }, _this.handleMouseLeave = function (event) {
-	      _this.setState({
-	        clicked: false,
-	        hovered: false
-	      });
-	      _this.props.onMouseLeave(event);
-	    }, _this.handleMouseLeaveDeleteIcon = function () {
-	      _this.setState({ deleteHovered: false });
-	    }, _this.handleMouseUp = function (event) {
-	      _this.setState({ clicked: false });
-	      _this.props.onMouseUp(event);
-	    }, _this.handleTouchTapDeleteIcon = function (event) {
-	      // Stop the event from bubbling up to the `Chip`
-	      event.stopPropagation();
-	      _this.props.onRequestDelete(event);
-	    }, _this.handleTouchEnd = function (event) {
-	      _this.setState({ clicked: false });
-	      _this.props.onTouchEnd(event);
-	    }, _this.handleTouchStart = function (event) {
-	      event.stopPropagation();
-	      if (_this.props.onTouchTap) {
-	        _this.setState({ clicked: true });
-	      }
-	      _this.props.onTouchStart(event);
 	    }, _temp), _possibleConstructorReturn(_this, _ret);
 	  }
 
-	  _createClass(Chip, [{
+	  _createClass(AppBar, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	       false ? (0, _warning2.default)(!this.props.iconElementLeft || !this.props.iconClassNameLeft, 'Properties iconElementLeft\n      and iconClassNameLeft cannot be simultaneously defined. Please use one or the other.') : void 0;
+
+	       false ? (0, _warning2.default)(!this.props.iconElementRight || !this.props.iconClassNameRight, 'Properties iconElementRight\n      and iconClassNameRight cannot be simultaneously defined. Please use one or the other.') : void 0;
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
-	      var buttonEventHandlers = {
-	        onBlur: this.handleBlur,
-	        onFocus: this.handleFocus,
-	        onKeyDown: this.handleKeyDown,
-	        onMouseDown: this.handleMouseDown,
-	        onMouseEnter: this.handleMouseEnter,
-	        onMouseLeave: this.handleMouseLeave,
-	        onMouseUp: this.handleMouseUp,
-	        onTouchEnd: this.handleTouchEnd,
-	        onTouchStart: this.handleTouchStart,
-	        onKeyboardFocus: this.handleKeyboardFocus
-	      };
+	      var _props = this.props;
+	      var title = _props.title;
+	      var titleStyle = _props.titleStyle;
+	      var iconStyleLeft = _props.iconStyleLeft;
+	      var iconStyleRight = _props.iconStyleRight;
+	      var onTitleTouchTap = _props.onTitleTouchTap;
+	      var showMenuIconButton = _props.showMenuIconButton;
+	      var iconElementLeft = _props.iconElementLeft;
+	      var iconElementRight = _props.iconElementRight;
+	      var iconClassNameLeft = _props.iconClassNameLeft;
+	      var iconClassNameRight = _props.iconClassNameRight;
+	      var onLeftIconButtonTouchTap = _props.onLeftIconButtonTouchTap;
+	      var className = _props.className;
+	      var style = _props.style;
+	      var zDepth = _props.zDepth;
+	      var children = _props.children;
+
+	      var other = _objectWithoutProperties(_props, ['title', 'titleStyle', 'iconStyleLeft', 'iconStyleRight', 'onTitleTouchTap', 'showMenuIconButton', 'iconElementLeft', 'iconElementRight', 'iconClassNameLeft', 'iconClassNameRight', 'onLeftIconButtonTouchTap', 'className', 'style', 'zDepth', 'children']);
 
 	      var prepareStyles = this.context.muiTheme.prepareStyles;
 
-	      var styles = getStyles(this.props, this.context, this.state);
+	      var styles = getStyles(this.props, this.context);
 
-	      var _props = this.props;
-	      var children = _props.children;
-	      var style = _props.style;
-	      var className = _props.className;
-	      var labelStyle = _props.labelStyle;
-	      var labelColor = _props.labelColor;
-	      var backgroundColor = _props.backgroundColor;
-	      var onRequestDelete = _props.onRequestDelete;
+	      var menuElementLeft = void 0;
+	      var menuElementRight = void 0;
 
-	      var other = _objectWithoutProperties(_props, ['children', 'style', 'className', 'labelStyle', 'labelColor', 'backgroundColor', 'onRequestDelete']);
+	      // If the title is a string, wrap in an h1 tag.
+	      // If not, wrap in a div tag.
+	      var titleComponent = typeof title === 'string' || title instanceof String ? 'h1' : 'div';
 
-	      var deletable = this.props.onRequestDelete;
-	      var avatar = null;
+	      var titleElement = _react2.default.createElement(titleComponent, {
+	        onTouchTap: this.handleTitleTouchTap,
+	        style: prepareStyles((0, _simpleAssign2.default)(styles.title, styles.mainElement, titleStyle))
+	      }, title);
 
-	      style = (0, _simpleAssign2.default)(styles.root, style);
-	      labelStyle = prepareStyles((0, _simpleAssign2.default)(styles.label, labelStyle));
+	      var iconLeftStyle = (0, _simpleAssign2.default)({}, styles.iconButtonStyle, iconStyleLeft);
 
-	      var deleteIcon = deletable ? _react2.default.createElement(_cancel2.default, {
-	        color: styles.deleteIcon.color,
-	        style: styles.deleteIcon,
-	        onTouchTap: this.handleTouchTapDeleteIcon,
-	        onMouseEnter: this.handleMouseEnterDeleteIcon,
-	        onMouseLeave: this.handleMouseLeaveDeleteIcon
-	      }) : null;
+	      if (showMenuIconButton) {
+	        var iconElementLeftNode = iconElementLeft;
 
-	      var childCount = _react2.default.Children.count(children);
+	        if (iconElementLeft) {
+	          if (iconElementLeft.type.muiName === 'IconButton') {
+	            var iconElemLeftChildren = iconElementLeft.props.children;
+	            var iconButtonIconStyle = !(iconElemLeftChildren && iconElemLeftChildren.props && iconElemLeftChildren.props.color) ? styles.iconButtonIconStyle : null;
 
-	      // If the first child is an avatar, extract it and style it
-	      if (childCount > 1) {
-	        children = _react2.default.Children.toArray(children);
+	            iconElementLeftNode = _react2.default.cloneElement(iconElementLeft, {
+	              iconStyle: (0, _simpleAssign2.default)({}, iconButtonIconStyle, iconElementLeft.props.iconStyle)
+	            });
+	          }
 
-	        if (_react2.default.isValidElement(children[0]) && children[0].type.muiName === 'Avatar') {
-	          avatar = children.shift();
-
-	          avatar = _react2.default.cloneElement(avatar, {
-	            style: (0, _simpleAssign2.default)(styles.avatar, avatar.props.style),
-	            size: 32
-	          });
+	          menuElementLeft = _react2.default.createElement(
+	            'div',
+	            { style: prepareStyles(iconLeftStyle) },
+	            iconElementLeftNode
+	          );
+	        } else {
+	          var child = iconClassNameLeft ? '' : _react2.default.createElement(_menu2.default, { style: (0, _simpleAssign2.default)({}, styles.iconButtonIconStyle) });
+	          menuElementLeft = _react2.default.createElement(
+	            _IconButton2.default,
+	            {
+	              style: iconLeftStyle,
+	              iconStyle: styles.iconButtonIconStyle,
+	              iconClassName: iconClassNameLeft,
+	              onTouchTap: this.handleTouchTapLeftIconButton
+	            },
+	            child
+	          );
 	        }
 	      }
 
+	      var iconRightStyle = (0, _simpleAssign2.default)({}, styles.iconButtonStyle, {
+	        marginRight: -16,
+	        marginLeft: 'auto'
+	      }, iconStyleRight);
+
+	      if (iconElementRight) {
+	        var iconElementRightNode = iconElementRight;
+
+	        switch (iconElementRight.type.muiName) {
+	          case 'IconMenu':
+	          case 'IconButton':
+	            var iconElemRightChildren = iconElementRight.props.children;
+	            var _iconButtonIconStyle = !(iconElemRightChildren && iconElemRightChildren.props && iconElemRightChildren.props.color) ? styles.iconButtonIconStyle : null;
+
+	            iconElementRightNode = _react2.default.cloneElement(iconElementRight, {
+	              iconStyle: (0, _simpleAssign2.default)({}, _iconButtonIconStyle, iconElementRight.props.iconStyle)
+	            });
+	            break;
+
+	          case 'FlatButton':
+	            iconElementRightNode = _react2.default.cloneElement(iconElementRight, {
+	              style: (0, _simpleAssign2.default)({}, styles.flatButton, iconElementRight.props.style)
+	            });
+	            break;
+
+	          default:
+	        }
+
+	        menuElementRight = _react2.default.createElement(
+	          'div',
+	          { style: prepareStyles(iconRightStyle) },
+	          iconElementRightNode
+	        );
+	      } else if (iconClassNameRight) {
+	        menuElementRight = _react2.default.createElement(_IconButton2.default, {
+	          style: iconRightStyle,
+	          iconStyle: styles.iconButtonIconStyle,
+	          iconClassName: iconClassNameRight,
+	          onTouchTap: this.handleTouchTapRightIconButton
+	        });
+	      }
+
 	      return _react2.default.createElement(
-	        _EnhancedButton2.default,
-	        _extends({}, other, buttonEventHandlers, {
+	        _Paper2.default,
+	        _extends({}, other, {
+	          rounded: false,
 	          className: className,
-	          containerElement: 'div' // Firefox doesn't support nested buttons
-	          , disableTouchRipple: true,
-	          disableFocusRipple: true,
-	          style: style
+	          style: (0, _simpleAssign2.default)({}, styles.root, style),
+	          zDepth: zDepth
 	        }),
-	        avatar,
-	        _react2.default.createElement(
-	          'span',
-	          { style: labelStyle },
-	          children
-	        ),
-	        deleteIcon
+	        menuElementLeft,
+	        titleElement,
+	        menuElementRight,
+	        children
 	      );
 	    }
 	  }]);
 
-	  return Chip;
+	  return AppBar;
 	}(_react.Component);
 
-	Chip.propTypes = {
+	AppBar.muiName = 'AppBar';
+	AppBar.propTypes = {
 	  /**
-	   * Override the background color of the chip.
-	   */
-	  backgroundColor: _react.PropTypes.string,
-	  /**
-	   * Used to render elements inside the Chip.
+	   * Can be used to render a tab inside an app bar for instance.
 	   */
 	  children: _react.PropTypes.node,
 	  /**
-	   * CSS `className` of the root element.
+	   * Applied to the app bar's root element.
 	   */
-	  className: _react.PropTypes.node,
+	  className: _react.PropTypes.string,
 	  /**
-	   * Override the label color.
+	   * The classname of the icon on the left of the app bar.
+	   * If you are using a stylesheet for your icons, enter the class name for the icon to be used here.
 	   */
-	  labelColor: _react.PropTypes.string,
+	  iconClassNameLeft: _react.PropTypes.string,
 	  /**
-	   * Override the inline-styles of the label.
+	   * Similiar to the iconClassNameLeft prop except that
+	   * it applies to the icon displayed on the right of the app bar.
 	   */
-	  labelStyle: _react.PropTypes.object,
-	  /** @ignore */
-	  onBlur: _react.PropTypes.func,
-	  /** @ignore */
-	  onFocus: _react.PropTypes.func,
-	  /** @ignore */
-	  onKeyDown: _react.PropTypes.func,
-	  /** @ignore */
-	  onKeyboardFocus: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseDown: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseEnter: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseLeave: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseUp: _react.PropTypes.func,
+	  iconClassNameRight: _react.PropTypes.string,
 	  /**
-	   * Callback function fired when the delete icon is clicked. If set, the delete icon will be shown.
-	   * @param {object} event `touchTap` event targeting the element.
+	   * The custom element to be displayed on the left side of the
+	   * app bar such as an SvgIcon.
 	   */
-	  onRequestDelete: _react.PropTypes.func,
-	  /** @ignore */
-	  onTouchEnd: _react.PropTypes.func,
-	  /** @ignore */
-	  onTouchStart: _react.PropTypes.func,
+	  iconElementLeft: _react.PropTypes.element,
 	  /**
-	   * Callback function fired when the `Chip` element is touch-tapped.
+	   * Similiar to the iconElementLeft prop except that this element is displayed on the right of the app bar.
+	   */
+	  iconElementRight: _react.PropTypes.element,
+	  /**
+	   * Override the inline-styles of the element displayed on the left side of the app bar.
+	   */
+	  iconStyleLeft: _react.PropTypes.object,
+	  /**
+	   * Override the inline-styles of the element displayed on the right side of the app bar.
+	   */
+	  iconStyleRight: _react.PropTypes.object,
+	  /**
+	   * Callback function for when the left icon is selected via a touch tap.
 	   *
-	   * @param {object} event TouchTap event targeting the element.
+	   * @param {object} event TouchTap event targeting the left `IconButton`.
 	   */
-	  onTouchTap: _react.PropTypes.func,
+	  onLeftIconButtonTouchTap: _react.PropTypes.func,
+	  /**
+	   * Callback function for when the right icon is selected via a touch tap.
+	   *
+	   * @param {object} event TouchTap event targeting the right `IconButton`.
+	   */
+	  onRightIconButtonTouchTap: _react.PropTypes.func,
+	  /**
+	   * Callback function for when the title text is selected via a touch tap.
+	   *
+	   * @param {object} event TouchTap event targeting the `title` node.
+	   */
+	  onTitleTouchTap: _react.PropTypes.func,
+	  /**
+	   * Determines whether or not to display the Menu icon next to the title.
+	   * Setting this prop to false will hide the icon.
+	   */
+	  showMenuIconButton: _react.PropTypes.bool,
 	  /**
 	   * Override the inline-styles of the root element.
 	   */
-	  style: _react.PropTypes.object
+	  style: _react.PropTypes.object,
+	  /**
+	   * The title to display on the app bar.
+	   */
+	  title: _react.PropTypes.node,
+	  /**
+	   * Override the inline-styles of the app bar's title element.
+	   */
+	  titleStyle: _react.PropTypes.object,
+	  /**
+	   * The zDepth of the component.
+	   * The shadow of the app bar is also dependent on this property.
+	   */
+	  zDepth: _propTypes2.default.zDepth
 	};
-	Chip.defaultProps = {
-	  onBlur: function onBlur() {},
-	  onFocus: function onFocus() {},
-	  onKeyDown: function onKeyDown() {},
-	  onKeyboardFocus: function onKeyboardFocus() {},
-	  onMouseDown: function onMouseDown() {},
-	  onMouseEnter: function onMouseEnter() {},
-	  onMouseLeave: function onMouseLeave() {},
-	  onMouseUp: function onMouseUp() {},
-	  onTouchEnd: function onTouchEnd() {},
-	  onTouchStart: function onTouchStart() {}
+	AppBar.defaultProps = {
+	  showMenuIconButton: true,
+	  title: '',
+	  zDepth: 1
 	};
-	Chip.contextTypes = { muiTheme: _react.PropTypes.object.isRequired };
-	exports.default = Chip;
+	AppBar.contextTypes = {
+	  muiTheme: _react.PropTypes.object.isRequired
+	};
+	exports.default = AppBar;
 
 /***/ }),
-/* 317 */
+/* 318 */
 /***/ (function(module, exports) {
 
 	module.exports = function (target) {
@@ -27599,159 +27692,26 @@
 
 
 /***/ }),
-/* 318 */
-/***/ (function(module, exports) {
+/* 319 */
+/***/ (function(module, exports, __webpack_require__) {
 
-	// Source: http://jsfiddle.net/vWx8V/
-	// http://stackoverflow.com/questions/5603195/full-list-of-javascript-keycodes
+	'use strict';
 
-	/**
-	 * Conenience method returns corresponding value for given keyName or keyCode.
-	 *
-	 * @param {Mixed} keyCode {Number} or keyName {String}
-	 * @return {Mixed}
-	 * @api public
-	 */
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = undefined;
 
-	exports = module.exports = function(searchInput) {
-	  // Keyboard Events
-	  if (searchInput && 'object' === typeof searchInput) {
-	    var hasKeyCode = searchInput.which || searchInput.keyCode || searchInput.charCode
-	    if (hasKeyCode) searchInput = hasKeyCode
-	  }
+	var _IconButton = __webpack_require__(320);
 
-	  // Numbers
-	  if ('number' === typeof searchInput) return names[searchInput]
+	var _IconButton2 = _interopRequireDefault(_IconButton);
 
-	  // Everything else (cast to string)
-	  var search = String(searchInput)
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	  // check codes
-	  var foundNamedKey = codes[search.toLowerCase()]
-	  if (foundNamedKey) return foundNamedKey
-
-	  // check aliases
-	  var foundNamedKey = aliases[search.toLowerCase()]
-	  if (foundNamedKey) return foundNamedKey
-
-	  // weird character?
-	  if (search.length === 1) return search.charCodeAt(0)
-
-	  return undefined
-	}
-
-	/**
-	 * Get by name
-	 *
-	 *   exports.code['enter'] // => 13
-	 */
-
-	var codes = exports.code = exports.codes = {
-	  'backspace': 8,
-	  'tab': 9,
-	  'enter': 13,
-	  'shift': 16,
-	  'ctrl': 17,
-	  'alt': 18,
-	  'pause/break': 19,
-	  'caps lock': 20,
-	  'esc': 27,
-	  'space': 32,
-	  'page up': 33,
-	  'page down': 34,
-	  'end': 35,
-	  'home': 36,
-	  'left': 37,
-	  'up': 38,
-	  'right': 39,
-	  'down': 40,
-	  'insert': 45,
-	  'delete': 46,
-	  'command': 91,
-	  'left command': 91,
-	  'right command': 93,
-	  'numpad *': 106,
-	  'numpad +': 107,
-	  'numpad -': 109,
-	  'numpad .': 110,
-	  'numpad /': 111,
-	  'num lock': 144,
-	  'scroll lock': 145,
-	  'my computer': 182,
-	  'my calculator': 183,
-	  ';': 186,
-	  '=': 187,
-	  ',': 188,
-	  '-': 189,
-	  '.': 190,
-	  '/': 191,
-	  '`': 192,
-	  '[': 219,
-	  '\\': 220,
-	  ']': 221,
-	  "'": 222
-	}
-
-	// Helper aliases
-
-	var aliases = exports.aliases = {
-	  'windows': 91,
-	  '⇧': 16,
-	  '⌥': 18,
-	  '⌃': 17,
-	  '⌘': 91,
-	  'ctl': 17,
-	  'control': 17,
-	  'option': 18,
-	  'pause': 19,
-	  'break': 19,
-	  'caps': 20,
-	  'return': 13,
-	  'escape': 27,
-	  'spc': 32,
-	  'pgup': 33,
-	  'pgdn': 34,
-	  'ins': 45,
-	  'del': 46,
-	  'cmd': 91
-	}
-
-
-	/*!
-	 * Programatically add the following
-	 */
-
-	// lower case chars
-	for (i = 97; i < 123; i++) codes[String.fromCharCode(i)] = i - 32
-
-	// numbers
-	for (var i = 48; i < 58; i++) codes[i - 48] = i
-
-	// function keys
-	for (i = 1; i < 13; i++) codes['f'+i] = i + 111
-
-	// numpad keys
-	for (i = 0; i < 10; i++) codes['numpad '+i] = i + 96
-
-	/**
-	 * Get by code
-	 *
-	 *   exports.name[13] // => 'Enter'
-	 */
-
-	var names = exports.names = exports.title = {} // title for backward compat
-
-	// Create reverse mapping
-	for (i in codes) names[codes[i]] = i
-
-	// Add aliases
-	for (var alias in aliases) {
-	  codes[alias] = aliases[alias]
-	}
-
+	exports.default = _IconButton2.default;
 
 /***/ }),
-/* 319 */
+/* 320 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27764,7 +27724,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -27772,25 +27732,411 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _childUtils = __webpack_require__(320);
+	var _transitions = __webpack_require__(321);
 
-	var _events = __webpack_require__(322);
+	var _transitions2 = _interopRequireDefault(_transitions);
+
+	var _propTypes = __webpack_require__(322);
+
+	var _propTypes2 = _interopRequireDefault(_propTypes);
+
+	var _EnhancedButton = __webpack_require__(323);
+
+	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
+
+	var _FontIcon = __webpack_require__(343);
+
+	var _FontIcon2 = _interopRequireDefault(_FontIcon);
+
+	var _Tooltip = __webpack_require__(345);
+
+	var _Tooltip2 = _interopRequireDefault(_Tooltip);
+
+	var _childUtils = __webpack_require__(324);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	function getStyles(props, context) {
+	  var baseTheme = context.muiTheme.baseTheme;
+
+
+	  return {
+	    root: {
+	      position: 'relative',
+	      boxSizing: 'border-box',
+	      overflow: 'visible',
+	      transition: _transitions2.default.easeOut(),
+	      padding: baseTheme.spacing.iconSize / 2,
+	      width: baseTheme.spacing.iconSize * 2,
+	      height: baseTheme.spacing.iconSize * 2,
+	      fontSize: 0
+	    },
+	    tooltip: {
+	      boxSizing: 'border-box'
+	    },
+	    overlay: {
+	      position: 'relative',
+	      top: 0,
+	      width: '100%',
+	      height: '100%',
+	      background: baseTheme.palette.disabledColor
+	    },
+	    disabled: {
+	      color: baseTheme.palette.disabledColor,
+	      fill: baseTheme.palette.disabledColor,
+	      cursor: 'not-allowed'
+	    }
+	  };
+	}
+
+	var IconButton = function (_Component) {
+	  _inherits(IconButton, _Component);
+
+	  function IconButton() {
+	    var _Object$getPrototypeO;
+
+	    var _temp, _this, _ret;
+
+	    _classCallCheck(this, IconButton);
+
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
+
+	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(IconButton)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
+	      tooltipShown: false
+	    }, _this.handleBlur = function (event) {
+	      _this.hideTooltip();
+	      if (_this.props.onBlur) _this.props.onBlur(event);
+	    }, _this.handleFocus = function (event) {
+	      _this.showTooltip();
+	      if (_this.props.onFocus) _this.props.onFocus(event);
+	    }, _this.handleMouseLeave = function (event) {
+	      if (!_this.refs.button.isKeyboardFocused()) _this.hideTooltip();
+	      if (_this.props.onMouseLeave) _this.props.onMouseLeave(event);
+	    }, _this.handleMouseOut = function (event) {
+	      if (_this.props.disabled) _this.hideTooltip();
+	      if (_this.props.onMouseOut) _this.props.onMouseOut(event);
+	    }, _this.handleMouseEnter = function (event) {
+	      _this.showTooltip();
+	      if (_this.props.onMouseEnter) _this.props.onMouseEnter(event);
+	    }, _this.handleKeyboardFocus = function (event, keyboardFocused) {
+	      if (keyboardFocused && !_this.props.disabled) {
+	        _this.showTooltip();
+	        if (_this.props.onFocus) _this.props.onFocus(event);
+	      } else if (!_this.state.hovered) {
+	        _this.hideTooltip();
+	        if (_this.props.onBlur) _this.props.onBlur(event);
+	      }
+
+	      if (_this.props.onKeyboardFocus) {
+	        _this.props.onKeyboardFocus(event, keyboardFocused);
+	      }
+	    }, _temp), _possibleConstructorReturn(_this, _ret);
+	  }
+
+	  _createClass(IconButton, [{
+	    key: 'setKeyboardFocus',
+	    value: function setKeyboardFocus() {
+	      this.refs.button.setKeyboardFocus();
+	    }
+	  }, {
+	    key: 'showTooltip',
+	    value: function showTooltip() {
+	      if (this.props.tooltip) {
+	        this.setState({ tooltipShown: true });
+	      }
+	    }
+	  }, {
+	    key: 'hideTooltip',
+	    value: function hideTooltip() {
+	      if (this.props.tooltip) this.setState({ tooltipShown: false });
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      var _props = this.props;
+	      var disabled = _props.disabled;
+	      var disableTouchRipple = _props.disableTouchRipple;
+	      var children = _props.children;
+	      var iconClassName = _props.iconClassName;
+	      var onKeyboardFocus = _props.onKeyboardFocus;
+	      var tooltip = _props.tooltip;
+	      var tooltipPositionProp = _props.tooltipPosition;
+	      var tooltipStyles = _props.tooltipStyles;
+	      var touch = _props.touch;
+	      var iconStyle = _props.iconStyle;
+
+	      var other = _objectWithoutProperties(_props, ['disabled', 'disableTouchRipple', 'children', 'iconClassName', 'onKeyboardFocus', 'tooltip', 'tooltipPosition', 'tooltipStyles', 'touch', 'iconStyle']);
+
+	      var fonticon = void 0;
+
+	      var styles = getStyles(this.props, this.context);
+	      var tooltipPosition = tooltipPositionProp.split('-');
+
+	      var tooltipElement = tooltip ? _react2.default.createElement(_Tooltip2.default, {
+	        ref: 'tooltip',
+	        label: tooltip,
+	        show: this.state.tooltipShown,
+	        touch: touch,
+	        style: (0, _simpleAssign2.default)(styles.tooltip, tooltipStyles),
+	        verticalPosition: tooltipPosition[0],
+	        horizontalPosition: tooltipPosition[1]
+	      }) : null;
+
+	      if (iconClassName) {
+	        var iconHoverColor = iconStyle.iconHoverColor;
+
+	        var iconStyleFontIcon = _objectWithoutProperties(iconStyle, ['iconHoverColor']);
+
+	        fonticon = _react2.default.createElement(
+	          _FontIcon2.default,
+	          {
+	            className: iconClassName,
+	            hoverColor: disabled ? null : iconHoverColor,
+	            style: (0, _simpleAssign2.default)({}, disabled && styles.disabled, iconStyleFontIcon),
+	            color: this.context.muiTheme.baseTheme.palette.textColor
+	          },
+	          children
+	        );
+	      }
+
+	      var childrenStyle = disabled ? (0, _simpleAssign2.default)({}, iconStyle, styles.disabled) : iconStyle;
+
+	      return _react2.default.createElement(
+	        _EnhancedButton2.default,
+	        _extends({}, other, {
+	          ref: 'button',
+	          centerRipple: true,
+	          disabled: disabled,
+	          style: (0, _simpleAssign2.default)(styles.root, this.props.style),
+	          disableTouchRipple: disableTouchRipple,
+	          onBlur: this.handleBlur,
+	          onFocus: this.handleFocus,
+	          onMouseLeave: this.handleMouseLeave,
+	          onMouseEnter: this.handleMouseEnter,
+	          onMouseOut: this.handleMouseOut,
+	          onKeyboardFocus: this.handleKeyboardFocus
+	        }),
+	        tooltipElement,
+	        fonticon,
+	        (0, _childUtils.extendChildren)(children, {
+	          style: childrenStyle
+	        })
+	      );
+	    }
+	  }]);
+
+	  return IconButton;
+	}(_react.Component);
+
+	IconButton.muiName = 'IconButton';
+	IconButton.propTypes = {
+	  /**
+	   * Can be used to pass a `FontIcon` element as the icon for the button.
+	   */
+	  children: _react.PropTypes.node,
+	  /**
+	   * The CSS class name of the root element.
+	   */
+	  className: _react.PropTypes.string,
+	  /**
+	   * If true, the element's ripple effect will be disabled.
+	   */
+	  disableTouchRipple: _react.PropTypes.bool,
+	  /**
+	   * If true, the element will be disabled.
+	   */
+	  disabled: _react.PropTypes.bool,
+	  /**
+	   * The URL to link to when the button is clicked.
+	   */
+	  href: _react.PropTypes.string,
+	  /**
+	   * The CSS class name of the icon. Used for setting the icon with a stylesheet.
+	   */
+	  iconClassName: _react.PropTypes.string,
+	  /**
+	   * Override the inline-styles of the icon element.
+	   */
+	  iconStyle: _react.PropTypes.object,
+	  /** @ignore */
+	  onBlur: _react.PropTypes.func,
+	  /** @ignore */
+	  onFocus: _react.PropTypes.func,
+	  /**
+	   * Callback function fired when the element is focused or blurred by the keyboard.
+	   *
+	   * @param {object} event `focus` or `blur` event targeting the element.
+	   * @param {boolean} keyboardFocused Indicates whether the element is focused.
+	   */
+	  onKeyboardFocus: _react.PropTypes.func,
+	  /** @ignore */
+	  onMouseEnter: _react.PropTypes.func,
+	  /** @ignore */
+	  onMouseLeave: _react.PropTypes.func,
+	  /** @ignore */
+	  onMouseOut: _react.PropTypes.func,
+	  /**
+	   * Override the inline-styles of the root element.
+	   */
+	  style: _react.PropTypes.object,
+	  /**
+	   * The text to supply to the element's tooltip.
+	   */
+	  tooltip: _react.PropTypes.node,
+	  /**
+	   * The vertical and horizontal positions, respectively, of the element's tooltip.
+	   * Possible values are: "bottom-center", "top-center", "bottom-right", "top-right",
+	   * "bottom-left", and "top-left".
+	   */
+	  tooltipPosition: _propTypes2.default.cornersAndCenter,
+	  /**
+	   * Override the inline-styles of the tooltip element.
+	   */
+	  tooltipStyles: _react.PropTypes.object,
+	  /**
+	   * If true, increase the tooltip element's size.  Useful for increasing tooltip
+	   * readability on mobile devices.
+	   */
+	  touch: _react.PropTypes.bool
+	};
+	IconButton.defaultProps = {
+	  disabled: false,
+	  disableTouchRipple: false,
+	  iconStyle: {},
+	  tooltipPosition: 'bottom-center',
+	  touch: false
+	};
+	IconButton.contextTypes = {
+	  muiTheme: _react.PropTypes.object.isRequired
+	};
+	exports.default = IconButton;
+
+/***/ }),
+/* 321 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+
+	  easeOutFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+	  easeInOutFunction: 'cubic-bezier(0.445, 0.05, 0.55, 0.95)',
+
+	  easeOut: function easeOut(duration, property, delay, easeFunction) {
+	    easeFunction = easeFunction || this.easeOutFunction;
+
+	    if (property && Object.prototype.toString.call(property) === '[object Array]') {
+	      var transitions = '';
+	      for (var i = 0; i < property.length; i++) {
+	        if (transitions) transitions += ',';
+	        transitions += this.create(duration, property[i], delay, easeFunction);
+	      }
+
+	      return transitions;
+	    } else {
+	      return this.create(duration, property, delay, easeFunction);
+	    }
+	  },
+	  create: function create(duration, property, delay, easeFunction) {
+	    duration = duration || '450ms';
+	    property = property || 'all';
+	    delay = delay || '0ms';
+	    easeFunction = easeFunction || 'linear';
+
+	    return property + ' ' + duration + ' ' + easeFunction + ' ' + delay;
+	  }
+	};
+
+/***/ }),
+/* 322 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _react = __webpack_require__(2);
+
+	var horizontal = _react.PropTypes.oneOf(['left', 'middle', 'right']);
+	var vertical = _react.PropTypes.oneOf(['top', 'center', 'bottom']);
+
+	exports.default = {
+
+	  corners: _react.PropTypes.oneOf(['bottom-left', 'bottom-right', 'top-left', 'top-right']),
+
+	  horizontal: horizontal,
+
+	  vertical: vertical,
+
+	  origin: _react.PropTypes.shape({
+	    horizontal: horizontal,
+	    vertical: vertical
+	  }),
+
+	  cornersAndCenter: _react.PropTypes.oneOf(['bottom-center', 'bottom-left', 'bottom-right', 'top-center', 'top-left', 'top-right']),
+
+	  stringOrNumber: _react.PropTypes.oneOfType([_react.PropTypes.string, _react.PropTypes.number]),
+
+	  zDepth: _react.PropTypes.oneOf([0, 1, 2, 3, 4, 5])
+
+	};
+
+/***/ }),
+/* 323 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _simpleAssign = __webpack_require__(318);
+
+	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _childUtils = __webpack_require__(324);
+
+	var _events = __webpack_require__(326);
 
 	var _events2 = _interopRequireDefault(_events);
 
-	var _keycode = __webpack_require__(318);
+	var _keycode = __webpack_require__(327);
 
 	var _keycode2 = _interopRequireDefault(_keycode);
 
-	var _FocusRipple = __webpack_require__(323);
+	var _FocusRipple = __webpack_require__(328);
 
 	var _FocusRipple2 = _interopRequireDefault(_FocusRipple);
 
-	var _TouchRipple = __webpack_require__(335);
+	var _TouchRipple = __webpack_require__(339);
 
 	var _TouchRipple2 = _interopRequireDefault(_TouchRipple);
 
-	var _deprecatedPropType = __webpack_require__(338);
+	var _deprecatedPropType = __webpack_require__(342);
 
 	var _deprecatedPropType2 = _interopRequireDefault(_deprecatedPropType);
 
@@ -28157,7 +28503,7 @@
 	exports.default = EnhancedButton;
 
 /***/ }),
-/* 320 */
+/* 324 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28172,7 +28518,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _reactAddonsCreateFragment = __webpack_require__(321);
+	var _reactAddonsCreateFragment = __webpack_require__(325);
 
 	var _reactAddonsCreateFragment2 = _interopRequireDefault(_reactAddonsCreateFragment);
 
@@ -28210,7 +28556,7 @@
 	}
 
 /***/ }),
-/* 321 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/**
@@ -28562,7 +28908,7 @@
 
 
 /***/ }),
-/* 322 */
+/* 326 */
 /***/ (function(module, exports) {
 
 	'use strict';
@@ -28606,7 +28952,159 @@
 	};
 
 /***/ }),
-/* 323 */
+/* 327 */
+/***/ (function(module, exports) {
+
+	// Source: http://jsfiddle.net/vWx8V/
+	// http://stackoverflow.com/questions/5603195/full-list-of-javascript-keycodes
+
+	/**
+	 * Conenience method returns corresponding value for given keyName or keyCode.
+	 *
+	 * @param {Mixed} keyCode {Number} or keyName {String}
+	 * @return {Mixed}
+	 * @api public
+	 */
+
+	exports = module.exports = function(searchInput) {
+	  // Keyboard Events
+	  if (searchInput && 'object' === typeof searchInput) {
+	    var hasKeyCode = searchInput.which || searchInput.keyCode || searchInput.charCode
+	    if (hasKeyCode) searchInput = hasKeyCode
+	  }
+
+	  // Numbers
+	  if ('number' === typeof searchInput) return names[searchInput]
+
+	  // Everything else (cast to string)
+	  var search = String(searchInput)
+
+	  // check codes
+	  var foundNamedKey = codes[search.toLowerCase()]
+	  if (foundNamedKey) return foundNamedKey
+
+	  // check aliases
+	  var foundNamedKey = aliases[search.toLowerCase()]
+	  if (foundNamedKey) return foundNamedKey
+
+	  // weird character?
+	  if (search.length === 1) return search.charCodeAt(0)
+
+	  return undefined
+	}
+
+	/**
+	 * Get by name
+	 *
+	 *   exports.code['enter'] // => 13
+	 */
+
+	var codes = exports.code = exports.codes = {
+	  'backspace': 8,
+	  'tab': 9,
+	  'enter': 13,
+	  'shift': 16,
+	  'ctrl': 17,
+	  'alt': 18,
+	  'pause/break': 19,
+	  'caps lock': 20,
+	  'esc': 27,
+	  'space': 32,
+	  'page up': 33,
+	  'page down': 34,
+	  'end': 35,
+	  'home': 36,
+	  'left': 37,
+	  'up': 38,
+	  'right': 39,
+	  'down': 40,
+	  'insert': 45,
+	  'delete': 46,
+	  'command': 91,
+	  'left command': 91,
+	  'right command': 93,
+	  'numpad *': 106,
+	  'numpad +': 107,
+	  'numpad -': 109,
+	  'numpad .': 110,
+	  'numpad /': 111,
+	  'num lock': 144,
+	  'scroll lock': 145,
+	  'my computer': 182,
+	  'my calculator': 183,
+	  ';': 186,
+	  '=': 187,
+	  ',': 188,
+	  '-': 189,
+	  '.': 190,
+	  '/': 191,
+	  '`': 192,
+	  '[': 219,
+	  '\\': 220,
+	  ']': 221,
+	  "'": 222
+	}
+
+	// Helper aliases
+
+	var aliases = exports.aliases = {
+	  'windows': 91,
+	  '⇧': 16,
+	  '⌥': 18,
+	  '⌃': 17,
+	  '⌘': 91,
+	  'ctl': 17,
+	  'control': 17,
+	  'option': 18,
+	  'pause': 19,
+	  'break': 19,
+	  'caps': 20,
+	  'return': 13,
+	  'escape': 27,
+	  'spc': 32,
+	  'pgup': 33,
+	  'pgdn': 34,
+	  'ins': 45,
+	  'del': 46,
+	  'cmd': 91
+	}
+
+
+	/*!
+	 * Programatically add the following
+	 */
+
+	// lower case chars
+	for (i = 97; i < 123; i++) codes[String.fromCharCode(i)] = i - 32
+
+	// numbers
+	for (var i = 48; i < 58; i++) codes[i - 48] = i
+
+	// function keys
+	for (i = 1; i < 13; i++) codes['f'+i] = i + 111
+
+	// numpad keys
+	for (i = 0; i < 10; i++) codes['numpad '+i] = i + 96
+
+	/**
+	 * Get by code
+	 *
+	 *   exports.name[13] // => 'Enter'
+	 */
+
+	var names = exports.names = exports.title = {} // title for backward compat
+
+	// Create reverse mapping
+	for (i in codes) names[codes[i]] = i
+
+	// Add aliases
+	for (var alias in aliases) {
+	  codes[alias] = aliases[alias]
+	}
+
+
+/***/ }),
+/* 328 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28617,7 +29115,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -28629,19 +29127,19 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _shallowEqual = __webpack_require__(324);
+	var _shallowEqual = __webpack_require__(329);
 
 	var _shallowEqual2 = _interopRequireDefault(_shallowEqual);
 
-	var _autoPrefix = __webpack_require__(325);
+	var _autoPrefix = __webpack_require__(330);
 
 	var _autoPrefix2 = _interopRequireDefault(_autoPrefix);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _ScaleIn = __webpack_require__(327);
+	var _ScaleIn = __webpack_require__(331);
 
 	var _ScaleIn2 = _interopRequireDefault(_ScaleIn);
 
@@ -28795,7 +29293,7 @@
 	exports.default = FocusRipple;
 
 /***/ }),
-/* 324 */
+/* 329 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28811,7 +29309,7 @@
 	exports.default = _shallowEqual2.default;
 
 /***/ }),
-/* 325 */
+/* 330 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -28826,46 +29324,7 @@
 	};
 
 /***/ }),
-/* 326 */
-/***/ (function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = {
-
-	  easeOutFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
-	  easeInOutFunction: 'cubic-bezier(0.445, 0.05, 0.55, 0.95)',
-
-	  easeOut: function easeOut(duration, property, delay, easeFunction) {
-	    easeFunction = easeFunction || this.easeOutFunction;
-
-	    if (property && Object.prototype.toString.call(property) === '[object Array]') {
-	      var transitions = '';
-	      for (var i = 0; i < property.length; i++) {
-	        if (transitions) transitions += ',';
-	        transitions += this.create(duration, property[i], delay, easeFunction);
-	      }
-
-	      return transitions;
-	    } else {
-	      return this.create(duration, property, delay, easeFunction);
-	    }
-	  },
-	  create: function create(duration, property, delay, easeFunction) {
-	    duration = duration || '450ms';
-	    property = property || 'all';
-	    delay = delay || '0ms';
-	    easeFunction = easeFunction || 'linear';
-
-	    return property + ' ' + duration + ' ' + easeFunction + ' ' + delay;
-	  }
-	};
-
-/***/ }),
-/* 327 */
+/* 331 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28878,7 +29337,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -28886,11 +29345,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _reactAddonsTransitionGroup = __webpack_require__(328);
+	var _reactAddonsTransitionGroup = __webpack_require__(332);
 
 	var _reactAddonsTransitionGroup2 = _interopRequireDefault(_reactAddonsTransitionGroup);
 
-	var _ScaleInChild = __webpack_require__(334);
+	var _ScaleInChild = __webpack_require__(338);
 
 	var _ScaleInChild2 = _interopRequireDefault(_ScaleInChild);
 
@@ -28983,7 +29442,7 @@
 	exports.default = ScaleIn;
 
 /***/ }),
-/* 328 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/**
@@ -28995,11 +29454,11 @@
 
 	'use strict';
 
-	module.exports = __webpack_require__(329);
+	module.exports = __webpack_require__(333);
 
 
 /***/ }),
-/* 329 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29008,7 +29467,7 @@
 
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-	var _chainFunction = __webpack_require__(330);
+	var _chainFunction = __webpack_require__(334);
 
 	var _chainFunction2 = _interopRequireDefault(_chainFunction);
 
@@ -29016,15 +29475,15 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _propTypes = __webpack_require__(331);
+	var _propTypes = __webpack_require__(335);
 
 	var _propTypes2 = _interopRequireDefault(_propTypes);
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
-	var _ChildMapping = __webpack_require__(333);
+	var _ChildMapping = __webpack_require__(337);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -29273,7 +29732,7 @@
 	module.exports = exports['default'];
 
 /***/ }),
-/* 330 */
+/* 334 */
 /***/ (function(module, exports) {
 
 	
@@ -29299,7 +29758,7 @@
 
 
 /***/ }),
-/* 331 */
+/* 335 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/**
@@ -29328,12 +29787,12 @@
 	} else {
 	  // By explicitly using `prop-types` you are opting into new production behavior.
 	  // http://fb.me/prop-types-in-prod
-	  module.exports = __webpack_require__(332)();
+	  module.exports = __webpack_require__(336)();
 	}
 
 
 /***/ }),
-/* 332 */
+/* 336 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	/**
@@ -29397,7 +29856,7 @@
 
 
 /***/ }),
-/* 333 */
+/* 337 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29493,7 +29952,7 @@
 	}
 
 /***/ }),
-/* 334 */
+/* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29506,7 +29965,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -29518,11 +29977,11 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _autoPrefix = __webpack_require__(325);
+	var _autoPrefix = __webpack_require__(330);
 
 	var _autoPrefix2 = _interopRequireDefault(_autoPrefix);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
@@ -29652,7 +30111,7 @@
 	exports.default = ScaleInChild;
 
 /***/ }),
-/* 335 */
+/* 339 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29663,7 +30122,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -29675,15 +30134,15 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _reactAddonsTransitionGroup = __webpack_require__(328);
+	var _reactAddonsTransitionGroup = __webpack_require__(332);
 
 	var _reactAddonsTransitionGroup2 = _interopRequireDefault(_reactAddonsTransitionGroup);
 
-	var _dom = __webpack_require__(336);
+	var _dom = __webpack_require__(340);
 
 	var _dom2 = _interopRequireDefault(_dom);
 
-	var _CircleRipple = __webpack_require__(337);
+	var _CircleRipple = __webpack_require__(341);
 
 	var _CircleRipple2 = _interopRequireDefault(_CircleRipple);
 
@@ -29948,7 +30407,7 @@
 	exports.default = TouchRipple;
 
 /***/ }),
-/* 336 */
+/* 340 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -29977,7 +30436,7 @@
 	};
 
 /***/ }),
-/* 337 */
+/* 341 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29990,7 +30449,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -30002,15 +30461,15 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _shallowEqual = __webpack_require__(324);
+	var _shallowEqual = __webpack_require__(329);
 
 	var _shallowEqual2 = _interopRequireDefault(_shallowEqual);
 
-	var _autoPrefix = __webpack_require__(325);
+	var _autoPrefix = __webpack_require__(330);
 
 	var _autoPrefix2 = _interopRequireDefault(_autoPrefix);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
@@ -30138,7 +30597,7 @@
 	exports.default = CircleRipple;
 
 /***/ }),
-/* 338 */
+/* 342 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -30148,7 +30607,7 @@
 	});
 	exports.default = deprecated;
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -30181,1214 +30640,17 @@
 	}
 
 /***/ }),
-/* 339 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _react = __webpack_require__(2);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _pure = __webpack_require__(340);
-
-	var _pure2 = _interopRequireDefault(_pure);
-
-	var _SvgIcon = __webpack_require__(347);
-
-	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var NavigationCancel = function NavigationCancel(props) {
-	  return _react2.default.createElement(
-	    _SvgIcon2.default,
-	    props,
-	    _react2.default.createElement('path', { d: 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z' })
-	  );
-	};
-	NavigationCancel = (0, _pure2.default)(NavigationCancel);
-	NavigationCancel.displayName = 'NavigationCancel';
-	NavigationCancel.muiName = 'SvgIcon';
-
-	exports.default = NavigationCancel;
-
-/***/ }),
-/* 340 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _shouldUpdate = __webpack_require__(341);
-
-	var _shouldUpdate2 = _interopRequireDefault(_shouldUpdate);
-
-	var _shallowEqual = __webpack_require__(324);
-
-	var _shallowEqual2 = _interopRequireDefault(_shallowEqual);
-
-	var _createHelper = __webpack_require__(342);
-
-	var _createHelper2 = _interopRequireDefault(_createHelper);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var pure = (0, _shouldUpdate2.default)(function (props, nextProps) {
-	  return !(0, _shallowEqual2.default)(props, nextProps);
-	});
-
-	exports.default = (0, _createHelper2.default)(pure, 'pure', true, true);
-
-/***/ }),
-/* 341 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _react = __webpack_require__(2);
-
-	var _createHelper = __webpack_require__(342);
-
-	var _createHelper2 = _interopRequireDefault(_createHelper);
-
-	var _createEagerFactory = __webpack_require__(343);
-
-	var _createEagerFactory2 = _interopRequireDefault(_createEagerFactory);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var shouldUpdate = function shouldUpdate(test) {
-	  return function (BaseComponent) {
-	    var factory = (0, _createEagerFactory2.default)(BaseComponent);
-	    return function (_Component) {
-	      _inherits(_class, _Component);
-
-	      function _class() {
-	        _classCallCheck(this, _class);
-
-	        return _possibleConstructorReturn(this, _Component.apply(this, arguments));
-	      }
-
-	      _class.prototype.shouldComponentUpdate = function shouldComponentUpdate(nextProps) {
-	        return test(this.props, nextProps);
-	      };
-
-	      _class.prototype.render = function render() {
-	        return factory(this.props);
-	      };
-
-	      return _class;
-	    }(_react.Component);
-	  };
-	};
-
-	exports.default = (0, _createHelper2.default)(shouldUpdate, 'shouldUpdate');
-
-/***/ }),
-/* 342 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-	var createHelper = function createHelper(func, helperName) {
-	  var setDisplayName = arguments.length <= 2 || arguments[2] === undefined ? true : arguments[2];
-	  var noArgs = arguments.length <= 3 || arguments[3] === undefined ? false : arguments[3];
-
-	  if (false) {
-	    var _ret = function () {
-	      /* eslint-disable global-require */
-	      var wrapDisplayName = require('./wrapDisplayName').default;
-	      /* eslint-enable global-require */
-
-	      if (noArgs) {
-	        return {
-	          v: function v(BaseComponent) {
-	            var Component = func(BaseComponent);
-	            Component.displayName = wrapDisplayName(BaseComponent, helperName);
-	            return Component;
-	          }
-	        };
-	      }
-
-	      return {
-	        v: function v() {
-	          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	            args[_key] = arguments[_key];
-	          }
-
-	          if (args.length > func.length) {
-	            /* eslint-disable */
-	            console.error(
-	            /* eslint-enable */
-	            'Too many arguments passed to ' + helperName + '(). It should called ' + ('like so: ' + helperName + '(...args)(BaseComponent).'));
-	          }
-
-	          return function (BaseComponent) {
-	            var Component = func.apply(undefined, args)(BaseComponent);
-	            Component.displayName = wrapDisplayName(BaseComponent, helperName);
-	            return Component;
-	          };
-	        }
-	      };
-	    }();
-
-	    if (typeof _ret === "object") return _ret.v;
-	  }
-
-	  return func;
-	};
-
-	exports.default = createHelper;
-
-/***/ }),
 /* 343 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	exports.__esModule = true;
-
-	var _createEagerElementUtil = __webpack_require__(344);
-
-	var _createEagerElementUtil2 = _interopRequireDefault(_createEagerElementUtil);
-
-	var _isReferentiallyTransparentFunctionComponent = __webpack_require__(345);
-
-	var _isReferentiallyTransparentFunctionComponent2 = _interopRequireDefault(_isReferentiallyTransparentFunctionComponent);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var createFactory = function createFactory(type) {
-	  var isReferentiallyTransparent = (0, _isReferentiallyTransparentFunctionComponent2.default)(type);
-	  return function (p, c) {
-	    return (0, _createEagerElementUtil2.default)(false, isReferentiallyTransparent, type, p, c);
-	  };
-	};
-
-	exports.default = createFactory;
-
-/***/ }),
-/* 344 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var _react = __webpack_require__(2);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var createEagerElementUtil = function createEagerElementUtil(hasKey, isReferentiallyTransparent, type, props, children) {
-	  if (!hasKey && isReferentiallyTransparent) {
-	    if (children) {
-	      return type(_extends({}, props, { children: children }));
-	    }
-	    return type(props);
-	  }
-
-	  var Component = type;
-
-	  if (children) {
-	    return _react2.default.createElement(
-	      Component,
-	      props,
-	      children
-	    );
-	  }
-
-	  return _react2.default.createElement(Component, props);
-	};
-
-	exports.default = createEagerElementUtil;
-
-/***/ }),
-/* 345 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _isClassComponent = __webpack_require__(346);
-
-	var _isClassComponent2 = _interopRequireDefault(_isClassComponent);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var isReferentiallyTransparentFunctionComponent = function isReferentiallyTransparentFunctionComponent(Component) {
-	  return Boolean(typeof Component === 'function' && !(0, _isClassComponent2.default)(Component) && !Component.defaultProps && !Component.contextTypes && !Component.propTypes);
-	};
-
-	exports.default = isReferentiallyTransparentFunctionComponent;
-
-/***/ }),
-/* 346 */
-/***/ (function(module, exports) {
-
-	'use strict';
-
-	exports.__esModule = true;
-	var isClassComponent = function isClassComponent(Component) {
-	  return Boolean(Component && Component.prototype && typeof Component.prototype.isReactComponent === 'object');
-	};
-
-	exports.default = isClassComponent;
-
-/***/ }),
-/* 347 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
 	exports.default = undefined;
 
-	var _SvgIcon = __webpack_require__(348);
-
-	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	exports.default = _SvgIcon2.default;
-
-/***/ }),
-/* 348 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	var _simpleAssign = __webpack_require__(317);
-
-	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
-
-	var _react = __webpack_require__(2);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _transitions = __webpack_require__(326);
-
-	var _transitions2 = _interopRequireDefault(_transitions);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var SvgIcon = function (_Component) {
-	  _inherits(SvgIcon, _Component);
-
-	  function SvgIcon() {
-	    var _Object$getPrototypeO;
-
-	    var _temp, _this, _ret;
-
-	    _classCallCheck(this, SvgIcon);
-
-	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	      args[_key] = arguments[_key];
-	    }
-
-	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(SvgIcon)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
-	      hovered: false
-	    }, _this.handleMouseLeave = function (event) {
-	      _this.setState({ hovered: false });
-	      _this.props.onMouseLeave(event);
-	    }, _this.handleMouseEnter = function (event) {
-	      _this.setState({ hovered: true });
-	      _this.props.onMouseEnter(event);
-	    }, _temp), _possibleConstructorReturn(_this, _ret);
-	  }
-
-	  _createClass(SvgIcon, [{
-	    key: 'render',
-	    value: function render() {
-	      var _props = this.props;
-	      var children = _props.children;
-	      var color = _props.color;
-	      var hoverColor = _props.hoverColor;
-	      var onMouseEnter = _props.onMouseEnter;
-	      var onMouseLeave = _props.onMouseLeave;
-	      var style = _props.style;
-	      var viewBox = _props.viewBox;
-
-	      var other = _objectWithoutProperties(_props, ['children', 'color', 'hoverColor', 'onMouseEnter', 'onMouseLeave', 'style', 'viewBox']);
-
-	      var _context$muiTheme = this.context.muiTheme;
-	      var svgIcon = _context$muiTheme.svgIcon;
-	      var prepareStyles = _context$muiTheme.prepareStyles;
-
-
-	      var offColor = color ? color : 'currentColor';
-	      var onColor = hoverColor ? hoverColor : offColor;
-
-	      var mergedStyles = (0, _simpleAssign2.default)({
-	        display: 'inline-block',
-	        color: svgIcon.color,
-	        fill: this.state.hovered ? onColor : offColor,
-	        height: 24,
-	        width: 24,
-	        userSelect: 'none',
-	        transition: _transitions2.default.easeOut()
-	      }, style);
-
-	      return _react2.default.createElement(
-	        'svg',
-	        _extends({}, other, {
-	          onMouseEnter: this.handleMouseEnter,
-	          onMouseLeave: this.handleMouseLeave,
-	          style: prepareStyles(mergedStyles),
-	          viewBox: viewBox
-	        }),
-	        children
-	      );
-	    }
-	  }]);
-
-	  return SvgIcon;
-	}(_react.Component);
-
-	SvgIcon.muiName = 'SvgIcon';
-	SvgIcon.propTypes = {
-	  /**
-	   * Elements passed into the SVG Icon.
-	   */
-	  children: _react.PropTypes.node,
-	  /**
-	   * This is the fill color of the svg icon.
-	   * If not specified, this component will default
-	   * to muiTheme.palette.textColor.
-	   */
-	  color: _react.PropTypes.string,
-	  /**
-	   * This is the icon color when the mouse hovers over the icon.
-	   */
-	  hoverColor: _react.PropTypes.string,
-	  /** @ignore */
-	  onMouseEnter: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseLeave: _react.PropTypes.func,
-	  /**
-	   * Override the inline-styles of the root element.
-	   */
-	  style: _react.PropTypes.object,
-	  /**
-	   * Allows you to redefine what the coordinates
-	   * without units mean inside an svg element. For example,
-	   * if the SVG element is 500 (width) by 200 (height), and you
-	   * pass viewBox="0 0 50 20", this means that the coordinates inside
-	   * the svg will go from the top left corner (0,0) to bottom right (50,20)
-	   * and each unit will be worth 10px.
-	   */
-	  viewBox: _react.PropTypes.string
-	};
-	SvgIcon.defaultProps = {
-	  onMouseEnter: function onMouseEnter() {},
-	  onMouseLeave: function onMouseLeave() {},
-	  viewBox: '0 0 24 24'
-	};
-	SvgIcon.contextTypes = {
-	  muiTheme: _react.PropTypes.object.isRequired
-	};
-	exports.default = SvgIcon;
-
-/***/ }),
-/* 349 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = undefined;
-
-	var _AppBar = __webpack_require__(350);
-
-	var _AppBar2 = _interopRequireDefault(_AppBar);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	exports.default = _AppBar2.default;
-
-/***/ }),
-/* 350 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	exports.getStyles = getStyles;
-
-	var _simpleAssign = __webpack_require__(317);
-
-	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
-
-	var _react = __webpack_require__(2);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _IconButton = __webpack_require__(351);
-
-	var _IconButton2 = _interopRequireDefault(_IconButton);
-
-	var _menu = __webpack_require__(357);
-
-	var _menu2 = _interopRequireDefault(_menu);
-
-	var _Paper = __webpack_require__(358);
-
-	var _Paper2 = _interopRequireDefault(_Paper);
-
-	var _propTypes = __webpack_require__(353);
-
-	var _propTypes2 = _interopRequireDefault(_propTypes);
-
-	var _warning = __webpack_require__(310);
-
-	var _warning2 = _interopRequireDefault(_warning);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	function getStyles(props, context) {
-	  var _context$muiTheme = context.muiTheme;
-	  var appBar = _context$muiTheme.appBar;
-	  var iconButtonSize = _context$muiTheme.button.iconButtonSize;
-	  var zIndex = _context$muiTheme.zIndex;
-
-
-	  var flatButtonSize = 36;
-
-	  var styles = {
-	    root: {
-	      position: 'relative',
-	      zIndex: zIndex.appBar,
-	      width: '100%',
-	      display: 'flex',
-	      backgroundColor: appBar.color,
-	      paddingLeft: appBar.padding,
-	      paddingRight: appBar.padding
-	    },
-	    title: {
-	      whiteSpace: 'nowrap',
-	      overflow: 'hidden',
-	      textOverflow: 'ellipsis',
-	      margin: 0,
-	      paddingTop: 0,
-	      letterSpacing: 0,
-	      fontSize: 24,
-	      fontWeight: appBar.titleFontWeight,
-	      color: appBar.textColor,
-	      height: appBar.height,
-	      lineHeight: appBar.height + 'px'
-	    },
-	    mainElement: {
-	      boxFlex: 1,
-	      flex: '1'
-	    },
-	    iconButtonStyle: {
-	      marginTop: (appBar.height - iconButtonSize) / 2,
-	      marginRight: 8,
-	      marginLeft: -16
-	    },
-	    iconButtonIconStyle: {
-	      fill: appBar.textColor,
-	      color: appBar.textColor
-	    },
-	    flatButton: {
-	      color: appBar.textColor,
-	      marginTop: (iconButtonSize - flatButtonSize) / 2 + 1
-	    }
-	  };
-
-	  return styles;
-	}
-
-	var AppBar = function (_Component) {
-	  _inherits(AppBar, _Component);
-
-	  function AppBar() {
-	    var _Object$getPrototypeO;
-
-	    var _temp, _this, _ret;
-
-	    _classCallCheck(this, AppBar);
-
-	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	      args[_key] = arguments[_key];
-	    }
-
-	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(AppBar)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.handleTouchTapLeftIconButton = function (event) {
-	      if (_this.props.onLeftIconButtonTouchTap) {
-	        _this.props.onLeftIconButtonTouchTap(event);
-	      }
-	    }, _this.handleTouchTapRightIconButton = function (event) {
-	      if (_this.props.onRightIconButtonTouchTap) {
-	        _this.props.onRightIconButtonTouchTap(event);
-	      }
-	    }, _this.handleTitleTouchTap = function (event) {
-	      if (_this.props.onTitleTouchTap) {
-	        _this.props.onTitleTouchTap(event);
-	      }
-	    }, _temp), _possibleConstructorReturn(_this, _ret);
-	  }
-
-	  _createClass(AppBar, [{
-	    key: 'componentDidMount',
-	    value: function componentDidMount() {
-	       false ? (0, _warning2.default)(!this.props.iconElementLeft || !this.props.iconClassNameLeft, 'Properties iconElementLeft\n      and iconClassNameLeft cannot be simultaneously defined. Please use one or the other.') : void 0;
-
-	       false ? (0, _warning2.default)(!this.props.iconElementRight || !this.props.iconClassNameRight, 'Properties iconElementRight\n      and iconClassNameRight cannot be simultaneously defined. Please use one or the other.') : void 0;
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      var _props = this.props;
-	      var title = _props.title;
-	      var titleStyle = _props.titleStyle;
-	      var iconStyleLeft = _props.iconStyleLeft;
-	      var iconStyleRight = _props.iconStyleRight;
-	      var onTitleTouchTap = _props.onTitleTouchTap;
-	      var showMenuIconButton = _props.showMenuIconButton;
-	      var iconElementLeft = _props.iconElementLeft;
-	      var iconElementRight = _props.iconElementRight;
-	      var iconClassNameLeft = _props.iconClassNameLeft;
-	      var iconClassNameRight = _props.iconClassNameRight;
-	      var onLeftIconButtonTouchTap = _props.onLeftIconButtonTouchTap;
-	      var className = _props.className;
-	      var style = _props.style;
-	      var zDepth = _props.zDepth;
-	      var children = _props.children;
-
-	      var other = _objectWithoutProperties(_props, ['title', 'titleStyle', 'iconStyleLeft', 'iconStyleRight', 'onTitleTouchTap', 'showMenuIconButton', 'iconElementLeft', 'iconElementRight', 'iconClassNameLeft', 'iconClassNameRight', 'onLeftIconButtonTouchTap', 'className', 'style', 'zDepth', 'children']);
-
-	      var prepareStyles = this.context.muiTheme.prepareStyles;
-
-	      var styles = getStyles(this.props, this.context);
-
-	      var menuElementLeft = void 0;
-	      var menuElementRight = void 0;
-
-	      // If the title is a string, wrap in an h1 tag.
-	      // If not, wrap in a div tag.
-	      var titleComponent = typeof title === 'string' || title instanceof String ? 'h1' : 'div';
-
-	      var titleElement = _react2.default.createElement(titleComponent, {
-	        onTouchTap: this.handleTitleTouchTap,
-	        style: prepareStyles((0, _simpleAssign2.default)(styles.title, styles.mainElement, titleStyle))
-	      }, title);
-
-	      var iconLeftStyle = (0, _simpleAssign2.default)({}, styles.iconButtonStyle, iconStyleLeft);
-
-	      if (showMenuIconButton) {
-	        var iconElementLeftNode = iconElementLeft;
-
-	        if (iconElementLeft) {
-	          if (iconElementLeft.type.muiName === 'IconButton') {
-	            var iconElemLeftChildren = iconElementLeft.props.children;
-	            var iconButtonIconStyle = !(iconElemLeftChildren && iconElemLeftChildren.props && iconElemLeftChildren.props.color) ? styles.iconButtonIconStyle : null;
-
-	            iconElementLeftNode = _react2.default.cloneElement(iconElementLeft, {
-	              iconStyle: (0, _simpleAssign2.default)({}, iconButtonIconStyle, iconElementLeft.props.iconStyle)
-	            });
-	          }
-
-	          menuElementLeft = _react2.default.createElement(
-	            'div',
-	            { style: prepareStyles(iconLeftStyle) },
-	            iconElementLeftNode
-	          );
-	        } else {
-	          var child = iconClassNameLeft ? '' : _react2.default.createElement(_menu2.default, { style: (0, _simpleAssign2.default)({}, styles.iconButtonIconStyle) });
-	          menuElementLeft = _react2.default.createElement(
-	            _IconButton2.default,
-	            {
-	              style: iconLeftStyle,
-	              iconStyle: styles.iconButtonIconStyle,
-	              iconClassName: iconClassNameLeft,
-	              onTouchTap: this.handleTouchTapLeftIconButton
-	            },
-	            child
-	          );
-	        }
-	      }
-
-	      var iconRightStyle = (0, _simpleAssign2.default)({}, styles.iconButtonStyle, {
-	        marginRight: -16,
-	        marginLeft: 'auto'
-	      }, iconStyleRight);
-
-	      if (iconElementRight) {
-	        var iconElementRightNode = iconElementRight;
-
-	        switch (iconElementRight.type.muiName) {
-	          case 'IconMenu':
-	          case 'IconButton':
-	            var iconElemRightChildren = iconElementRight.props.children;
-	            var _iconButtonIconStyle = !(iconElemRightChildren && iconElemRightChildren.props && iconElemRightChildren.props.color) ? styles.iconButtonIconStyle : null;
-
-	            iconElementRightNode = _react2.default.cloneElement(iconElementRight, {
-	              iconStyle: (0, _simpleAssign2.default)({}, _iconButtonIconStyle, iconElementRight.props.iconStyle)
-	            });
-	            break;
-
-	          case 'FlatButton':
-	            iconElementRightNode = _react2.default.cloneElement(iconElementRight, {
-	              style: (0, _simpleAssign2.default)({}, styles.flatButton, iconElementRight.props.style)
-	            });
-	            break;
-
-	          default:
-	        }
-
-	        menuElementRight = _react2.default.createElement(
-	          'div',
-	          { style: prepareStyles(iconRightStyle) },
-	          iconElementRightNode
-	        );
-	      } else if (iconClassNameRight) {
-	        menuElementRight = _react2.default.createElement(_IconButton2.default, {
-	          style: iconRightStyle,
-	          iconStyle: styles.iconButtonIconStyle,
-	          iconClassName: iconClassNameRight,
-	          onTouchTap: this.handleTouchTapRightIconButton
-	        });
-	      }
-
-	      return _react2.default.createElement(
-	        _Paper2.default,
-	        _extends({}, other, {
-	          rounded: false,
-	          className: className,
-	          style: (0, _simpleAssign2.default)({}, styles.root, style),
-	          zDepth: zDepth
-	        }),
-	        menuElementLeft,
-	        titleElement,
-	        menuElementRight,
-	        children
-	      );
-	    }
-	  }]);
-
-	  return AppBar;
-	}(_react.Component);
-
-	AppBar.muiName = 'AppBar';
-	AppBar.propTypes = {
-	  /**
-	   * Can be used to render a tab inside an app bar for instance.
-	   */
-	  children: _react.PropTypes.node,
-	  /**
-	   * Applied to the app bar's root element.
-	   */
-	  className: _react.PropTypes.string,
-	  /**
-	   * The classname of the icon on the left of the app bar.
-	   * If you are using a stylesheet for your icons, enter the class name for the icon to be used here.
-	   */
-	  iconClassNameLeft: _react.PropTypes.string,
-	  /**
-	   * Similiar to the iconClassNameLeft prop except that
-	   * it applies to the icon displayed on the right of the app bar.
-	   */
-	  iconClassNameRight: _react.PropTypes.string,
-	  /**
-	   * The custom element to be displayed on the left side of the
-	   * app bar such as an SvgIcon.
-	   */
-	  iconElementLeft: _react.PropTypes.element,
-	  /**
-	   * Similiar to the iconElementLeft prop except that this element is displayed on the right of the app bar.
-	   */
-	  iconElementRight: _react.PropTypes.element,
-	  /**
-	   * Override the inline-styles of the element displayed on the left side of the app bar.
-	   */
-	  iconStyleLeft: _react.PropTypes.object,
-	  /**
-	   * Override the inline-styles of the element displayed on the right side of the app bar.
-	   */
-	  iconStyleRight: _react.PropTypes.object,
-	  /**
-	   * Callback function for when the left icon is selected via a touch tap.
-	   *
-	   * @param {object} event TouchTap event targeting the left `IconButton`.
-	   */
-	  onLeftIconButtonTouchTap: _react.PropTypes.func,
-	  /**
-	   * Callback function for when the right icon is selected via a touch tap.
-	   *
-	   * @param {object} event TouchTap event targeting the right `IconButton`.
-	   */
-	  onRightIconButtonTouchTap: _react.PropTypes.func,
-	  /**
-	   * Callback function for when the title text is selected via a touch tap.
-	   *
-	   * @param {object} event TouchTap event targeting the `title` node.
-	   */
-	  onTitleTouchTap: _react.PropTypes.func,
-	  /**
-	   * Determines whether or not to display the Menu icon next to the title.
-	   * Setting this prop to false will hide the icon.
-	   */
-	  showMenuIconButton: _react.PropTypes.bool,
-	  /**
-	   * Override the inline-styles of the root element.
-	   */
-	  style: _react.PropTypes.object,
-	  /**
-	   * The title to display on the app bar.
-	   */
-	  title: _react.PropTypes.node,
-	  /**
-	   * Override the inline-styles of the app bar's title element.
-	   */
-	  titleStyle: _react.PropTypes.object,
-	  /**
-	   * The zDepth of the component.
-	   * The shadow of the app bar is also dependent on this property.
-	   */
-	  zDepth: _propTypes2.default.zDepth
-	};
-	AppBar.defaultProps = {
-	  showMenuIconButton: true,
-	  title: '',
-	  zDepth: 1
-	};
-	AppBar.contextTypes = {
-	  muiTheme: _react.PropTypes.object.isRequired
-	};
-	exports.default = AppBar;
-
-/***/ }),
-/* 351 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = undefined;
-
-	var _IconButton = __webpack_require__(352);
-
-	var _IconButton2 = _interopRequireDefault(_IconButton);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	exports.default = _IconButton2.default;
-
-/***/ }),
-/* 352 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	var _simpleAssign = __webpack_require__(317);
-
-	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
-
-	var _react = __webpack_require__(2);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _transitions = __webpack_require__(326);
-
-	var _transitions2 = _interopRequireDefault(_transitions);
-
-	var _propTypes = __webpack_require__(353);
-
-	var _propTypes2 = _interopRequireDefault(_propTypes);
-
-	var _EnhancedButton = __webpack_require__(319);
-
-	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
-
-	var _FontIcon = __webpack_require__(354);
-
-	var _FontIcon2 = _interopRequireDefault(_FontIcon);
-
-	var _Tooltip = __webpack_require__(356);
-
-	var _Tooltip2 = _interopRequireDefault(_Tooltip);
-
-	var _childUtils = __webpack_require__(320);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	function getStyles(props, context) {
-	  var baseTheme = context.muiTheme.baseTheme;
-
-
-	  return {
-	    root: {
-	      position: 'relative',
-	      boxSizing: 'border-box',
-	      overflow: 'visible',
-	      transition: _transitions2.default.easeOut(),
-	      padding: baseTheme.spacing.iconSize / 2,
-	      width: baseTheme.spacing.iconSize * 2,
-	      height: baseTheme.spacing.iconSize * 2,
-	      fontSize: 0
-	    },
-	    tooltip: {
-	      boxSizing: 'border-box'
-	    },
-	    overlay: {
-	      position: 'relative',
-	      top: 0,
-	      width: '100%',
-	      height: '100%',
-	      background: baseTheme.palette.disabledColor
-	    },
-	    disabled: {
-	      color: baseTheme.palette.disabledColor,
-	      fill: baseTheme.palette.disabledColor,
-	      cursor: 'not-allowed'
-	    }
-	  };
-	}
-
-	var IconButton = function (_Component) {
-	  _inherits(IconButton, _Component);
-
-	  function IconButton() {
-	    var _Object$getPrototypeO;
-
-	    var _temp, _this, _ret;
-
-	    _classCallCheck(this, IconButton);
-
-	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	      args[_key] = arguments[_key];
-	    }
-
-	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(IconButton)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
-	      tooltipShown: false
-	    }, _this.handleBlur = function (event) {
-	      _this.hideTooltip();
-	      if (_this.props.onBlur) _this.props.onBlur(event);
-	    }, _this.handleFocus = function (event) {
-	      _this.showTooltip();
-	      if (_this.props.onFocus) _this.props.onFocus(event);
-	    }, _this.handleMouseLeave = function (event) {
-	      if (!_this.refs.button.isKeyboardFocused()) _this.hideTooltip();
-	      if (_this.props.onMouseLeave) _this.props.onMouseLeave(event);
-	    }, _this.handleMouseOut = function (event) {
-	      if (_this.props.disabled) _this.hideTooltip();
-	      if (_this.props.onMouseOut) _this.props.onMouseOut(event);
-	    }, _this.handleMouseEnter = function (event) {
-	      _this.showTooltip();
-	      if (_this.props.onMouseEnter) _this.props.onMouseEnter(event);
-	    }, _this.handleKeyboardFocus = function (event, keyboardFocused) {
-	      if (keyboardFocused && !_this.props.disabled) {
-	        _this.showTooltip();
-	        if (_this.props.onFocus) _this.props.onFocus(event);
-	      } else if (!_this.state.hovered) {
-	        _this.hideTooltip();
-	        if (_this.props.onBlur) _this.props.onBlur(event);
-	      }
-
-	      if (_this.props.onKeyboardFocus) {
-	        _this.props.onKeyboardFocus(event, keyboardFocused);
-	      }
-	    }, _temp), _possibleConstructorReturn(_this, _ret);
-	  }
-
-	  _createClass(IconButton, [{
-	    key: 'setKeyboardFocus',
-	    value: function setKeyboardFocus() {
-	      this.refs.button.setKeyboardFocus();
-	    }
-	  }, {
-	    key: 'showTooltip',
-	    value: function showTooltip() {
-	      if (this.props.tooltip) {
-	        this.setState({ tooltipShown: true });
-	      }
-	    }
-	  }, {
-	    key: 'hideTooltip',
-	    value: function hideTooltip() {
-	      if (this.props.tooltip) this.setState({ tooltipShown: false });
-	    }
-	  }, {
-	    key: 'render',
-	    value: function render() {
-	      var _props = this.props;
-	      var disabled = _props.disabled;
-	      var disableTouchRipple = _props.disableTouchRipple;
-	      var children = _props.children;
-	      var iconClassName = _props.iconClassName;
-	      var onKeyboardFocus = _props.onKeyboardFocus;
-	      var tooltip = _props.tooltip;
-	      var tooltipPositionProp = _props.tooltipPosition;
-	      var tooltipStyles = _props.tooltipStyles;
-	      var touch = _props.touch;
-	      var iconStyle = _props.iconStyle;
-
-	      var other = _objectWithoutProperties(_props, ['disabled', 'disableTouchRipple', 'children', 'iconClassName', 'onKeyboardFocus', 'tooltip', 'tooltipPosition', 'tooltipStyles', 'touch', 'iconStyle']);
-
-	      var fonticon = void 0;
-
-	      var styles = getStyles(this.props, this.context);
-	      var tooltipPosition = tooltipPositionProp.split('-');
-
-	      var tooltipElement = tooltip ? _react2.default.createElement(_Tooltip2.default, {
-	        ref: 'tooltip',
-	        label: tooltip,
-	        show: this.state.tooltipShown,
-	        touch: touch,
-	        style: (0, _simpleAssign2.default)(styles.tooltip, tooltipStyles),
-	        verticalPosition: tooltipPosition[0],
-	        horizontalPosition: tooltipPosition[1]
-	      }) : null;
-
-	      if (iconClassName) {
-	        var iconHoverColor = iconStyle.iconHoverColor;
-
-	        var iconStyleFontIcon = _objectWithoutProperties(iconStyle, ['iconHoverColor']);
-
-	        fonticon = _react2.default.createElement(
-	          _FontIcon2.default,
-	          {
-	            className: iconClassName,
-	            hoverColor: disabled ? null : iconHoverColor,
-	            style: (0, _simpleAssign2.default)({}, disabled && styles.disabled, iconStyleFontIcon),
-	            color: this.context.muiTheme.baseTheme.palette.textColor
-	          },
-	          children
-	        );
-	      }
-
-	      var childrenStyle = disabled ? (0, _simpleAssign2.default)({}, iconStyle, styles.disabled) : iconStyle;
-
-	      return _react2.default.createElement(
-	        _EnhancedButton2.default,
-	        _extends({}, other, {
-	          ref: 'button',
-	          centerRipple: true,
-	          disabled: disabled,
-	          style: (0, _simpleAssign2.default)(styles.root, this.props.style),
-	          disableTouchRipple: disableTouchRipple,
-	          onBlur: this.handleBlur,
-	          onFocus: this.handleFocus,
-	          onMouseLeave: this.handleMouseLeave,
-	          onMouseEnter: this.handleMouseEnter,
-	          onMouseOut: this.handleMouseOut,
-	          onKeyboardFocus: this.handleKeyboardFocus
-	        }),
-	        tooltipElement,
-	        fonticon,
-	        (0, _childUtils.extendChildren)(children, {
-	          style: childrenStyle
-	        })
-	      );
-	    }
-	  }]);
-
-	  return IconButton;
-	}(_react.Component);
-
-	IconButton.muiName = 'IconButton';
-	IconButton.propTypes = {
-	  /**
-	   * Can be used to pass a `FontIcon` element as the icon for the button.
-	   */
-	  children: _react.PropTypes.node,
-	  /**
-	   * The CSS class name of the root element.
-	   */
-	  className: _react.PropTypes.string,
-	  /**
-	   * If true, the element's ripple effect will be disabled.
-	   */
-	  disableTouchRipple: _react.PropTypes.bool,
-	  /**
-	   * If true, the element will be disabled.
-	   */
-	  disabled: _react.PropTypes.bool,
-	  /**
-	   * The URL to link to when the button is clicked.
-	   */
-	  href: _react.PropTypes.string,
-	  /**
-	   * The CSS class name of the icon. Used for setting the icon with a stylesheet.
-	   */
-	  iconClassName: _react.PropTypes.string,
-	  /**
-	   * Override the inline-styles of the icon element.
-	   */
-	  iconStyle: _react.PropTypes.object,
-	  /** @ignore */
-	  onBlur: _react.PropTypes.func,
-	  /** @ignore */
-	  onFocus: _react.PropTypes.func,
-	  /**
-	   * Callback function fired when the element is focused or blurred by the keyboard.
-	   *
-	   * @param {object} event `focus` or `blur` event targeting the element.
-	   * @param {boolean} keyboardFocused Indicates whether the element is focused.
-	   */
-	  onKeyboardFocus: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseEnter: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseLeave: _react.PropTypes.func,
-	  /** @ignore */
-	  onMouseOut: _react.PropTypes.func,
-	  /**
-	   * Override the inline-styles of the root element.
-	   */
-	  style: _react.PropTypes.object,
-	  /**
-	   * The text to supply to the element's tooltip.
-	   */
-	  tooltip: _react.PropTypes.node,
-	  /**
-	   * The vertical and horizontal positions, respectively, of the element's tooltip.
-	   * Possible values are: "bottom-center", "top-center", "bottom-right", "top-right",
-	   * "bottom-left", and "top-left".
-	   */
-	  tooltipPosition: _propTypes2.default.cornersAndCenter,
-	  /**
-	   * Override the inline-styles of the tooltip element.
-	   */
-	  tooltipStyles: _react.PropTypes.object,
-	  /**
-	   * If true, increase the tooltip element's size.  Useful for increasing tooltip
-	   * readability on mobile devices.
-	   */
-	  touch: _react.PropTypes.bool
-	};
-	IconButton.defaultProps = {
-	  disabled: false,
-	  disableTouchRipple: false,
-	  iconStyle: {},
-	  tooltipPosition: 'bottom-center',
-	  touch: false
-	};
-	IconButton.contextTypes = {
-	  muiTheme: _react.PropTypes.object.isRequired
-	};
-	exports.default = IconButton;
-
-/***/ }),
-/* 353 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _react = __webpack_require__(2);
-
-	var horizontal = _react.PropTypes.oneOf(['left', 'middle', 'right']);
-	var vertical = _react.PropTypes.oneOf(['top', 'center', 'bottom']);
-
-	exports.default = {
-
-	  corners: _react.PropTypes.oneOf(['bottom-left', 'bottom-right', 'top-left', 'top-right']),
-
-	  horizontal: horizontal,
-
-	  vertical: vertical,
-
-	  origin: _react.PropTypes.shape({
-	    horizontal: horizontal,
-	    vertical: vertical
-	  }),
-
-	  cornersAndCenter: _react.PropTypes.oneOf(['bottom-center', 'bottom-left', 'bottom-right', 'top-center', 'top-left', 'top-right']),
-
-	  stringOrNumber: _react.PropTypes.oneOfType([_react.PropTypes.string, _react.PropTypes.number]),
-
-	  zDepth: _react.PropTypes.oneOf([0, 1, 2, 3, 4, 5])
-
-	};
-
-/***/ }),
-/* 354 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = undefined;
-
-	var _FontIcon = __webpack_require__(355);
+	var _FontIcon = __webpack_require__(344);
 
 	var _FontIcon2 = _interopRequireDefault(_FontIcon);
 
@@ -31397,7 +30659,7 @@
 	exports.default = _FontIcon2.default;
 
 /***/ }),
-/* 355 */
+/* 344 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31410,7 +30672,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -31418,7 +30680,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
@@ -31543,7 +30805,7 @@
 	exports.default = FontIcon;
 
 /***/ }),
-/* 356 */
+/* 345 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31556,7 +30818,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -31564,7 +30826,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
@@ -31758,7 +31020,7 @@
 	exports.default = Tooltip;
 
 /***/ }),
-/* 357 */
+/* 346 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31771,11 +31033,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -31795,7 +31057,244 @@
 	exports.default = NavigationMenu;
 
 /***/ }),
-/* 358 */
+/* 347 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _shouldUpdate = __webpack_require__(348);
+
+	var _shouldUpdate2 = _interopRequireDefault(_shouldUpdate);
+
+	var _shallowEqual = __webpack_require__(329);
+
+	var _shallowEqual2 = _interopRequireDefault(_shallowEqual);
+
+	var _createHelper = __webpack_require__(349);
+
+	var _createHelper2 = _interopRequireDefault(_createHelper);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var pure = (0, _shouldUpdate2.default)(function (props, nextProps) {
+	  return !(0, _shallowEqual2.default)(props, nextProps);
+	});
+
+	exports.default = (0, _createHelper2.default)(pure, 'pure', true, true);
+
+/***/ }),
+/* 348 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _react = __webpack_require__(2);
+
+	var _createHelper = __webpack_require__(349);
+
+	var _createHelper2 = _interopRequireDefault(_createHelper);
+
+	var _createEagerFactory = __webpack_require__(350);
+
+	var _createEagerFactory2 = _interopRequireDefault(_createEagerFactory);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var shouldUpdate = function shouldUpdate(test) {
+	  return function (BaseComponent) {
+	    var factory = (0, _createEagerFactory2.default)(BaseComponent);
+	    return function (_Component) {
+	      _inherits(_class, _Component);
+
+	      function _class() {
+	        _classCallCheck(this, _class);
+
+	        return _possibleConstructorReturn(this, _Component.apply(this, arguments));
+	      }
+
+	      _class.prototype.shouldComponentUpdate = function shouldComponentUpdate(nextProps) {
+	        return test(this.props, nextProps);
+	      };
+
+	      _class.prototype.render = function render() {
+	        return factory(this.props);
+	      };
+
+	      return _class;
+	    }(_react.Component);
+	  };
+	};
+
+	exports.default = (0, _createHelper2.default)(shouldUpdate, 'shouldUpdate');
+
+/***/ }),
+/* 349 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+	var createHelper = function createHelper(func, helperName) {
+	  var setDisplayName = arguments.length <= 2 || arguments[2] === undefined ? true : arguments[2];
+	  var noArgs = arguments.length <= 3 || arguments[3] === undefined ? false : arguments[3];
+
+	  if (false) {
+	    var _ret = function () {
+	      /* eslint-disable global-require */
+	      var wrapDisplayName = require('./wrapDisplayName').default;
+	      /* eslint-enable global-require */
+
+	      if (noArgs) {
+	        return {
+	          v: function v(BaseComponent) {
+	            var Component = func(BaseComponent);
+	            Component.displayName = wrapDisplayName(BaseComponent, helperName);
+	            return Component;
+	          }
+	        };
+	      }
+
+	      return {
+	        v: function v() {
+	          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	            args[_key] = arguments[_key];
+	          }
+
+	          if (args.length > func.length) {
+	            /* eslint-disable */
+	            console.error(
+	            /* eslint-enable */
+	            'Too many arguments passed to ' + helperName + '(). It should called ' + ('like so: ' + helperName + '(...args)(BaseComponent).'));
+	          }
+
+	          return function (BaseComponent) {
+	            var Component = func.apply(undefined, args)(BaseComponent);
+	            Component.displayName = wrapDisplayName(BaseComponent, helperName);
+	            return Component;
+	          };
+	        }
+	      };
+	    }();
+
+	    if (typeof _ret === "object") return _ret.v;
+	  }
+
+	  return func;
+	};
+
+	exports.default = createHelper;
+
+/***/ }),
+/* 350 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _createEagerElementUtil = __webpack_require__(351);
+
+	var _createEagerElementUtil2 = _interopRequireDefault(_createEagerElementUtil);
+
+	var _isReferentiallyTransparentFunctionComponent = __webpack_require__(352);
+
+	var _isReferentiallyTransparentFunctionComponent2 = _interopRequireDefault(_isReferentiallyTransparentFunctionComponent);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var createFactory = function createFactory(type) {
+	  var isReferentiallyTransparent = (0, _isReferentiallyTransparentFunctionComponent2.default)(type);
+	  return function (p, c) {
+	    return (0, _createEagerElementUtil2.default)(false, isReferentiallyTransparent, type, p, c);
+	  };
+	};
+
+	exports.default = createFactory;
+
+/***/ }),
+/* 351 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var createEagerElementUtil = function createEagerElementUtil(hasKey, isReferentiallyTransparent, type, props, children) {
+	  if (!hasKey && isReferentiallyTransparent) {
+	    if (children) {
+	      return type(_extends({}, props, { children: children }));
+	    }
+	    return type(props);
+	  }
+
+	  var Component = type;
+
+	  if (children) {
+	    return _react2.default.createElement(
+	      Component,
+	      props,
+	      children
+	    );
+	  }
+
+	  return _react2.default.createElement(Component, props);
+	};
+
+	exports.default = createEagerElementUtil;
+
+/***/ }),
+/* 352 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _isClassComponent = __webpack_require__(353);
+
+	var _isClassComponent2 = _interopRequireDefault(_isClassComponent);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var isReferentiallyTransparentFunctionComponent = function isReferentiallyTransparentFunctionComponent(Component) {
+	  return Boolean(typeof Component === 'function' && !(0, _isClassComponent2.default)(Component) && !Component.defaultProps && !Component.contextTypes && !Component.propTypes);
+	};
+
+	exports.default = isReferentiallyTransparentFunctionComponent;
+
+/***/ }),
+/* 353 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	exports.__esModule = true;
+	var isClassComponent = function isClassComponent(Component) {
+	  return Boolean(Component && Component.prototype && typeof Component.prototype.isReactComponent === 'object');
+	};
+
+	exports.default = isClassComponent;
+
+/***/ }),
+/* 354 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31805,16 +31304,16 @@
 	});
 	exports.default = undefined;
 
-	var _Paper = __webpack_require__(359);
+	var _SvgIcon = __webpack_require__(355);
 
-	var _Paper2 = _interopRequireDefault(_Paper);
+	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	exports.default = _Paper2.default;
+	exports.default = _SvgIcon2.default;
 
 /***/ }),
-/* 359 */
+/* 355 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31827,7 +31326,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -31835,11 +31334,183 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _propTypes = __webpack_require__(353);
+	var _transitions = __webpack_require__(321);
+
+	var _transitions2 = _interopRequireDefault(_transitions);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var SvgIcon = function (_Component) {
+	  _inherits(SvgIcon, _Component);
+
+	  function SvgIcon() {
+	    var _Object$getPrototypeO;
+
+	    var _temp, _this, _ret;
+
+	    _classCallCheck(this, SvgIcon);
+
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
+
+	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(SvgIcon)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
+	      hovered: false
+	    }, _this.handleMouseLeave = function (event) {
+	      _this.setState({ hovered: false });
+	      _this.props.onMouseLeave(event);
+	    }, _this.handleMouseEnter = function (event) {
+	      _this.setState({ hovered: true });
+	      _this.props.onMouseEnter(event);
+	    }, _temp), _possibleConstructorReturn(_this, _ret);
+	  }
+
+	  _createClass(SvgIcon, [{
+	    key: 'render',
+	    value: function render() {
+	      var _props = this.props;
+	      var children = _props.children;
+	      var color = _props.color;
+	      var hoverColor = _props.hoverColor;
+	      var onMouseEnter = _props.onMouseEnter;
+	      var onMouseLeave = _props.onMouseLeave;
+	      var style = _props.style;
+	      var viewBox = _props.viewBox;
+
+	      var other = _objectWithoutProperties(_props, ['children', 'color', 'hoverColor', 'onMouseEnter', 'onMouseLeave', 'style', 'viewBox']);
+
+	      var _context$muiTheme = this.context.muiTheme;
+	      var svgIcon = _context$muiTheme.svgIcon;
+	      var prepareStyles = _context$muiTheme.prepareStyles;
+
+
+	      var offColor = color ? color : 'currentColor';
+	      var onColor = hoverColor ? hoverColor : offColor;
+
+	      var mergedStyles = (0, _simpleAssign2.default)({
+	        display: 'inline-block',
+	        color: svgIcon.color,
+	        fill: this.state.hovered ? onColor : offColor,
+	        height: 24,
+	        width: 24,
+	        userSelect: 'none',
+	        transition: _transitions2.default.easeOut()
+	      }, style);
+
+	      return _react2.default.createElement(
+	        'svg',
+	        _extends({}, other, {
+	          onMouseEnter: this.handleMouseEnter,
+	          onMouseLeave: this.handleMouseLeave,
+	          style: prepareStyles(mergedStyles),
+	          viewBox: viewBox
+	        }),
+	        children
+	      );
+	    }
+	  }]);
+
+	  return SvgIcon;
+	}(_react.Component);
+
+	SvgIcon.muiName = 'SvgIcon';
+	SvgIcon.propTypes = {
+	  /**
+	   * Elements passed into the SVG Icon.
+	   */
+	  children: _react.PropTypes.node,
+	  /**
+	   * This is the fill color of the svg icon.
+	   * If not specified, this component will default
+	   * to muiTheme.palette.textColor.
+	   */
+	  color: _react.PropTypes.string,
+	  /**
+	   * This is the icon color when the mouse hovers over the icon.
+	   */
+	  hoverColor: _react.PropTypes.string,
+	  /** @ignore */
+	  onMouseEnter: _react.PropTypes.func,
+	  /** @ignore */
+	  onMouseLeave: _react.PropTypes.func,
+	  /**
+	   * Override the inline-styles of the root element.
+	   */
+	  style: _react.PropTypes.object,
+	  /**
+	   * Allows you to redefine what the coordinates
+	   * without units mean inside an svg element. For example,
+	   * if the SVG element is 500 (width) by 200 (height), and you
+	   * pass viewBox="0 0 50 20", this means that the coordinates inside
+	   * the svg will go from the top left corner (0,0) to bottom right (50,20)
+	   * and each unit will be worth 10px.
+	   */
+	  viewBox: _react.PropTypes.string
+	};
+	SvgIcon.defaultProps = {
+	  onMouseEnter: function onMouseEnter() {},
+	  onMouseLeave: function onMouseLeave() {},
+	  viewBox: '0 0 24 24'
+	};
+	SvgIcon.contextTypes = {
+	  muiTheme: _react.PropTypes.object.isRequired
+	};
+	exports.default = SvgIcon;
+
+/***/ }),
+/* 356 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = undefined;
+
+	var _Paper = __webpack_require__(357);
+
+	var _Paper2 = _interopRequireDefault(_Paper);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = _Paper2.default;
+
+/***/ }),
+/* 357 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _simpleAssign = __webpack_require__(318);
+
+	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _propTypes = __webpack_require__(322);
 
 	var _propTypes2 = _interopRequireDefault(_propTypes);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
@@ -31953,7 +31624,7 @@
 	exports.default = Paper;
 
 /***/ }),
-/* 360 */
+/* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31963,15 +31634,15 @@
 	});
 	exports.default = exports.MakeSelectable = exports.ListItem = exports.List = undefined;
 
-	var _List2 = __webpack_require__(361);
+	var _List2 = __webpack_require__(359);
 
 	var _List3 = _interopRequireDefault(_List2);
 
-	var _ListItem2 = __webpack_require__(364);
+	var _ListItem2 = __webpack_require__(362);
 
 	var _ListItem3 = _interopRequireDefault(_ListItem2);
 
-	var _MakeSelectable2 = __webpack_require__(368);
+	var _MakeSelectable2 = __webpack_require__(366);
 
 	var _MakeSelectable3 = _interopRequireDefault(_MakeSelectable2);
 
@@ -31983,7 +31654,7 @@
 	exports.default = _List3.default;
 
 /***/ }),
-/* 361 */
+/* 359 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -31996,7 +31667,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -32004,19 +31675,19 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _propTypes = __webpack_require__(353);
+	var _propTypes = __webpack_require__(322);
 
 	var _propTypes2 = _interopRequireDefault(_propTypes);
 
-	var _Subheader = __webpack_require__(362);
+	var _Subheader = __webpack_require__(360);
 
 	var _Subheader2 = _interopRequireDefault(_Subheader);
 
-	var _deprecatedPropType = __webpack_require__(338);
+	var _deprecatedPropType = __webpack_require__(342);
 
 	var _deprecatedPropType2 = _interopRequireDefault(_deprecatedPropType);
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -32128,7 +31799,7 @@
 	exports.default = List;
 
 /***/ }),
-/* 362 */
+/* 360 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32138,7 +31809,7 @@
 	});
 	exports.default = undefined;
 
-	var _Subheader = __webpack_require__(363);
+	var _Subheader = __webpack_require__(361);
 
 	var _Subheader2 = _interopRequireDefault(_Subheader);
 
@@ -32147,7 +31818,7 @@
 	exports.default = _Subheader2.default;
 
 /***/ }),
-/* 363 */
+/* 361 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32158,7 +31829,7 @@
 
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -32232,7 +31903,7 @@
 	exports.default = Subheader;
 
 /***/ }),
-/* 364 */
+/* 362 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32245,7 +31916,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -32257,33 +31928,33 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _shallowEqual = __webpack_require__(324);
+	var _shallowEqual = __webpack_require__(329);
 
 	var _shallowEqual2 = _interopRequireDefault(_shallowEqual);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _EnhancedButton = __webpack_require__(319);
+	var _EnhancedButton = __webpack_require__(323);
 
 	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
 
-	var _IconButton = __webpack_require__(351);
+	var _IconButton = __webpack_require__(319);
 
 	var _IconButton2 = _interopRequireDefault(_IconButton);
 
-	var _expandLess = __webpack_require__(365);
+	var _expandLess = __webpack_require__(363);
 
 	var _expandLess2 = _interopRequireDefault(_expandLess);
 
-	var _expandMore = __webpack_require__(366);
+	var _expandMore = __webpack_require__(364);
 
 	var _expandMore2 = _interopRequireDefault(_expandMore);
 
-	var _NestedList = __webpack_require__(367);
+	var _NestedList = __webpack_require__(365);
 
 	var _NestedList2 = _interopRequireDefault(_NestedList);
 
@@ -32912,7 +32583,7 @@
 	exports.default = ListItem;
 
 /***/ }),
-/* 365 */
+/* 363 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32925,11 +32596,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -32949,7 +32620,7 @@
 	exports.default = NavigationExpandLess;
 
 /***/ }),
-/* 366 */
+/* 364 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32962,11 +32633,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -32986,7 +32657,7 @@
 	exports.default = NavigationExpandMore;
 
 /***/ }),
-/* 367 */
+/* 365 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -32997,7 +32668,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -33005,7 +32676,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _List = __webpack_require__(361);
+	var _List = __webpack_require__(359);
 
 	var _List2 = _interopRequireDefault(_List);
 
@@ -33072,7 +32743,7 @@
 	exports.default = NestedList;
 
 /***/ }),
-/* 368 */
+/* 366 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -33086,7 +32757,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -33094,9 +32765,9 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _deprecatedPropType = __webpack_require__(338);
+	var _deprecatedPropType = __webpack_require__(342);
 
 	var _deprecatedPropType2 = _interopRequireDefault(_deprecatedPropType);
 
@@ -33244,7 +32915,7 @@
 	exports.default = MakeSelectable;
 
 /***/ }),
-/* 369 */
+/* 367 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -33254,7 +32925,7 @@
 	});
 	exports.default = undefined;
 
-	var _Slider = __webpack_require__(370);
+	var _Slider = __webpack_require__(368);
 
 	var _Slider2 = _interopRequireDefault(_Slider);
 
@@ -33263,7 +32934,7 @@
 	exports.default = _Slider2.default;
 
 /***/ }),
-/* 370 */
+/* 368 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -33276,7 +32947,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -33284,15 +32955,15 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _keycode = __webpack_require__(318);
+	var _keycode = __webpack_require__(327);
 
 	var _keycode2 = _interopRequireDefault(_keycode);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _FocusRipple = __webpack_require__(323);
+	var _FocusRipple = __webpack_require__(328);
 
 	var _FocusRipple2 = _interopRequireDefault(_FocusRipple);
 
@@ -34095,7 +33766,7 @@
 	exports.default = Slider;
 
 /***/ }),
-/* 371 */
+/* 369 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34105,11 +33776,11 @@
 	});
 	exports.default = exports.RadioButtonGroup = exports.RadioButton = undefined;
 
-	var _RadioButton2 = __webpack_require__(372);
+	var _RadioButton2 = __webpack_require__(370);
 
 	var _RadioButton3 = _interopRequireDefault(_RadioButton2);
 
-	var _RadioButtonGroup2 = __webpack_require__(377);
+	var _RadioButtonGroup2 = __webpack_require__(375);
 
 	var _RadioButtonGroup3 = _interopRequireDefault(_RadioButtonGroup2);
 
@@ -34120,7 +33791,7 @@
 	exports.default = _RadioButton3.default;
 
 /***/ }),
-/* 372 */
+/* 370 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34133,7 +33804,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -34141,19 +33812,19 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _EnhancedSwitch = __webpack_require__(373);
+	var _EnhancedSwitch = __webpack_require__(371);
 
 	var _EnhancedSwitch2 = _interopRequireDefault(_EnhancedSwitch);
 
-	var _radioButtonUnchecked = __webpack_require__(375);
+	var _radioButtonUnchecked = __webpack_require__(373);
 
 	var _radioButtonUnchecked2 = _interopRequireDefault(_radioButtonUnchecked);
 
-	var _radioButtonChecked = __webpack_require__(376);
+	var _radioButtonChecked = __webpack_require__(374);
 
 	var _radioButtonChecked2 = _interopRequireDefault(_radioButtonChecked);
 
@@ -34383,7 +34054,7 @@
 	exports.default = RadioButton;
 
 /***/ }),
-/* 373 */
+/* 371 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34396,7 +34067,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -34404,31 +34075,31 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _reactEventListener = __webpack_require__(374);
+	var _reactEventListener = __webpack_require__(372);
 
 	var _reactEventListener2 = _interopRequireDefault(_reactEventListener);
 
-	var _keycode = __webpack_require__(318);
+	var _keycode = __webpack_require__(327);
 
 	var _keycode2 = _interopRequireDefault(_keycode);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _FocusRipple = __webpack_require__(323);
+	var _FocusRipple = __webpack_require__(328);
 
 	var _FocusRipple2 = _interopRequireDefault(_FocusRipple);
 
-	var _TouchRipple = __webpack_require__(335);
+	var _TouchRipple = __webpack_require__(339);
 
 	var _TouchRipple2 = _interopRequireDefault(_TouchRipple);
 
-	var _Paper = __webpack_require__(358);
+	var _Paper = __webpack_require__(356);
 
 	var _Paper2 = _interopRequireDefault(_Paper);
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -34826,7 +34497,7 @@
 	exports.default = EnhancedSwitch;
 
 /***/ }),
-/* 374 */
+/* 372 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34993,7 +34664,7 @@
 	exports.default = EventListener;
 
 /***/ }),
-/* 375 */
+/* 373 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35006,11 +34677,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -35030,7 +34701,7 @@
 	exports.default = ToggleRadioButtonUnchecked;
 
 /***/ }),
-/* 376 */
+/* 374 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35043,11 +34714,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -35067,7 +34738,7 @@
 	exports.default = ToggleRadioButtonChecked;
 
 /***/ }),
-/* 377 */
+/* 375 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35080,7 +34751,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -35088,11 +34759,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _RadioButton = __webpack_require__(371);
+	var _RadioButton = __webpack_require__(369);
 
 	var _RadioButton2 = _interopRequireDefault(_RadioButton);
 
-	var _warning = __webpack_require__(310);
+	var _warning = __webpack_require__(311);
 
 	var _warning2 = _interopRequireDefault(_warning);
 
@@ -35282,7 +34953,7 @@
 	exports.default = RadioButtonGroup;
 
 /***/ }),
-/* 378 */
+/* 376 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35292,7 +34963,7 @@
 	});
 	exports.default = undefined;
 
-	var _FlatButton = __webpack_require__(379);
+	var _FlatButton = __webpack_require__(377);
 
 	var _FlatButton2 = _interopRequireDefault(_FlatButton);
 
@@ -35301,7 +34972,7 @@
 	exports.default = _FlatButton2.default;
 
 /***/ }),
-/* 379 */
+/* 377 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35314,7 +34985,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -35322,19 +34993,19 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _childUtils = __webpack_require__(320);
+	var _childUtils = __webpack_require__(324);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _EnhancedButton = __webpack_require__(319);
+	var _EnhancedButton = __webpack_require__(323);
 
 	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
 
-	var _FlatButtonLabel = __webpack_require__(380);
+	var _FlatButtonLabel = __webpack_require__(378);
 
 	var _FlatButtonLabel2 = _interopRequireDefault(_FlatButtonLabel);
 
@@ -35618,7 +35289,7 @@
 	exports.default = FlatButton;
 
 /***/ }),
-/* 380 */
+/* 378 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35629,7 +35300,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -35699,7 +35370,17421 @@
 	exports.default = FlatButtonLabel;
 
 /***/ }),
+/* 379 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = function () {
+	    return _react2.default.createElement(
+	        'a',
+	        { href: 'https://github.com/szahn/OregonHikingWebApp' },
+	        _react2.default.createElement('img', { style: { position: 'absolute', top: 0, right: 0, border: 0, zIndex: 9999 }, src: 'https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png', alt: 'Fork me on GitHub' })
+	    );
+	};
+
+/***/ }),
+/* 380 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global, module) {/**
+	 * @license
+	 * Lodash <https://lodash.com/>
+	 * Copyright JS Foundation and other contributors <https://js.foundation/>
+	 * Released under MIT license <https://lodash.com/license>
+	 * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+	 * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 */
+	;(function() {
+
+	  /** Used as a safe reference for `undefined` in pre-ES5 environments. */
+	  var undefined;
+
+	  /** Used as the semantic version number. */
+	  var VERSION = '4.17.11';
+
+	  /** Used as the size to enable large array optimizations. */
+	  var LARGE_ARRAY_SIZE = 200;
+
+	  /** Error message constants. */
+	  var CORE_ERROR_TEXT = 'Unsupported core-js use. Try https://npms.io/search?q=ponyfill.',
+	      FUNC_ERROR_TEXT = 'Expected a function';
+
+	  /** Used to stand-in for `undefined` hash values. */
+	  var HASH_UNDEFINED = '__lodash_hash_undefined__';
+
+	  /** Used as the maximum memoize cache size. */
+	  var MAX_MEMOIZE_SIZE = 500;
+
+	  /** Used as the internal argument placeholder. */
+	  var PLACEHOLDER = '__lodash_placeholder__';
+
+	  /** Used to compose bitmasks for cloning. */
+	  var CLONE_DEEP_FLAG = 1,
+	      CLONE_FLAT_FLAG = 2,
+	      CLONE_SYMBOLS_FLAG = 4;
+
+	  /** Used to compose bitmasks for value comparisons. */
+	  var COMPARE_PARTIAL_FLAG = 1,
+	      COMPARE_UNORDERED_FLAG = 2;
+
+	  /** Used to compose bitmasks for function metadata. */
+	  var WRAP_BIND_FLAG = 1,
+	      WRAP_BIND_KEY_FLAG = 2,
+	      WRAP_CURRY_BOUND_FLAG = 4,
+	      WRAP_CURRY_FLAG = 8,
+	      WRAP_CURRY_RIGHT_FLAG = 16,
+	      WRAP_PARTIAL_FLAG = 32,
+	      WRAP_PARTIAL_RIGHT_FLAG = 64,
+	      WRAP_ARY_FLAG = 128,
+	      WRAP_REARG_FLAG = 256,
+	      WRAP_FLIP_FLAG = 512;
+
+	  /** Used as default options for `_.truncate`. */
+	  var DEFAULT_TRUNC_LENGTH = 30,
+	      DEFAULT_TRUNC_OMISSION = '...';
+
+	  /** Used to detect hot functions by number of calls within a span of milliseconds. */
+	  var HOT_COUNT = 800,
+	      HOT_SPAN = 16;
+
+	  /** Used to indicate the type of lazy iteratees. */
+	  var LAZY_FILTER_FLAG = 1,
+	      LAZY_MAP_FLAG = 2,
+	      LAZY_WHILE_FLAG = 3;
+
+	  /** Used as references for various `Number` constants. */
+	  var INFINITY = 1 / 0,
+	      MAX_SAFE_INTEGER = 9007199254740991,
+	      MAX_INTEGER = 1.7976931348623157e+308,
+	      NAN = 0 / 0;
+
+	  /** Used as references for the maximum length and index of an array. */
+	  var MAX_ARRAY_LENGTH = 4294967295,
+	      MAX_ARRAY_INDEX = MAX_ARRAY_LENGTH - 1,
+	      HALF_MAX_ARRAY_LENGTH = MAX_ARRAY_LENGTH >>> 1;
+
+	  /** Used to associate wrap methods with their bit flags. */
+	  var wrapFlags = [
+	    ['ary', WRAP_ARY_FLAG],
+	    ['bind', WRAP_BIND_FLAG],
+	    ['bindKey', WRAP_BIND_KEY_FLAG],
+	    ['curry', WRAP_CURRY_FLAG],
+	    ['curryRight', WRAP_CURRY_RIGHT_FLAG],
+	    ['flip', WRAP_FLIP_FLAG],
+	    ['partial', WRAP_PARTIAL_FLAG],
+	    ['partialRight', WRAP_PARTIAL_RIGHT_FLAG],
+	    ['rearg', WRAP_REARG_FLAG]
+	  ];
+
+	  /** `Object#toString` result references. */
+	  var argsTag = '[object Arguments]',
+	      arrayTag = '[object Array]',
+	      asyncTag = '[object AsyncFunction]',
+	      boolTag = '[object Boolean]',
+	      dateTag = '[object Date]',
+	      domExcTag = '[object DOMException]',
+	      errorTag = '[object Error]',
+	      funcTag = '[object Function]',
+	      genTag = '[object GeneratorFunction]',
+	      mapTag = '[object Map]',
+	      numberTag = '[object Number]',
+	      nullTag = '[object Null]',
+	      objectTag = '[object Object]',
+	      promiseTag = '[object Promise]',
+	      proxyTag = '[object Proxy]',
+	      regexpTag = '[object RegExp]',
+	      setTag = '[object Set]',
+	      stringTag = '[object String]',
+	      symbolTag = '[object Symbol]',
+	      undefinedTag = '[object Undefined]',
+	      weakMapTag = '[object WeakMap]',
+	      weakSetTag = '[object WeakSet]';
+
+	  var arrayBufferTag = '[object ArrayBuffer]',
+	      dataViewTag = '[object DataView]',
+	      float32Tag = '[object Float32Array]',
+	      float64Tag = '[object Float64Array]',
+	      int8Tag = '[object Int8Array]',
+	      int16Tag = '[object Int16Array]',
+	      int32Tag = '[object Int32Array]',
+	      uint8Tag = '[object Uint8Array]',
+	      uint8ClampedTag = '[object Uint8ClampedArray]',
+	      uint16Tag = '[object Uint16Array]',
+	      uint32Tag = '[object Uint32Array]';
+
+	  /** Used to match empty string literals in compiled template source. */
+	  var reEmptyStringLeading = /\b__p \+= '';/g,
+	      reEmptyStringMiddle = /\b(__p \+=) '' \+/g,
+	      reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g;
+
+	  /** Used to match HTML entities and HTML characters. */
+	  var reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g,
+	      reUnescapedHtml = /[&<>"']/g,
+	      reHasEscapedHtml = RegExp(reEscapedHtml.source),
+	      reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
+
+	  /** Used to match template delimiters. */
+	  var reEscape = /<%-([\s\S]+?)%>/g,
+	      reEvaluate = /<%([\s\S]+?)%>/g,
+	      reInterpolate = /<%=([\s\S]+?)%>/g;
+
+	  /** Used to match property names within property paths. */
+	  var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
+	      reIsPlainProp = /^\w*$/,
+	      rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
+
+	  /**
+	   * Used to match `RegExp`
+	   * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
+	   */
+	  var reRegExpChar = /[\\^$.*+?()[\]{}|]/g,
+	      reHasRegExpChar = RegExp(reRegExpChar.source);
+
+	  /** Used to match leading and trailing whitespace. */
+	  var reTrim = /^\s+|\s+$/g,
+	      reTrimStart = /^\s+/,
+	      reTrimEnd = /\s+$/;
+
+	  /** Used to match wrap detail comments. */
+	  var reWrapComment = /\{(?:\n\/\* \[wrapped with .+\] \*\/)?\n?/,
+	      reWrapDetails = /\{\n\/\* \[wrapped with (.+)\] \*/,
+	      reSplitDetails = /,? & /;
+
+	  /** Used to match words composed of alphanumeric characters. */
+	  var reAsciiWord = /[^\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\x7f]+/g;
+
+	  /** Used to match backslashes in property paths. */
+	  var reEscapeChar = /\\(\\)?/g;
+
+	  /**
+	   * Used to match
+	   * [ES template delimiters](http://ecma-international.org/ecma-262/7.0/#sec-template-literal-lexical-components).
+	   */
+	  var reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;
+
+	  /** Used to match `RegExp` flags from their coerced string values. */
+	  var reFlags = /\w*$/;
+
+	  /** Used to detect bad signed hexadecimal string values. */
+	  var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+
+	  /** Used to detect binary string values. */
+	  var reIsBinary = /^0b[01]+$/i;
+
+	  /** Used to detect host constructors (Safari). */
+	  var reIsHostCtor = /^\[object .+?Constructor\]$/;
+
+	  /** Used to detect octal string values. */
+	  var reIsOctal = /^0o[0-7]+$/i;
+
+	  /** Used to detect unsigned integer values. */
+	  var reIsUint = /^(?:0|[1-9]\d*)$/;
+
+	  /** Used to match Latin Unicode letters (excluding mathematical operators). */
+	  var reLatin = /[\xc0-\xd6\xd8-\xf6\xf8-\xff\u0100-\u017f]/g;
+
+	  /** Used to ensure capturing order of template delimiters. */
+	  var reNoMatch = /($^)/;
+
+	  /** Used to match unescaped characters in compiled string literals. */
+	  var reUnescapedString = /['\n\r\u2028\u2029\\]/g;
+
+	  /** Used to compose unicode character classes. */
+	  var rsAstralRange = '\\ud800-\\udfff',
+	      rsComboMarksRange = '\\u0300-\\u036f',
+	      reComboHalfMarksRange = '\\ufe20-\\ufe2f',
+	      rsComboSymbolsRange = '\\u20d0-\\u20ff',
+	      rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,
+	      rsDingbatRange = '\\u2700-\\u27bf',
+	      rsLowerRange = 'a-z\\xdf-\\xf6\\xf8-\\xff',
+	      rsMathOpRange = '\\xac\\xb1\\xd7\\xf7',
+	      rsNonCharRange = '\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf',
+	      rsPunctuationRange = '\\u2000-\\u206f',
+	      rsSpaceRange = ' \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000',
+	      rsUpperRange = 'A-Z\\xc0-\\xd6\\xd8-\\xde',
+	      rsVarRange = '\\ufe0e\\ufe0f',
+	      rsBreakRange = rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange;
+
+	  /** Used to compose unicode capture groups. */
+	  var rsApos = "['\u2019]",
+	      rsAstral = '[' + rsAstralRange + ']',
+	      rsBreak = '[' + rsBreakRange + ']',
+	      rsCombo = '[' + rsComboRange + ']',
+	      rsDigits = '\\d+',
+	      rsDingbat = '[' + rsDingbatRange + ']',
+	      rsLower = '[' + rsLowerRange + ']',
+	      rsMisc = '[^' + rsAstralRange + rsBreakRange + rsDigits + rsDingbatRange + rsLowerRange + rsUpperRange + ']',
+	      rsFitz = '\\ud83c[\\udffb-\\udfff]',
+	      rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',
+	      rsNonAstral = '[^' + rsAstralRange + ']',
+	      rsRegional = '(?:\\ud83c[\\udde6-\\uddff]){2}',
+	      rsSurrPair = '[\\ud800-\\udbff][\\udc00-\\udfff]',
+	      rsUpper = '[' + rsUpperRange + ']',
+	      rsZWJ = '\\u200d';
+
+	  /** Used to compose unicode regexes. */
+	  var rsMiscLower = '(?:' + rsLower + '|' + rsMisc + ')',
+	      rsMiscUpper = '(?:' + rsUpper + '|' + rsMisc + ')',
+	      rsOptContrLower = '(?:' + rsApos + '(?:d|ll|m|re|s|t|ve))?',
+	      rsOptContrUpper = '(?:' + rsApos + '(?:D|LL|M|RE|S|T|VE))?',
+	      reOptMod = rsModifier + '?',
+	      rsOptVar = '[' + rsVarRange + ']?',
+	      rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',
+	      rsOrdLower = '\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])',
+	      rsOrdUpper = '\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])',
+	      rsSeq = rsOptVar + reOptMod + rsOptJoin,
+	      rsEmoji = '(?:' + [rsDingbat, rsRegional, rsSurrPair].join('|') + ')' + rsSeq,
+	      rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';
+
+	  /** Used to match apostrophes. */
+	  var reApos = RegExp(rsApos, 'g');
+
+	  /**
+	   * Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) and
+	   * [combining diacritical marks for symbols](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks_for_Symbols).
+	   */
+	  var reComboMark = RegExp(rsCombo, 'g');
+
+	  /** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */
+	  var reUnicode = RegExp(rsFitz + '(?=' + rsFitz + ')|' + rsSymbol + rsSeq, 'g');
+
+	  /** Used to match complex or compound words. */
+	  var reUnicodeWord = RegExp([
+	    rsUpper + '?' + rsLower + '+' + rsOptContrLower + '(?=' + [rsBreak, rsUpper, '$'].join('|') + ')',
+	    rsMiscUpper + '+' + rsOptContrUpper + '(?=' + [rsBreak, rsUpper + rsMiscLower, '$'].join('|') + ')',
+	    rsUpper + '?' + rsMiscLower + '+' + rsOptContrLower,
+	    rsUpper + '+' + rsOptContrUpper,
+	    rsOrdUpper,
+	    rsOrdLower,
+	    rsDigits,
+	    rsEmoji
+	  ].join('|'), 'g');
+
+	  /** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */
+	  var reHasUnicode = RegExp('[' + rsZWJ + rsAstralRange  + rsComboRange + rsVarRange + ']');
+
+	  /** Used to detect strings that need a more robust regexp to match words. */
+	  var reHasUnicodeWord = /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/;
+
+	  /** Used to assign default `context` object properties. */
+	  var contextProps = [
+	    'Array', 'Buffer', 'DataView', 'Date', 'Error', 'Float32Array', 'Float64Array',
+	    'Function', 'Int8Array', 'Int16Array', 'Int32Array', 'Map', 'Math', 'Object',
+	    'Promise', 'RegExp', 'Set', 'String', 'Symbol', 'TypeError', 'Uint8Array',
+	    'Uint8ClampedArray', 'Uint16Array', 'Uint32Array', 'WeakMap',
+	    '_', 'clearTimeout', 'isFinite', 'parseInt', 'setTimeout'
+	  ];
+
+	  /** Used to make template sourceURLs easier to identify. */
+	  var templateCounter = -1;
+
+	  /** Used to identify `toStringTag` values of typed arrays. */
+	  var typedArrayTags = {};
+	  typedArrayTags[float32Tag] = typedArrayTags[float64Tag] =
+	  typedArrayTags[int8Tag] = typedArrayTags[int16Tag] =
+	  typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] =
+	  typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] =
+	  typedArrayTags[uint32Tag] = true;
+	  typedArrayTags[argsTag] = typedArrayTags[arrayTag] =
+	  typedArrayTags[arrayBufferTag] = typedArrayTags[boolTag] =
+	  typedArrayTags[dataViewTag] = typedArrayTags[dateTag] =
+	  typedArrayTags[errorTag] = typedArrayTags[funcTag] =
+	  typedArrayTags[mapTag] = typedArrayTags[numberTag] =
+	  typedArrayTags[objectTag] = typedArrayTags[regexpTag] =
+	  typedArrayTags[setTag] = typedArrayTags[stringTag] =
+	  typedArrayTags[weakMapTag] = false;
+
+	  /** Used to identify `toStringTag` values supported by `_.clone`. */
+	  var cloneableTags = {};
+	  cloneableTags[argsTag] = cloneableTags[arrayTag] =
+	  cloneableTags[arrayBufferTag] = cloneableTags[dataViewTag] =
+	  cloneableTags[boolTag] = cloneableTags[dateTag] =
+	  cloneableTags[float32Tag] = cloneableTags[float64Tag] =
+	  cloneableTags[int8Tag] = cloneableTags[int16Tag] =
+	  cloneableTags[int32Tag] = cloneableTags[mapTag] =
+	  cloneableTags[numberTag] = cloneableTags[objectTag] =
+	  cloneableTags[regexpTag] = cloneableTags[setTag] =
+	  cloneableTags[stringTag] = cloneableTags[symbolTag] =
+	  cloneableTags[uint8Tag] = cloneableTags[uint8ClampedTag] =
+	  cloneableTags[uint16Tag] = cloneableTags[uint32Tag] = true;
+	  cloneableTags[errorTag] = cloneableTags[funcTag] =
+	  cloneableTags[weakMapTag] = false;
+
+	  /** Used to map Latin Unicode letters to basic Latin letters. */
+	  var deburredLetters = {
+	    // Latin-1 Supplement block.
+	    '\xc0': 'A',  '\xc1': 'A', '\xc2': 'A', '\xc3': 'A', '\xc4': 'A', '\xc5': 'A',
+	    '\xe0': 'a',  '\xe1': 'a', '\xe2': 'a', '\xe3': 'a', '\xe4': 'a', '\xe5': 'a',
+	    '\xc7': 'C',  '\xe7': 'c',
+	    '\xd0': 'D',  '\xf0': 'd',
+	    '\xc8': 'E',  '\xc9': 'E', '\xca': 'E', '\xcb': 'E',
+	    '\xe8': 'e',  '\xe9': 'e', '\xea': 'e', '\xeb': 'e',
+	    '\xcc': 'I',  '\xcd': 'I', '\xce': 'I', '\xcf': 'I',
+	    '\xec': 'i',  '\xed': 'i', '\xee': 'i', '\xef': 'i',
+	    '\xd1': 'N',  '\xf1': 'n',
+	    '\xd2': 'O',  '\xd3': 'O', '\xd4': 'O', '\xd5': 'O', '\xd6': 'O', '\xd8': 'O',
+	    '\xf2': 'o',  '\xf3': 'o', '\xf4': 'o', '\xf5': 'o', '\xf6': 'o', '\xf8': 'o',
+	    '\xd9': 'U',  '\xda': 'U', '\xdb': 'U', '\xdc': 'U',
+	    '\xf9': 'u',  '\xfa': 'u', '\xfb': 'u', '\xfc': 'u',
+	    '\xdd': 'Y',  '\xfd': 'y', '\xff': 'y',
+	    '\xc6': 'Ae', '\xe6': 'ae',
+	    '\xde': 'Th', '\xfe': 'th',
+	    '\xdf': 'ss',
+	    // Latin Extended-A block.
+	    '\u0100': 'A',  '\u0102': 'A', '\u0104': 'A',
+	    '\u0101': 'a',  '\u0103': 'a', '\u0105': 'a',
+	    '\u0106': 'C',  '\u0108': 'C', '\u010a': 'C', '\u010c': 'C',
+	    '\u0107': 'c',  '\u0109': 'c', '\u010b': 'c', '\u010d': 'c',
+	    '\u010e': 'D',  '\u0110': 'D', '\u010f': 'd', '\u0111': 'd',
+	    '\u0112': 'E',  '\u0114': 'E', '\u0116': 'E', '\u0118': 'E', '\u011a': 'E',
+	    '\u0113': 'e',  '\u0115': 'e', '\u0117': 'e', '\u0119': 'e', '\u011b': 'e',
+	    '\u011c': 'G',  '\u011e': 'G', '\u0120': 'G', '\u0122': 'G',
+	    '\u011d': 'g',  '\u011f': 'g', '\u0121': 'g', '\u0123': 'g',
+	    '\u0124': 'H',  '\u0126': 'H', '\u0125': 'h', '\u0127': 'h',
+	    '\u0128': 'I',  '\u012a': 'I', '\u012c': 'I', '\u012e': 'I', '\u0130': 'I',
+	    '\u0129': 'i',  '\u012b': 'i', '\u012d': 'i', '\u012f': 'i', '\u0131': 'i',
+	    '\u0134': 'J',  '\u0135': 'j',
+	    '\u0136': 'K',  '\u0137': 'k', '\u0138': 'k',
+	    '\u0139': 'L',  '\u013b': 'L', '\u013d': 'L', '\u013f': 'L', '\u0141': 'L',
+	    '\u013a': 'l',  '\u013c': 'l', '\u013e': 'l', '\u0140': 'l', '\u0142': 'l',
+	    '\u0143': 'N',  '\u0145': 'N', '\u0147': 'N', '\u014a': 'N',
+	    '\u0144': 'n',  '\u0146': 'n', '\u0148': 'n', '\u014b': 'n',
+	    '\u014c': 'O',  '\u014e': 'O', '\u0150': 'O',
+	    '\u014d': 'o',  '\u014f': 'o', '\u0151': 'o',
+	    '\u0154': 'R',  '\u0156': 'R', '\u0158': 'R',
+	    '\u0155': 'r',  '\u0157': 'r', '\u0159': 'r',
+	    '\u015a': 'S',  '\u015c': 'S', '\u015e': 'S', '\u0160': 'S',
+	    '\u015b': 's',  '\u015d': 's', '\u015f': 's', '\u0161': 's',
+	    '\u0162': 'T',  '\u0164': 'T', '\u0166': 'T',
+	    '\u0163': 't',  '\u0165': 't', '\u0167': 't',
+	    '\u0168': 'U',  '\u016a': 'U', '\u016c': 'U', '\u016e': 'U', '\u0170': 'U', '\u0172': 'U',
+	    '\u0169': 'u',  '\u016b': 'u', '\u016d': 'u', '\u016f': 'u', '\u0171': 'u', '\u0173': 'u',
+	    '\u0174': 'W',  '\u0175': 'w',
+	    '\u0176': 'Y',  '\u0177': 'y', '\u0178': 'Y',
+	    '\u0179': 'Z',  '\u017b': 'Z', '\u017d': 'Z',
+	    '\u017a': 'z',  '\u017c': 'z', '\u017e': 'z',
+	    '\u0132': 'IJ', '\u0133': 'ij',
+	    '\u0152': 'Oe', '\u0153': 'oe',
+	    '\u0149': "'n", '\u017f': 's'
+	  };
+
+	  /** Used to map characters to HTML entities. */
+	  var htmlEscapes = {
+	    '&': '&amp;',
+	    '<': '&lt;',
+	    '>': '&gt;',
+	    '"': '&quot;',
+	    "'": '&#39;'
+	  };
+
+	  /** Used to map HTML entities to characters. */
+	  var htmlUnescapes = {
+	    '&amp;': '&',
+	    '&lt;': '<',
+	    '&gt;': '>',
+	    '&quot;': '"',
+	    '&#39;': "'"
+	  };
+
+	  /** Used to escape characters for inclusion in compiled string literals. */
+	  var stringEscapes = {
+	    '\\': '\\',
+	    "'": "'",
+	    '\n': 'n',
+	    '\r': 'r',
+	    '\u2028': 'u2028',
+	    '\u2029': 'u2029'
+	  };
+
+	  /** Built-in method references without a dependency on `root`. */
+	  var freeParseFloat = parseFloat,
+	      freeParseInt = parseInt;
+
+	  /** Detect free variable `global` from Node.js. */
+	  var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
+
+	  /** Detect free variable `self`. */
+	  var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
+
+	  /** Used as a reference to the global object. */
+	  var root = freeGlobal || freeSelf || Function('return this')();
+
+	  /** Detect free variable `exports`. */
+	  var freeExports = typeof exports == 'object' && exports && !exports.nodeType && exports;
+
+	  /** Detect free variable `module`. */
+	  var freeModule = freeExports && typeof module == 'object' && module && !module.nodeType && module;
+
+	  /** Detect the popular CommonJS extension `module.exports`. */
+	  var moduleExports = freeModule && freeModule.exports === freeExports;
+
+	  /** Detect free variable `process` from Node.js. */
+	  var freeProcess = moduleExports && freeGlobal.process;
+
+	  /** Used to access faster Node.js helpers. */
+	  var nodeUtil = (function() {
+	    try {
+	      // Use `util.types` for Node.js 10+.
+	      var types = freeModule && freeModule.require && freeModule.require('util').types;
+
+	      if (types) {
+	        return types;
+	      }
+
+	      // Legacy `process.binding('util')` for Node.js < 10.
+	      return freeProcess && freeProcess.binding && freeProcess.binding('util');
+	    } catch (e) {}
+	  }());
+
+	  /* Node.js helper references. */
+	  var nodeIsArrayBuffer = nodeUtil && nodeUtil.isArrayBuffer,
+	      nodeIsDate = nodeUtil && nodeUtil.isDate,
+	      nodeIsMap = nodeUtil && nodeUtil.isMap,
+	      nodeIsRegExp = nodeUtil && nodeUtil.isRegExp,
+	      nodeIsSet = nodeUtil && nodeUtil.isSet,
+	      nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;
+
+	  /*--------------------------------------------------------------------------*/
+
+	  /**
+	   * A faster alternative to `Function#apply`, this function invokes `func`
+	   * with the `this` binding of `thisArg` and the arguments of `args`.
+	   *
+	   * @private
+	   * @param {Function} func The function to invoke.
+	   * @param {*} thisArg The `this` binding of `func`.
+	   * @param {Array} args The arguments to invoke `func` with.
+	   * @returns {*} Returns the result of `func`.
+	   */
+	  function apply(func, thisArg, args) {
+	    switch (args.length) {
+	      case 0: return func.call(thisArg);
+	      case 1: return func.call(thisArg, args[0]);
+	      case 2: return func.call(thisArg, args[0], args[1]);
+	      case 3: return func.call(thisArg, args[0], args[1], args[2]);
+	    }
+	    return func.apply(thisArg, args);
+	  }
+
+	  /**
+	   * A specialized version of `baseAggregator` for arrays.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} setter The function to set `accumulator` values.
+	   * @param {Function} iteratee The iteratee to transform keys.
+	   * @param {Object} accumulator The initial aggregated object.
+	   * @returns {Function} Returns `accumulator`.
+	   */
+	  function arrayAggregator(array, setter, iteratee, accumulator) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    while (++index < length) {
+	      var value = array[index];
+	      setter(accumulator, value, iteratee(value), array);
+	    }
+	    return accumulator;
+	  }
+
+	  /**
+	   * A specialized version of `_.forEach` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {Array} Returns `array`.
+	   */
+	  function arrayEach(array, iteratee) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    while (++index < length) {
+	      if (iteratee(array[index], index, array) === false) {
+	        break;
+	      }
+	    }
+	    return array;
+	  }
+
+	  /**
+	   * A specialized version of `_.forEachRight` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {Array} Returns `array`.
+	   */
+	  function arrayEachRight(array, iteratee) {
+	    var length = array == null ? 0 : array.length;
+
+	    while (length--) {
+	      if (iteratee(array[length], length, array) === false) {
+	        break;
+	      }
+	    }
+	    return array;
+	  }
+
+	  /**
+	   * A specialized version of `_.every` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} predicate The function invoked per iteration.
+	   * @returns {boolean} Returns `true` if all elements pass the predicate check,
+	   *  else `false`.
+	   */
+	  function arrayEvery(array, predicate) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    while (++index < length) {
+	      if (!predicate(array[index], index, array)) {
+	        return false;
+	      }
+	    }
+	    return true;
+	  }
+
+	  /**
+	   * A specialized version of `_.filter` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} predicate The function invoked per iteration.
+	   * @returns {Array} Returns the new filtered array.
+	   */
+	  function arrayFilter(array, predicate) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length,
+	        resIndex = 0,
+	        result = [];
+
+	    while (++index < length) {
+	      var value = array[index];
+	      if (predicate(value, index, array)) {
+	        result[resIndex++] = value;
+	      }
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * A specialized version of `_.includes` for arrays without support for
+	   * specifying an index to search from.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to inspect.
+	   * @param {*} target The value to search for.
+	   * @returns {boolean} Returns `true` if `target` is found, else `false`.
+	   */
+	  function arrayIncludes(array, value) {
+	    var length = array == null ? 0 : array.length;
+	    return !!length && baseIndexOf(array, value, 0) > -1;
+	  }
+
+	  /**
+	   * This function is like `arrayIncludes` except that it accepts a comparator.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to inspect.
+	   * @param {*} target The value to search for.
+	   * @param {Function} comparator The comparator invoked per element.
+	   * @returns {boolean} Returns `true` if `target` is found, else `false`.
+	   */
+	  function arrayIncludesWith(array, value, comparator) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    while (++index < length) {
+	      if (comparator(value, array[index])) {
+	        return true;
+	      }
+	    }
+	    return false;
+	  }
+
+	  /**
+	   * A specialized version of `_.map` for arrays without support for iteratee
+	   * shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {Array} Returns the new mapped array.
+	   */
+	  function arrayMap(array, iteratee) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length,
+	        result = Array(length);
+
+	    while (++index < length) {
+	      result[index] = iteratee(array[index], index, array);
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * Appends the elements of `values` to `array`.
+	   *
+	   * @private
+	   * @param {Array} array The array to modify.
+	   * @param {Array} values The values to append.
+	   * @returns {Array} Returns `array`.
+	   */
+	  function arrayPush(array, values) {
+	    var index = -1,
+	        length = values.length,
+	        offset = array.length;
+
+	    while (++index < length) {
+	      array[offset + index] = values[index];
+	    }
+	    return array;
+	  }
+
+	  /**
+	   * A specialized version of `_.reduce` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @param {*} [accumulator] The initial value.
+	   * @param {boolean} [initAccum] Specify using the first element of `array` as
+	   *  the initial value.
+	   * @returns {*} Returns the accumulated value.
+	   */
+	  function arrayReduce(array, iteratee, accumulator, initAccum) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    if (initAccum && length) {
+	      accumulator = array[++index];
+	    }
+	    while (++index < length) {
+	      accumulator = iteratee(accumulator, array[index], index, array);
+	    }
+	    return accumulator;
+	  }
+
+	  /**
+	   * A specialized version of `_.reduceRight` for arrays without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @param {*} [accumulator] The initial value.
+	   * @param {boolean} [initAccum] Specify using the last element of `array` as
+	   *  the initial value.
+	   * @returns {*} Returns the accumulated value.
+	   */
+	  function arrayReduceRight(array, iteratee, accumulator, initAccum) {
+	    var length = array == null ? 0 : array.length;
+	    if (initAccum && length) {
+	      accumulator = array[--length];
+	    }
+	    while (length--) {
+	      accumulator = iteratee(accumulator, array[length], length, array);
+	    }
+	    return accumulator;
+	  }
+
+	  /**
+	   * A specialized version of `_.some` for arrays without support for iteratee
+	   * shorthands.
+	   *
+	   * @private
+	   * @param {Array} [array] The array to iterate over.
+	   * @param {Function} predicate The function invoked per iteration.
+	   * @returns {boolean} Returns `true` if any element passes the predicate check,
+	   *  else `false`.
+	   */
+	  function arraySome(array, predicate) {
+	    var index = -1,
+	        length = array == null ? 0 : array.length;
+
+	    while (++index < length) {
+	      if (predicate(array[index], index, array)) {
+	        return true;
+	      }
+	    }
+	    return false;
+	  }
+
+	  /**
+	   * Gets the size of an ASCII `string`.
+	   *
+	   * @private
+	   * @param {string} string The string inspect.
+	   * @returns {number} Returns the string size.
+	   */
+	  var asciiSize = baseProperty('length');
+
+	  /**
+	   * Converts an ASCII `string` to an array.
+	   *
+	   * @private
+	   * @param {string} string The string to convert.
+	   * @returns {Array} Returns the converted array.
+	   */
+	  function asciiToArray(string) {
+	    return string.split('');
+	  }
+
+	  /**
+	   * Splits an ASCII `string` into an array of its words.
+	   *
+	   * @private
+	   * @param {string} The string to inspect.
+	   * @returns {Array} Returns the words of `string`.
+	   */
+	  function asciiWords(string) {
+	    return string.match(reAsciiWord) || [];
+	  }
+
+	  /**
+	   * The base implementation of methods like `_.findKey` and `_.findLastKey`,
+	   * without support for iteratee shorthands, which iterates over `collection`
+	   * using `eachFunc`.
+	   *
+	   * @private
+	   * @param {Array|Object} collection The collection to inspect.
+	   * @param {Function} predicate The function invoked per iteration.
+	   * @param {Function} eachFunc The function to iterate over `collection`.
+	   * @returns {*} Returns the found element or its key, else `undefined`.
+	   */
+	  function baseFindKey(collection, predicate, eachFunc) {
+	    var result;
+	    eachFunc(collection, function(value, key, collection) {
+	      if (predicate(value, key, collection)) {
+	        result = key;
+	        return false;
+	      }
+	    });
+	    return result;
+	  }
+
+	  /**
+	   * The base implementation of `_.findIndex` and `_.findLastIndex` without
+	   * support for iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {Function} predicate The function invoked per iteration.
+	   * @param {number} fromIndex The index to search from.
+	   * @param {boolean} [fromRight] Specify iterating from right to left.
+	   * @returns {number} Returns the index of the matched value, else `-1`.
+	   */
+	  function baseFindIndex(array, predicate, fromIndex, fromRight) {
+	    var length = array.length,
+	        index = fromIndex + (fromRight ? 1 : -1);
+
+	    while ((fromRight ? index-- : ++index < length)) {
+	      if (predicate(array[index], index, array)) {
+	        return index;
+	      }
+	    }
+	    return -1;
+	  }
+
+	  /**
+	   * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {*} value The value to search for.
+	   * @param {number} fromIndex The index to search from.
+	   * @returns {number} Returns the index of the matched value, else `-1`.
+	   */
+	  function baseIndexOf(array, value, fromIndex) {
+	    return value === value
+	      ? strictIndexOf(array, value, fromIndex)
+	      : baseFindIndex(array, baseIsNaN, fromIndex);
+	  }
+
+	  /**
+	   * This function is like `baseIndexOf` except that it accepts a comparator.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {*} value The value to search for.
+	   * @param {number} fromIndex The index to search from.
+	   * @param {Function} comparator The comparator invoked per element.
+	   * @returns {number} Returns the index of the matched value, else `-1`.
+	   */
+	  function baseIndexOfWith(array, value, fromIndex, comparator) {
+	    var index = fromIndex - 1,
+	        length = array.length;
+
+	    while (++index < length) {
+	      if (comparator(array[index], value)) {
+	        return index;
+	      }
+	    }
+	    return -1;
+	  }
+
+	  /**
+	   * The base implementation of `_.isNaN` without support for number objects.
+	   *
+	   * @private
+	   * @param {*} value The value to check.
+	   * @returns {boolean} Returns `true` if `value` is `NaN`, else `false`.
+	   */
+	  function baseIsNaN(value) {
+	    return value !== value;
+	  }
+
+	  /**
+	   * The base implementation of `_.mean` and `_.meanBy` without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} array The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {number} Returns the mean.
+	   */
+	  function baseMean(array, iteratee) {
+	    var length = array == null ? 0 : array.length;
+	    return length ? (baseSum(array, iteratee) / length) : NAN;
+	  }
+
+	  /**
+	   * The base implementation of `_.property` without support for deep paths.
+	   *
+	   * @private
+	   * @param {string} key The key of the property to get.
+	   * @returns {Function} Returns the new accessor function.
+	   */
+	  function baseProperty(key) {
+	    return function(object) {
+	      return object == null ? undefined : object[key];
+	    };
+	  }
+
+	  /**
+	   * The base implementation of `_.propertyOf` without support for deep paths.
+	   *
+	   * @private
+	   * @param {Object} object The object to query.
+	   * @returns {Function} Returns the new accessor function.
+	   */
+	  function basePropertyOf(object) {
+	    return function(key) {
+	      return object == null ? undefined : object[key];
+	    };
+	  }
+
+	  /**
+	   * The base implementation of `_.reduce` and `_.reduceRight`, without support
+	   * for iteratee shorthands, which iterates over `collection` using `eachFunc`.
+	   *
+	   * @private
+	   * @param {Array|Object} collection The collection to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @param {*} accumulator The initial value.
+	   * @param {boolean} initAccum Specify using the first or last element of
+	   *  `collection` as the initial value.
+	   * @param {Function} eachFunc The function to iterate over `collection`.
+	   * @returns {*} Returns the accumulated value.
+	   */
+	  function baseReduce(collection, iteratee, accumulator, initAccum, eachFunc) {
+	    eachFunc(collection, function(value, index, collection) {
+	      accumulator = initAccum
+	        ? (initAccum = false, value)
+	        : iteratee(accumulator, value, index, collection);
+	    });
+	    return accumulator;
+	  }
+
+	  /**
+	   * The base implementation of `_.sortBy` which uses `comparer` to define the
+	   * sort order of `array` and replaces criteria objects with their corresponding
+	   * values.
+	   *
+	   * @private
+	   * @param {Array} array The array to sort.
+	   * @param {Function} comparer The function to define sort order.
+	   * @returns {Array} Returns `array`.
+	   */
+	  function baseSortBy(array, comparer) {
+	    var length = array.length;
+
+	    array.sort(comparer);
+	    while (length--) {
+	      array[length] = array[length].value;
+	    }
+	    return array;
+	  }
+
+	  /**
+	   * The base implementation of `_.sum` and `_.sumBy` without support for
+	   * iteratee shorthands.
+	   *
+	   * @private
+	   * @param {Array} array The array to iterate over.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {number} Returns the sum.
+	   */
+	  function baseSum(array, iteratee) {
+	    var result,
+	        index = -1,
+	        length = array.length;
+
+	    while (++index < length) {
+	      var current = iteratee(array[index]);
+	      if (current !== undefined) {
+	        result = result === undefined ? current : (result + current);
+	      }
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * The base implementation of `_.times` without support for iteratee shorthands
+	   * or max array length checks.
+	   *
+	   * @private
+	   * @param {number} n The number of times to invoke `iteratee`.
+	   * @param {Function} iteratee The function invoked per iteration.
+	   * @returns {Array} Returns the array of results.
+	   */
+	  function baseTimes(n, iteratee) {
+	    var index = -1,
+	        result = Array(n);
+
+	    while (++index < n) {
+	      result[index] = iteratee(index);
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * The base implementation of `_.toPairs` and `_.toPairsIn` which creates an array
+	   * of key-value pairs for `object` corresponding to the property names of `props`.
+	   *
+	   * @private
+	   * @param {Object} object The object to query.
+	   * @param {Array} props The property names to get values for.
+	   * @returns {Object} Returns the key-value pairs.
+	   */
+	  function baseToPairs(object, props) {
+	    return arrayMap(props, function(key) {
+	      return [key, object[key]];
+	    });
+	  }
+
+	  /**
+	   * The base implementation of `_.unary` without support for storing metadata.
+	   *
+	   * @private
+	   * @param {Function} func The function to cap arguments for.
+	   * @returns {Function} Returns the new capped function.
+	   */
+	  function baseUnary(func) {
+	    return function(value) {
+	      return func(value);
+	    };
+	  }
+
+	  /**
+	   * The base implementation of `_.values` and `_.valuesIn` which creates an
+	   * array of `object` property values corresponding to the property names
+	   * of `props`.
+	   *
+	   * @private
+	   * @param {Object} object The object to query.
+	   * @param {Array} props The property names to get values for.
+	   * @returns {Object} Returns the array of property values.
+	   */
+	  function baseValues(object, props) {
+	    return arrayMap(props, function(key) {
+	      return object[key];
+	    });
+	  }
+
+	  /**
+	   * Checks if a `cache` value for `key` exists.
+	   *
+	   * @private
+	   * @param {Object} cache The cache to query.
+	   * @param {string} key The key of the entry to check.
+	   * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+	   */
+	  function cacheHas(cache, key) {
+	    return cache.has(key);
+	  }
+
+	  /**
+	   * Used by `_.trim` and `_.trimStart` to get the index of the first string symbol
+	   * that is not found in the character symbols.
+	   *
+	   * @private
+	   * @param {Array} strSymbols The string symbols to inspect.
+	   * @param {Array} chrSymbols The character symbols to find.
+	   * @returns {number} Returns the index of the first unmatched string symbol.
+	   */
+	  function charsStartIndex(strSymbols, chrSymbols) {
+	    var index = -1,
+	        length = strSymbols.length;
+
+	    while (++index < length && baseIndexOf(chrSymbols, strSymbols[index], 0) > -1) {}
+	    return index;
+	  }
+
+	  /**
+	   * Used by `_.trim` and `_.trimEnd` to get the index of the last string symbol
+	   * that is not found in the character symbols.
+	   *
+	   * @private
+	   * @param {Array} strSymbols The string symbols to inspect.
+	   * @param {Array} chrSymbols The character symbols to find.
+	   * @returns {number} Returns the index of the last unmatched string symbol.
+	   */
+	  function charsEndIndex(strSymbols, chrSymbols) {
+	    var index = strSymbols.length;
+
+	    while (index-- && baseIndexOf(chrSymbols, strSymbols[index], 0) > -1) {}
+	    return index;
+	  }
+
+	  /**
+	   * Gets the number of `placeholder` occurrences in `array`.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {*} placeholder The placeholder to search for.
+	   * @returns {number} Returns the placeholder count.
+	   */
+	  function countHolders(array, placeholder) {
+	    var length = array.length,
+	        result = 0;
+
+	    while (length--) {
+	      if (array[length] === placeholder) {
+	        ++result;
+	      }
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * Used by `_.deburr` to convert Latin-1 Supplement and Latin Extended-A
+	   * letters to basic Latin letters.
+	   *
+	   * @private
+	   * @param {string} letter The matched letter to deburr.
+	   * @returns {string} Returns the deburred letter.
+	   */
+	  var deburrLetter = basePropertyOf(deburredLetters);
+
+	  /**
+	   * Used by `_.escape` to convert characters to HTML entities.
+	   *
+	   * @private
+	   * @param {string} chr The matched character to escape.
+	   * @returns {string} Returns the escaped character.
+	   */
+	  var escapeHtmlChar = basePropertyOf(htmlEscapes);
+
+	  /**
+	   * Used by `_.template` to escape characters for inclusion in compiled string literals.
+	   *
+	   * @private
+	   * @param {string} chr The matched character to escape.
+	   * @returns {string} Returns the escaped character.
+	   */
+	  function escapeStringChar(chr) {
+	    return '\\' + stringEscapes[chr];
+	  }
+
+	  /**
+	   * Gets the value at `key` of `object`.
+	   *
+	   * @private
+	   * @param {Object} [object] The object to query.
+	   * @param {string} key The key of the property to get.
+	   * @returns {*} Returns the property value.
+	   */
+	  function getValue(object, key) {
+	    return object == null ? undefined : object[key];
+	  }
+
+	  /**
+	   * Checks if `string` contains Unicode symbols.
+	   *
+	   * @private
+	   * @param {string} string The string to inspect.
+	   * @returns {boolean} Returns `true` if a symbol is found, else `false`.
+	   */
+	  function hasUnicode(string) {
+	    return reHasUnicode.test(string);
+	  }
+
+	  /**
+	   * Checks if `string` contains a word composed of Unicode symbols.
+	   *
+	   * @private
+	   * @param {string} string The string to inspect.
+	   * @returns {boolean} Returns `true` if a word is found, else `false`.
+	   */
+	  function hasUnicodeWord(string) {
+	    return reHasUnicodeWord.test(string);
+	  }
+
+	  /**
+	   * Converts `iterator` to an array.
+	   *
+	   * @private
+	   * @param {Object} iterator The iterator to convert.
+	   * @returns {Array} Returns the converted array.
+	   */
+	  function iteratorToArray(iterator) {
+	    var data,
+	        result = [];
+
+	    while (!(data = iterator.next()).done) {
+	      result.push(data.value);
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * Converts `map` to its key-value pairs.
+	   *
+	   * @private
+	   * @param {Object} map The map to convert.
+	   * @returns {Array} Returns the key-value pairs.
+	   */
+	  function mapToArray(map) {
+	    var index = -1,
+	        result = Array(map.size);
+
+	    map.forEach(function(value, key) {
+	      result[++index] = [key, value];
+	    });
+	    return result;
+	  }
+
+	  /**
+	   * Creates a unary function that invokes `func` with its argument transformed.
+	   *
+	   * @private
+	   * @param {Function} func The function to wrap.
+	   * @param {Function} transform The argument transform.
+	   * @returns {Function} Returns the new function.
+	   */
+	  function overArg(func, transform) {
+	    return function(arg) {
+	      return func(transform(arg));
+	    };
+	  }
+
+	  /**
+	   * Replaces all `placeholder` elements in `array` with an internal placeholder
+	   * and returns an array of their indexes.
+	   *
+	   * @private
+	   * @param {Array} array The array to modify.
+	   * @param {*} placeholder The placeholder to replace.
+	   * @returns {Array} Returns the new array of placeholder indexes.
+	   */
+	  function replaceHolders(array, placeholder) {
+	    var index = -1,
+	        length = array.length,
+	        resIndex = 0,
+	        result = [];
+
+	    while (++index < length) {
+	      var value = array[index];
+	      if (value === placeholder || value === PLACEHOLDER) {
+	        array[index] = PLACEHOLDER;
+	        result[resIndex++] = index;
+	      }
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * Converts `set` to an array of its values.
+	   *
+	   * @private
+	   * @param {Object} set The set to convert.
+	   * @returns {Array} Returns the values.
+	   */
+	  function setToArray(set) {
+	    var index = -1,
+	        result = Array(set.size);
+
+	    set.forEach(function(value) {
+	      result[++index] = value;
+	    });
+	    return result;
+	  }
+
+	  /**
+	   * Converts `set` to its value-value pairs.
+	   *
+	   * @private
+	   * @param {Object} set The set to convert.
+	   * @returns {Array} Returns the value-value pairs.
+	   */
+	  function setToPairs(set) {
+	    var index = -1,
+	        result = Array(set.size);
+
+	    set.forEach(function(value) {
+	      result[++index] = [value, value];
+	    });
+	    return result;
+	  }
+
+	  /**
+	   * A specialized version of `_.indexOf` which performs strict equality
+	   * comparisons of values, i.e. `===`.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {*} value The value to search for.
+	   * @param {number} fromIndex The index to search from.
+	   * @returns {number} Returns the index of the matched value, else `-1`.
+	   */
+	  function strictIndexOf(array, value, fromIndex) {
+	    var index = fromIndex - 1,
+	        length = array.length;
+
+	    while (++index < length) {
+	      if (array[index] === value) {
+	        return index;
+	      }
+	    }
+	    return -1;
+	  }
+
+	  /**
+	   * A specialized version of `_.lastIndexOf` which performs strict equality
+	   * comparisons of values, i.e. `===`.
+	   *
+	   * @private
+	   * @param {Array} array The array to inspect.
+	   * @param {*} value The value to search for.
+	   * @param {number} fromIndex The index to search from.
+	   * @returns {number} Returns the index of the matched value, else `-1`.
+	   */
+	  function strictLastIndexOf(array, value, fromIndex) {
+	    var index = fromIndex + 1;
+	    while (index--) {
+	      if (array[index] === value) {
+	        return index;
+	      }
+	    }
+	    return index;
+	  }
+
+	  /**
+	   * Gets the number of symbols in `string`.
+	   *
+	   * @private
+	   * @param {string} string The string to inspect.
+	   * @returns {number} Returns the string size.
+	   */
+	  function stringSize(string) {
+	    return hasUnicode(string)
+	      ? unicodeSize(string)
+	      : asciiSize(string);
+	  }
+
+	  /**
+	   * Converts `string` to an array.
+	   *
+	   * @private
+	   * @param {string} string The string to convert.
+	   * @returns {Array} Returns the converted array.
+	   */
+	  function stringToArray(string) {
+	    return hasUnicode(string)
+	      ? unicodeToArray(string)
+	      : asciiToArray(string);
+	  }
+
+	  /**
+	   * Used by `_.unescape` to convert HTML entities to characters.
+	   *
+	   * @private
+	   * @param {string} chr The matched character to unescape.
+	   * @returns {string} Returns the unescaped character.
+	   */
+	  var unescapeHtmlChar = basePropertyOf(htmlUnescapes);
+
+	  /**
+	   * Gets the size of a Unicode `string`.
+	   *
+	   * @private
+	   * @param {string} string The string inspect.
+	   * @returns {number} Returns the string size.
+	   */
+	  function unicodeSize(string) {
+	    var result = reUnicode.lastIndex = 0;
+	    while (reUnicode.test(string)) {
+	      ++result;
+	    }
+	    return result;
+	  }
+
+	  /**
+	   * Converts a Unicode `string` to an array.
+	   *
+	   * @private
+	   * @param {string} string The string to convert.
+	   * @returns {Array} Returns the converted array.
+	   */
+	  function unicodeToArray(string) {
+	    return string.match(reUnicode) || [];
+	  }
+
+	  /**
+	   * Splits a Unicode `string` into an array of its words.
+	   *
+	   * @private
+	   * @param {string} The string to inspect.
+	   * @returns {Array} Returns the words of `string`.
+	   */
+	  function unicodeWords(string) {
+	    return string.match(reUnicodeWord) || [];
+	  }
+
+	  /*--------------------------------------------------------------------------*/
+
+	  /**
+	   * Create a new pristine `lodash` function using the `context` object.
+	   *
+	   * @static
+	   * @memberOf _
+	   * @since 1.1.0
+	   * @category Util
+	   * @param {Object} [context=root] The context object.
+	   * @returns {Function} Returns a new `lodash` function.
+	   * @example
+	   *
+	   * _.mixin({ 'foo': _.constant('foo') });
+	   *
+	   * var lodash = _.runInContext();
+	   * lodash.mixin({ 'bar': lodash.constant('bar') });
+	   *
+	   * _.isFunction(_.foo);
+	   * // => true
+	   * _.isFunction(_.bar);
+	   * // => false
+	   *
+	   * lodash.isFunction(lodash.foo);
+	   * // => false
+	   * lodash.isFunction(lodash.bar);
+	   * // => true
+	   *
+	   * // Create a suped-up `defer` in Node.js.
+	   * var defer = _.runInContext({ 'setTimeout': setImmediate }).defer;
+	   */
+	  var runInContext = (function runInContext(context) {
+	    context = context == null ? root : _.defaults(root.Object(), context, _.pick(root, contextProps));
+
+	    /** Built-in constructor references. */
+	    var Array = context.Array,
+	        Date = context.Date,
+	        Error = context.Error,
+	        Function = context.Function,
+	        Math = context.Math,
+	        Object = context.Object,
+	        RegExp = context.RegExp,
+	        String = context.String,
+	        TypeError = context.TypeError;
+
+	    /** Used for built-in method references. */
+	    var arrayProto = Array.prototype,
+	        funcProto = Function.prototype,
+	        objectProto = Object.prototype;
+
+	    /** Used to detect overreaching core-js shims. */
+	    var coreJsData = context['__core-js_shared__'];
+
+	    /** Used to resolve the decompiled source of functions. */
+	    var funcToString = funcProto.toString;
+
+	    /** Used to check objects for own properties. */
+	    var hasOwnProperty = objectProto.hasOwnProperty;
+
+	    /** Used to generate unique IDs. */
+	    var idCounter = 0;
+
+	    /** Used to detect methods masquerading as native. */
+	    var maskSrcKey = (function() {
+	      var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
+	      return uid ? ('Symbol(src)_1.' + uid) : '';
+	    }());
+
+	    /**
+	     * Used to resolve the
+	     * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
+	     * of values.
+	     */
+	    var nativeObjectToString = objectProto.toString;
+
+	    /** Used to infer the `Object` constructor. */
+	    var objectCtorString = funcToString.call(Object);
+
+	    /** Used to restore the original `_` reference in `_.noConflict`. */
+	    var oldDash = root._;
+
+	    /** Used to detect if a method is native. */
+	    var reIsNative = RegExp('^' +
+	      funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&')
+	      .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
+	    );
+
+	    /** Built-in value references. */
+	    var Buffer = moduleExports ? context.Buffer : undefined,
+	        Symbol = context.Symbol,
+	        Uint8Array = context.Uint8Array,
+	        allocUnsafe = Buffer ? Buffer.allocUnsafe : undefined,
+	        getPrototype = overArg(Object.getPrototypeOf, Object),
+	        objectCreate = Object.create,
+	        propertyIsEnumerable = objectProto.propertyIsEnumerable,
+	        splice = arrayProto.splice,
+	        spreadableSymbol = Symbol ? Symbol.isConcatSpreadable : undefined,
+	        symIterator = Symbol ? Symbol.iterator : undefined,
+	        symToStringTag = Symbol ? Symbol.toStringTag : undefined;
+
+	    var defineProperty = (function() {
+	      try {
+	        var func = getNative(Object, 'defineProperty');
+	        func({}, '', {});
+	        return func;
+	      } catch (e) {}
+	    }());
+
+	    /** Mocked built-ins. */
+	    var ctxClearTimeout = context.clearTimeout !== root.clearTimeout && context.clearTimeout,
+	        ctxNow = Date && Date.now !== root.Date.now && Date.now,
+	        ctxSetTimeout = context.setTimeout !== root.setTimeout && context.setTimeout;
+
+	    /* Built-in method references for those with the same name as other `lodash` methods. */
+	    var nativeCeil = Math.ceil,
+	        nativeFloor = Math.floor,
+	        nativeGetSymbols = Object.getOwnPropertySymbols,
+	        nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined,
+	        nativeIsFinite = context.isFinite,
+	        nativeJoin = arrayProto.join,
+	        nativeKeys = overArg(Object.keys, Object),
+	        nativeMax = Math.max,
+	        nativeMin = Math.min,
+	        nativeNow = Date.now,
+	        nativeParseInt = context.parseInt,
+	        nativeRandom = Math.random,
+	        nativeReverse = arrayProto.reverse;
+
+	    /* Built-in method references that are verified to be native. */
+	    var DataView = getNative(context, 'DataView'),
+	        Map = getNative(context, 'Map'),
+	        Promise = getNative(context, 'Promise'),
+	        Set = getNative(context, 'Set'),
+	        WeakMap = getNative(context, 'WeakMap'),
+	        nativeCreate = getNative(Object, 'create');
+
+	    /** Used to store function metadata. */
+	    var metaMap = WeakMap && new WeakMap;
+
+	    /** Used to lookup unminified function names. */
+	    var realNames = {};
+
+	    /** Used to detect maps, sets, and weakmaps. */
+	    var dataViewCtorString = toSource(DataView),
+	        mapCtorString = toSource(Map),
+	        promiseCtorString = toSource(Promise),
+	        setCtorString = toSource(Set),
+	        weakMapCtorString = toSource(WeakMap);
+
+	    /** Used to convert symbols to primitives and strings. */
+	    var symbolProto = Symbol ? Symbol.prototype : undefined,
+	        symbolValueOf = symbolProto ? symbolProto.valueOf : undefined,
+	        symbolToString = symbolProto ? symbolProto.toString : undefined;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a `lodash` object which wraps `value` to enable implicit method
+	     * chain sequences. Methods that operate on and return arrays, collections,
+	     * and functions can be chained together. Methods that retrieve a single value
+	     * or may return a primitive value will automatically end the chain sequence
+	     * and return the unwrapped value. Otherwise, the value must be unwrapped
+	     * with `_#value`.
+	     *
+	     * Explicit chain sequences, which must be unwrapped with `_#value`, may be
+	     * enabled using `_.chain`.
+	     *
+	     * The execution of chained methods is lazy, that is, it's deferred until
+	     * `_#value` is implicitly or explicitly called.
+	     *
+	     * Lazy evaluation allows several methods to support shortcut fusion.
+	     * Shortcut fusion is an optimization to merge iteratee calls; this avoids
+	     * the creation of intermediate arrays and can greatly reduce the number of
+	     * iteratee executions. Sections of a chain sequence qualify for shortcut
+	     * fusion if the section is applied to an array and iteratees accept only
+	     * one argument. The heuristic for whether a section qualifies for shortcut
+	     * fusion is subject to change.
+	     *
+	     * Chaining is supported in custom builds as long as the `_#value` method is
+	     * directly or indirectly included in the build.
+	     *
+	     * In addition to lodash methods, wrappers have `Array` and `String` methods.
+	     *
+	     * The wrapper `Array` methods are:
+	     * `concat`, `join`, `pop`, `push`, `shift`, `sort`, `splice`, and `unshift`
+	     *
+	     * The wrapper `String` methods are:
+	     * `replace` and `split`
+	     *
+	     * The wrapper methods that support shortcut fusion are:
+	     * `at`, `compact`, `drop`, `dropRight`, `dropWhile`, `filter`, `find`,
+	     * `findLast`, `head`, `initial`, `last`, `map`, `reject`, `reverse`, `slice`,
+	     * `tail`, `take`, `takeRight`, `takeRightWhile`, `takeWhile`, and `toArray`
+	     *
+	     * The chainable wrapper methods are:
+	     * `after`, `ary`, `assign`, `assignIn`, `assignInWith`, `assignWith`, `at`,
+	     * `before`, `bind`, `bindAll`, `bindKey`, `castArray`, `chain`, `chunk`,
+	     * `commit`, `compact`, `concat`, `conforms`, `constant`, `countBy`, `create`,
+	     * `curry`, `debounce`, `defaults`, `defaultsDeep`, `defer`, `delay`,
+	     * `difference`, `differenceBy`, `differenceWith`, `drop`, `dropRight`,
+	     * `dropRightWhile`, `dropWhile`, `extend`, `extendWith`, `fill`, `filter`,
+	     * `flatMap`, `flatMapDeep`, `flatMapDepth`, `flatten`, `flattenDeep`,
+	     * `flattenDepth`, `flip`, `flow`, `flowRight`, `fromPairs`, `functions`,
+	     * `functionsIn`, `groupBy`, `initial`, `intersection`, `intersectionBy`,
+	     * `intersectionWith`, `invert`, `invertBy`, `invokeMap`, `iteratee`, `keyBy`,
+	     * `keys`, `keysIn`, `map`, `mapKeys`, `mapValues`, `matches`, `matchesProperty`,
+	     * `memoize`, `merge`, `mergeWith`, `method`, `methodOf`, `mixin`, `negate`,
+	     * `nthArg`, `omit`, `omitBy`, `once`, `orderBy`, `over`, `overArgs`,
+	     * `overEvery`, `overSome`, `partial`, `partialRight`, `partition`, `pick`,
+	     * `pickBy`, `plant`, `property`, `propertyOf`, `pull`, `pullAll`, `pullAllBy`,
+	     * `pullAllWith`, `pullAt`, `push`, `range`, `rangeRight`, `rearg`, `reject`,
+	     * `remove`, `rest`, `reverse`, `sampleSize`, `set`, `setWith`, `shuffle`,
+	     * `slice`, `sort`, `sortBy`, `splice`, `spread`, `tail`, `take`, `takeRight`,
+	     * `takeRightWhile`, `takeWhile`, `tap`, `throttle`, `thru`, `toArray`,
+	     * `toPairs`, `toPairsIn`, `toPath`, `toPlainObject`, `transform`, `unary`,
+	     * `union`, `unionBy`, `unionWith`, `uniq`, `uniqBy`, `uniqWith`, `unset`,
+	     * `unshift`, `unzip`, `unzipWith`, `update`, `updateWith`, `values`,
+	     * `valuesIn`, `without`, `wrap`, `xor`, `xorBy`, `xorWith`, `zip`,
+	     * `zipObject`, `zipObjectDeep`, and `zipWith`
+	     *
+	     * The wrapper methods that are **not** chainable by default are:
+	     * `add`, `attempt`, `camelCase`, `capitalize`, `ceil`, `clamp`, `clone`,
+	     * `cloneDeep`, `cloneDeepWith`, `cloneWith`, `conformsTo`, `deburr`,
+	     * `defaultTo`, `divide`, `each`, `eachRight`, `endsWith`, `eq`, `escape`,
+	     * `escapeRegExp`, `every`, `find`, `findIndex`, `findKey`, `findLast`,
+	     * `findLastIndex`, `findLastKey`, `first`, `floor`, `forEach`, `forEachRight`,
+	     * `forIn`, `forInRight`, `forOwn`, `forOwnRight`, `get`, `gt`, `gte`, `has`,
+	     * `hasIn`, `head`, `identity`, `includes`, `indexOf`, `inRange`, `invoke`,
+	     * `isArguments`, `isArray`, `isArrayBuffer`, `isArrayLike`, `isArrayLikeObject`,
+	     * `isBoolean`, `isBuffer`, `isDate`, `isElement`, `isEmpty`, `isEqual`,
+	     * `isEqualWith`, `isError`, `isFinite`, `isFunction`, `isInteger`, `isLength`,
+	     * `isMap`, `isMatch`, `isMatchWith`, `isNaN`, `isNative`, `isNil`, `isNull`,
+	     * `isNumber`, `isObject`, `isObjectLike`, `isPlainObject`, `isRegExp`,
+	     * `isSafeInteger`, `isSet`, `isString`, `isUndefined`, `isTypedArray`,
+	     * `isWeakMap`, `isWeakSet`, `join`, `kebabCase`, `last`, `lastIndexOf`,
+	     * `lowerCase`, `lowerFirst`, `lt`, `lte`, `max`, `maxBy`, `mean`, `meanBy`,
+	     * `min`, `minBy`, `multiply`, `noConflict`, `noop`, `now`, `nth`, `pad`,
+	     * `padEnd`, `padStart`, `parseInt`, `pop`, `random`, `reduce`, `reduceRight`,
+	     * `repeat`, `result`, `round`, `runInContext`, `sample`, `shift`, `size`,
+	     * `snakeCase`, `some`, `sortedIndex`, `sortedIndexBy`, `sortedLastIndex`,
+	     * `sortedLastIndexBy`, `startCase`, `startsWith`, `stubArray`, `stubFalse`,
+	     * `stubObject`, `stubString`, `stubTrue`, `subtract`, `sum`, `sumBy`,
+	     * `template`, `times`, `toFinite`, `toInteger`, `toJSON`, `toLength`,
+	     * `toLower`, `toNumber`, `toSafeInteger`, `toString`, `toUpper`, `trim`,
+	     * `trimEnd`, `trimStart`, `truncate`, `unescape`, `uniqueId`, `upperCase`,
+	     * `upperFirst`, `value`, and `words`
+	     *
+	     * @name _
+	     * @constructor
+	     * @category Seq
+	     * @param {*} value The value to wrap in a `lodash` instance.
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * var wrapped = _([1, 2, 3]);
+	     *
+	     * // Returns an unwrapped value.
+	     * wrapped.reduce(_.add);
+	     * // => 6
+	     *
+	     * // Returns a wrapped value.
+	     * var squares = wrapped.map(square);
+	     *
+	     * _.isArray(squares);
+	     * // => false
+	     *
+	     * _.isArray(squares.value());
+	     * // => true
+	     */
+	    function lodash(value) {
+	      if (isObjectLike(value) && !isArray(value) && !(value instanceof LazyWrapper)) {
+	        if (value instanceof LodashWrapper) {
+	          return value;
+	        }
+	        if (hasOwnProperty.call(value, '__wrapped__')) {
+	          return wrapperClone(value);
+	        }
+	      }
+	      return new LodashWrapper(value);
+	    }
+
+	    /**
+	     * The base implementation of `_.create` without support for assigning
+	     * properties to the created object.
+	     *
+	     * @private
+	     * @param {Object} proto The object to inherit from.
+	     * @returns {Object} Returns the new object.
+	     */
+	    var baseCreate = (function() {
+	      function object() {}
+	      return function(proto) {
+	        if (!isObject(proto)) {
+	          return {};
+	        }
+	        if (objectCreate) {
+	          return objectCreate(proto);
+	        }
+	        object.prototype = proto;
+	        var result = new object;
+	        object.prototype = undefined;
+	        return result;
+	      };
+	    }());
+
+	    /**
+	     * The function whose prototype chain sequence wrappers inherit from.
+	     *
+	     * @private
+	     */
+	    function baseLodash() {
+	      // No operation performed.
+	    }
+
+	    /**
+	     * The base constructor for creating `lodash` wrapper objects.
+	     *
+	     * @private
+	     * @param {*} value The value to wrap.
+	     * @param {boolean} [chainAll] Enable explicit method chain sequences.
+	     */
+	    function LodashWrapper(value, chainAll) {
+	      this.__wrapped__ = value;
+	      this.__actions__ = [];
+	      this.__chain__ = !!chainAll;
+	      this.__index__ = 0;
+	      this.__values__ = undefined;
+	    }
+
+	    /**
+	     * By default, the template delimiters used by lodash are like those in
+	     * embedded Ruby (ERB) as well as ES2015 template strings. Change the
+	     * following template settings to use alternative delimiters.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @type {Object}
+	     */
+	    lodash.templateSettings = {
+
+	      /**
+	       * Used to detect `data` property values to be HTML-escaped.
+	       *
+	       * @memberOf _.templateSettings
+	       * @type {RegExp}
+	       */
+	      'escape': reEscape,
+
+	      /**
+	       * Used to detect code to be evaluated.
+	       *
+	       * @memberOf _.templateSettings
+	       * @type {RegExp}
+	       */
+	      'evaluate': reEvaluate,
+
+	      /**
+	       * Used to detect `data` property values to inject.
+	       *
+	       * @memberOf _.templateSettings
+	       * @type {RegExp}
+	       */
+	      'interpolate': reInterpolate,
+
+	      /**
+	       * Used to reference the data object in the template text.
+	       *
+	       * @memberOf _.templateSettings
+	       * @type {string}
+	       */
+	      'variable': '',
+
+	      /**
+	       * Used to import variables into the compiled template.
+	       *
+	       * @memberOf _.templateSettings
+	       * @type {Object}
+	       */
+	      'imports': {
+
+	        /**
+	         * A reference to the `lodash` function.
+	         *
+	         * @memberOf _.templateSettings.imports
+	         * @type {Function}
+	         */
+	        '_': lodash
+	      }
+	    };
+
+	    // Ensure wrappers are instances of `baseLodash`.
+	    lodash.prototype = baseLodash.prototype;
+	    lodash.prototype.constructor = lodash;
+
+	    LodashWrapper.prototype = baseCreate(baseLodash.prototype);
+	    LodashWrapper.prototype.constructor = LodashWrapper;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a lazy wrapper object which wraps `value` to enable lazy evaluation.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {*} value The value to wrap.
+	     */
+	    function LazyWrapper(value) {
+	      this.__wrapped__ = value;
+	      this.__actions__ = [];
+	      this.__dir__ = 1;
+	      this.__filtered__ = false;
+	      this.__iteratees__ = [];
+	      this.__takeCount__ = MAX_ARRAY_LENGTH;
+	      this.__views__ = [];
+	    }
+
+	    /**
+	     * Creates a clone of the lazy wrapper object.
+	     *
+	     * @private
+	     * @name clone
+	     * @memberOf LazyWrapper
+	     * @returns {Object} Returns the cloned `LazyWrapper` object.
+	     */
+	    function lazyClone() {
+	      var result = new LazyWrapper(this.__wrapped__);
+	      result.__actions__ = copyArray(this.__actions__);
+	      result.__dir__ = this.__dir__;
+	      result.__filtered__ = this.__filtered__;
+	      result.__iteratees__ = copyArray(this.__iteratees__);
+	      result.__takeCount__ = this.__takeCount__;
+	      result.__views__ = copyArray(this.__views__);
+	      return result;
+	    }
+
+	    /**
+	     * Reverses the direction of lazy iteration.
+	     *
+	     * @private
+	     * @name reverse
+	     * @memberOf LazyWrapper
+	     * @returns {Object} Returns the new reversed `LazyWrapper` object.
+	     */
+	    function lazyReverse() {
+	      if (this.__filtered__) {
+	        var result = new LazyWrapper(this);
+	        result.__dir__ = -1;
+	        result.__filtered__ = true;
+	      } else {
+	        result = this.clone();
+	        result.__dir__ *= -1;
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Extracts the unwrapped value from its lazy wrapper.
+	     *
+	     * @private
+	     * @name value
+	     * @memberOf LazyWrapper
+	     * @returns {*} Returns the unwrapped value.
+	     */
+	    function lazyValue() {
+	      var array = this.__wrapped__.value(),
+	          dir = this.__dir__,
+	          isArr = isArray(array),
+	          isRight = dir < 0,
+	          arrLength = isArr ? array.length : 0,
+	          view = getView(0, arrLength, this.__views__),
+	          start = view.start,
+	          end = view.end,
+	          length = end - start,
+	          index = isRight ? end : (start - 1),
+	          iteratees = this.__iteratees__,
+	          iterLength = iteratees.length,
+	          resIndex = 0,
+	          takeCount = nativeMin(length, this.__takeCount__);
+
+	      if (!isArr || (!isRight && arrLength == length && takeCount == length)) {
+	        return baseWrapperValue(array, this.__actions__);
+	      }
+	      var result = [];
+
+	      outer:
+	      while (length-- && resIndex < takeCount) {
+	        index += dir;
+
+	        var iterIndex = -1,
+	            value = array[index];
+
+	        while (++iterIndex < iterLength) {
+	          var data = iteratees[iterIndex],
+	              iteratee = data.iteratee,
+	              type = data.type,
+	              computed = iteratee(value);
+
+	          if (type == LAZY_MAP_FLAG) {
+	            value = computed;
+	          } else if (!computed) {
+	            if (type == LAZY_FILTER_FLAG) {
+	              continue outer;
+	            } else {
+	              break outer;
+	            }
+	          }
+	        }
+	        result[resIndex++] = value;
+	      }
+	      return result;
+	    }
+
+	    // Ensure `LazyWrapper` is an instance of `baseLodash`.
+	    LazyWrapper.prototype = baseCreate(baseLodash.prototype);
+	    LazyWrapper.prototype.constructor = LazyWrapper;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a hash object.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {Array} [entries] The key-value pairs to cache.
+	     */
+	    function Hash(entries) {
+	      var index = -1,
+	          length = entries == null ? 0 : entries.length;
+
+	      this.clear();
+	      while (++index < length) {
+	        var entry = entries[index];
+	        this.set(entry[0], entry[1]);
+	      }
+	    }
+
+	    /**
+	     * Removes all key-value entries from the hash.
+	     *
+	     * @private
+	     * @name clear
+	     * @memberOf Hash
+	     */
+	    function hashClear() {
+	      this.__data__ = nativeCreate ? nativeCreate(null) : {};
+	      this.size = 0;
+	    }
+
+	    /**
+	     * Removes `key` and its value from the hash.
+	     *
+	     * @private
+	     * @name delete
+	     * @memberOf Hash
+	     * @param {Object} hash The hash to modify.
+	     * @param {string} key The key of the value to remove.
+	     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+	     */
+	    function hashDelete(key) {
+	      var result = this.has(key) && delete this.__data__[key];
+	      this.size -= result ? 1 : 0;
+	      return result;
+	    }
+
+	    /**
+	     * Gets the hash value for `key`.
+	     *
+	     * @private
+	     * @name get
+	     * @memberOf Hash
+	     * @param {string} key The key of the value to get.
+	     * @returns {*} Returns the entry value.
+	     */
+	    function hashGet(key) {
+	      var data = this.__data__;
+	      if (nativeCreate) {
+	        var result = data[key];
+	        return result === HASH_UNDEFINED ? undefined : result;
+	      }
+	      return hasOwnProperty.call(data, key) ? data[key] : undefined;
+	    }
+
+	    /**
+	     * Checks if a hash value for `key` exists.
+	     *
+	     * @private
+	     * @name has
+	     * @memberOf Hash
+	     * @param {string} key The key of the entry to check.
+	     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+	     */
+	    function hashHas(key) {
+	      var data = this.__data__;
+	      return nativeCreate ? (data[key] !== undefined) : hasOwnProperty.call(data, key);
+	    }
+
+	    /**
+	     * Sets the hash `key` to `value`.
+	     *
+	     * @private
+	     * @name set
+	     * @memberOf Hash
+	     * @param {string} key The key of the value to set.
+	     * @param {*} value The value to set.
+	     * @returns {Object} Returns the hash instance.
+	     */
+	    function hashSet(key, value) {
+	      var data = this.__data__;
+	      this.size += this.has(key) ? 0 : 1;
+	      data[key] = (nativeCreate && value === undefined) ? HASH_UNDEFINED : value;
+	      return this;
+	    }
+
+	    // Add methods to `Hash`.
+	    Hash.prototype.clear = hashClear;
+	    Hash.prototype['delete'] = hashDelete;
+	    Hash.prototype.get = hashGet;
+	    Hash.prototype.has = hashHas;
+	    Hash.prototype.set = hashSet;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates an list cache object.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {Array} [entries] The key-value pairs to cache.
+	     */
+	    function ListCache(entries) {
+	      var index = -1,
+	          length = entries == null ? 0 : entries.length;
+
+	      this.clear();
+	      while (++index < length) {
+	        var entry = entries[index];
+	        this.set(entry[0], entry[1]);
+	      }
+	    }
+
+	    /**
+	     * Removes all key-value entries from the list cache.
+	     *
+	     * @private
+	     * @name clear
+	     * @memberOf ListCache
+	     */
+	    function listCacheClear() {
+	      this.__data__ = [];
+	      this.size = 0;
+	    }
+
+	    /**
+	     * Removes `key` and its value from the list cache.
+	     *
+	     * @private
+	     * @name delete
+	     * @memberOf ListCache
+	     * @param {string} key The key of the value to remove.
+	     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+	     */
+	    function listCacheDelete(key) {
+	      var data = this.__data__,
+	          index = assocIndexOf(data, key);
+
+	      if (index < 0) {
+	        return false;
+	      }
+	      var lastIndex = data.length - 1;
+	      if (index == lastIndex) {
+	        data.pop();
+	      } else {
+	        splice.call(data, index, 1);
+	      }
+	      --this.size;
+	      return true;
+	    }
+
+	    /**
+	     * Gets the list cache value for `key`.
+	     *
+	     * @private
+	     * @name get
+	     * @memberOf ListCache
+	     * @param {string} key The key of the value to get.
+	     * @returns {*} Returns the entry value.
+	     */
+	    function listCacheGet(key) {
+	      var data = this.__data__,
+	          index = assocIndexOf(data, key);
+
+	      return index < 0 ? undefined : data[index][1];
+	    }
+
+	    /**
+	     * Checks if a list cache value for `key` exists.
+	     *
+	     * @private
+	     * @name has
+	     * @memberOf ListCache
+	     * @param {string} key The key of the entry to check.
+	     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+	     */
+	    function listCacheHas(key) {
+	      return assocIndexOf(this.__data__, key) > -1;
+	    }
+
+	    /**
+	     * Sets the list cache `key` to `value`.
+	     *
+	     * @private
+	     * @name set
+	     * @memberOf ListCache
+	     * @param {string} key The key of the value to set.
+	     * @param {*} value The value to set.
+	     * @returns {Object} Returns the list cache instance.
+	     */
+	    function listCacheSet(key, value) {
+	      var data = this.__data__,
+	          index = assocIndexOf(data, key);
+
+	      if (index < 0) {
+	        ++this.size;
+	        data.push([key, value]);
+	      } else {
+	        data[index][1] = value;
+	      }
+	      return this;
+	    }
+
+	    // Add methods to `ListCache`.
+	    ListCache.prototype.clear = listCacheClear;
+	    ListCache.prototype['delete'] = listCacheDelete;
+	    ListCache.prototype.get = listCacheGet;
+	    ListCache.prototype.has = listCacheHas;
+	    ListCache.prototype.set = listCacheSet;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a map cache object to store key-value pairs.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {Array} [entries] The key-value pairs to cache.
+	     */
+	    function MapCache(entries) {
+	      var index = -1,
+	          length = entries == null ? 0 : entries.length;
+
+	      this.clear();
+	      while (++index < length) {
+	        var entry = entries[index];
+	        this.set(entry[0], entry[1]);
+	      }
+	    }
+
+	    /**
+	     * Removes all key-value entries from the map.
+	     *
+	     * @private
+	     * @name clear
+	     * @memberOf MapCache
+	     */
+	    function mapCacheClear() {
+	      this.size = 0;
+	      this.__data__ = {
+	        'hash': new Hash,
+	        'map': new (Map || ListCache),
+	        'string': new Hash
+	      };
+	    }
+
+	    /**
+	     * Removes `key` and its value from the map.
+	     *
+	     * @private
+	     * @name delete
+	     * @memberOf MapCache
+	     * @param {string} key The key of the value to remove.
+	     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+	     */
+	    function mapCacheDelete(key) {
+	      var result = getMapData(this, key)['delete'](key);
+	      this.size -= result ? 1 : 0;
+	      return result;
+	    }
+
+	    /**
+	     * Gets the map value for `key`.
+	     *
+	     * @private
+	     * @name get
+	     * @memberOf MapCache
+	     * @param {string} key The key of the value to get.
+	     * @returns {*} Returns the entry value.
+	     */
+	    function mapCacheGet(key) {
+	      return getMapData(this, key).get(key);
+	    }
+
+	    /**
+	     * Checks if a map value for `key` exists.
+	     *
+	     * @private
+	     * @name has
+	     * @memberOf MapCache
+	     * @param {string} key The key of the entry to check.
+	     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+	     */
+	    function mapCacheHas(key) {
+	      return getMapData(this, key).has(key);
+	    }
+
+	    /**
+	     * Sets the map `key` to `value`.
+	     *
+	     * @private
+	     * @name set
+	     * @memberOf MapCache
+	     * @param {string} key The key of the value to set.
+	     * @param {*} value The value to set.
+	     * @returns {Object} Returns the map cache instance.
+	     */
+	    function mapCacheSet(key, value) {
+	      var data = getMapData(this, key),
+	          size = data.size;
+
+	      data.set(key, value);
+	      this.size += data.size == size ? 0 : 1;
+	      return this;
+	    }
+
+	    // Add methods to `MapCache`.
+	    MapCache.prototype.clear = mapCacheClear;
+	    MapCache.prototype['delete'] = mapCacheDelete;
+	    MapCache.prototype.get = mapCacheGet;
+	    MapCache.prototype.has = mapCacheHas;
+	    MapCache.prototype.set = mapCacheSet;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     *
+	     * Creates an array cache object to store unique values.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {Array} [values] The values to cache.
+	     */
+	    function SetCache(values) {
+	      var index = -1,
+	          length = values == null ? 0 : values.length;
+
+	      this.__data__ = new MapCache;
+	      while (++index < length) {
+	        this.add(values[index]);
+	      }
+	    }
+
+	    /**
+	     * Adds `value` to the array cache.
+	     *
+	     * @private
+	     * @name add
+	     * @memberOf SetCache
+	     * @alias push
+	     * @param {*} value The value to cache.
+	     * @returns {Object} Returns the cache instance.
+	     */
+	    function setCacheAdd(value) {
+	      this.__data__.set(value, HASH_UNDEFINED);
+	      return this;
+	    }
+
+	    /**
+	     * Checks if `value` is in the array cache.
+	     *
+	     * @private
+	     * @name has
+	     * @memberOf SetCache
+	     * @param {*} value The value to search for.
+	     * @returns {number} Returns `true` if `value` is found, else `false`.
+	     */
+	    function setCacheHas(value) {
+	      return this.__data__.has(value);
+	    }
+
+	    // Add methods to `SetCache`.
+	    SetCache.prototype.add = SetCache.prototype.push = setCacheAdd;
+	    SetCache.prototype.has = setCacheHas;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a stack cache object to store key-value pairs.
+	     *
+	     * @private
+	     * @constructor
+	     * @param {Array} [entries] The key-value pairs to cache.
+	     */
+	    function Stack(entries) {
+	      var data = this.__data__ = new ListCache(entries);
+	      this.size = data.size;
+	    }
+
+	    /**
+	     * Removes all key-value entries from the stack.
+	     *
+	     * @private
+	     * @name clear
+	     * @memberOf Stack
+	     */
+	    function stackClear() {
+	      this.__data__ = new ListCache;
+	      this.size = 0;
+	    }
+
+	    /**
+	     * Removes `key` and its value from the stack.
+	     *
+	     * @private
+	     * @name delete
+	     * @memberOf Stack
+	     * @param {string} key The key of the value to remove.
+	     * @returns {boolean} Returns `true` if the entry was removed, else `false`.
+	     */
+	    function stackDelete(key) {
+	      var data = this.__data__,
+	          result = data['delete'](key);
+
+	      this.size = data.size;
+	      return result;
+	    }
+
+	    /**
+	     * Gets the stack value for `key`.
+	     *
+	     * @private
+	     * @name get
+	     * @memberOf Stack
+	     * @param {string} key The key of the value to get.
+	     * @returns {*} Returns the entry value.
+	     */
+	    function stackGet(key) {
+	      return this.__data__.get(key);
+	    }
+
+	    /**
+	     * Checks if a stack value for `key` exists.
+	     *
+	     * @private
+	     * @name has
+	     * @memberOf Stack
+	     * @param {string} key The key of the entry to check.
+	     * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
+	     */
+	    function stackHas(key) {
+	      return this.__data__.has(key);
+	    }
+
+	    /**
+	     * Sets the stack `key` to `value`.
+	     *
+	     * @private
+	     * @name set
+	     * @memberOf Stack
+	     * @param {string} key The key of the value to set.
+	     * @param {*} value The value to set.
+	     * @returns {Object} Returns the stack cache instance.
+	     */
+	    function stackSet(key, value) {
+	      var data = this.__data__;
+	      if (data instanceof ListCache) {
+	        var pairs = data.__data__;
+	        if (!Map || (pairs.length < LARGE_ARRAY_SIZE - 1)) {
+	          pairs.push([key, value]);
+	          this.size = ++data.size;
+	          return this;
+	        }
+	        data = this.__data__ = new MapCache(pairs);
+	      }
+	      data.set(key, value);
+	      this.size = data.size;
+	      return this;
+	    }
+
+	    // Add methods to `Stack`.
+	    Stack.prototype.clear = stackClear;
+	    Stack.prototype['delete'] = stackDelete;
+	    Stack.prototype.get = stackGet;
+	    Stack.prototype.has = stackHas;
+	    Stack.prototype.set = stackSet;
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates an array of the enumerable property names of the array-like `value`.
+	     *
+	     * @private
+	     * @param {*} value The value to query.
+	     * @param {boolean} inherited Specify returning inherited property names.
+	     * @returns {Array} Returns the array of property names.
+	     */
+	    function arrayLikeKeys(value, inherited) {
+	      var isArr = isArray(value),
+	          isArg = !isArr && isArguments(value),
+	          isBuff = !isArr && !isArg && isBuffer(value),
+	          isType = !isArr && !isArg && !isBuff && isTypedArray(value),
+	          skipIndexes = isArr || isArg || isBuff || isType,
+	          result = skipIndexes ? baseTimes(value.length, String) : [],
+	          length = result.length;
+
+	      for (var key in value) {
+	        if ((inherited || hasOwnProperty.call(value, key)) &&
+	            !(skipIndexes && (
+	               // Safari 9 has enumerable `arguments.length` in strict mode.
+	               key == 'length' ||
+	               // Node.js 0.10 has enumerable non-index properties on buffers.
+	               (isBuff && (key == 'offset' || key == 'parent')) ||
+	               // PhantomJS 2 has enumerable non-index properties on typed arrays.
+	               (isType && (key == 'buffer' || key == 'byteLength' || key == 'byteOffset')) ||
+	               // Skip index properties.
+	               isIndex(key, length)
+	            ))) {
+	          result.push(key);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * A specialized version of `_.sample` for arrays.
+	     *
+	     * @private
+	     * @param {Array} array The array to sample.
+	     * @returns {*} Returns the random element.
+	     */
+	    function arraySample(array) {
+	      var length = array.length;
+	      return length ? array[baseRandom(0, length - 1)] : undefined;
+	    }
+
+	    /**
+	     * A specialized version of `_.sampleSize` for arrays.
+	     *
+	     * @private
+	     * @param {Array} array The array to sample.
+	     * @param {number} n The number of elements to sample.
+	     * @returns {Array} Returns the random elements.
+	     */
+	    function arraySampleSize(array, n) {
+	      return shuffleSelf(copyArray(array), baseClamp(n, 0, array.length));
+	    }
+
+	    /**
+	     * A specialized version of `_.shuffle` for arrays.
+	     *
+	     * @private
+	     * @param {Array} array The array to shuffle.
+	     * @returns {Array} Returns the new shuffled array.
+	     */
+	    function arrayShuffle(array) {
+	      return shuffleSelf(copyArray(array));
+	    }
+
+	    /**
+	     * This function is like `assignValue` except that it doesn't assign
+	     * `undefined` values.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {string} key The key of the property to assign.
+	     * @param {*} value The value to assign.
+	     */
+	    function assignMergeValue(object, key, value) {
+	      if ((value !== undefined && !eq(object[key], value)) ||
+	          (value === undefined && !(key in object))) {
+	        baseAssignValue(object, key, value);
+	      }
+	    }
+
+	    /**
+	     * Assigns `value` to `key` of `object` if the existing value is not equivalent
+	     * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {string} key The key of the property to assign.
+	     * @param {*} value The value to assign.
+	     */
+	    function assignValue(object, key, value) {
+	      var objValue = object[key];
+	      if (!(hasOwnProperty.call(object, key) && eq(objValue, value)) ||
+	          (value === undefined && !(key in object))) {
+	        baseAssignValue(object, key, value);
+	      }
+	    }
+
+	    /**
+	     * Gets the index at which the `key` is found in `array` of key-value pairs.
+	     *
+	     * @private
+	     * @param {Array} array The array to inspect.
+	     * @param {*} key The key to search for.
+	     * @returns {number} Returns the index of the matched value, else `-1`.
+	     */
+	    function assocIndexOf(array, key) {
+	      var length = array.length;
+	      while (length--) {
+	        if (eq(array[length][0], key)) {
+	          return length;
+	        }
+	      }
+	      return -1;
+	    }
+
+	    /**
+	     * Aggregates elements of `collection` on `accumulator` with keys transformed
+	     * by `iteratee` and values set by `setter`.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} setter The function to set `accumulator` values.
+	     * @param {Function} iteratee The iteratee to transform keys.
+	     * @param {Object} accumulator The initial aggregated object.
+	     * @returns {Function} Returns `accumulator`.
+	     */
+	    function baseAggregator(collection, setter, iteratee, accumulator) {
+	      baseEach(collection, function(value, key, collection) {
+	        setter(accumulator, value, iteratee(value), collection);
+	      });
+	      return accumulator;
+	    }
+
+	    /**
+	     * The base implementation of `_.assign` without support for multiple sources
+	     * or `customizer` functions.
+	     *
+	     * @private
+	     * @param {Object} object The destination object.
+	     * @param {Object} source The source object.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseAssign(object, source) {
+	      return object && copyObject(source, keys(source), object);
+	    }
+
+	    /**
+	     * The base implementation of `_.assignIn` without support for multiple sources
+	     * or `customizer` functions.
+	     *
+	     * @private
+	     * @param {Object} object The destination object.
+	     * @param {Object} source The source object.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseAssignIn(object, source) {
+	      return object && copyObject(source, keysIn(source), object);
+	    }
+
+	    /**
+	     * The base implementation of `assignValue` and `assignMergeValue` without
+	     * value checks.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {string} key The key of the property to assign.
+	     * @param {*} value The value to assign.
+	     */
+	    function baseAssignValue(object, key, value) {
+	      if (key == '__proto__' && defineProperty) {
+	        defineProperty(object, key, {
+	          'configurable': true,
+	          'enumerable': true,
+	          'value': value,
+	          'writable': true
+	        });
+	      } else {
+	        object[key] = value;
+	      }
+	    }
+
+	    /**
+	     * The base implementation of `_.at` without support for individual paths.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {string[]} paths The property paths to pick.
+	     * @returns {Array} Returns the picked elements.
+	     */
+	    function baseAt(object, paths) {
+	      var index = -1,
+	          length = paths.length,
+	          result = Array(length),
+	          skip = object == null;
+
+	      while (++index < length) {
+	        result[index] = skip ? undefined : get(object, paths[index]);
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.clamp` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {number} number The number to clamp.
+	     * @param {number} [lower] The lower bound.
+	     * @param {number} upper The upper bound.
+	     * @returns {number} Returns the clamped number.
+	     */
+	    function baseClamp(number, lower, upper) {
+	      if (number === number) {
+	        if (upper !== undefined) {
+	          number = number <= upper ? number : upper;
+	        }
+	        if (lower !== undefined) {
+	          number = number >= lower ? number : lower;
+	        }
+	      }
+	      return number;
+	    }
+
+	    /**
+	     * The base implementation of `_.clone` and `_.cloneDeep` which tracks
+	     * traversed objects.
+	     *
+	     * @private
+	     * @param {*} value The value to clone.
+	     * @param {boolean} bitmask The bitmask flags.
+	     *  1 - Deep clone
+	     *  2 - Flatten inherited properties
+	     *  4 - Clone symbols
+	     * @param {Function} [customizer] The function to customize cloning.
+	     * @param {string} [key] The key of `value`.
+	     * @param {Object} [object] The parent object of `value`.
+	     * @param {Object} [stack] Tracks traversed objects and their clone counterparts.
+	     * @returns {*} Returns the cloned value.
+	     */
+	    function baseClone(value, bitmask, customizer, key, object, stack) {
+	      var result,
+	          isDeep = bitmask & CLONE_DEEP_FLAG,
+	          isFlat = bitmask & CLONE_FLAT_FLAG,
+	          isFull = bitmask & CLONE_SYMBOLS_FLAG;
+
+	      if (customizer) {
+	        result = object ? customizer(value, key, object, stack) : customizer(value);
+	      }
+	      if (result !== undefined) {
+	        return result;
+	      }
+	      if (!isObject(value)) {
+	        return value;
+	      }
+	      var isArr = isArray(value);
+	      if (isArr) {
+	        result = initCloneArray(value);
+	        if (!isDeep) {
+	          return copyArray(value, result);
+	        }
+	      } else {
+	        var tag = getTag(value),
+	            isFunc = tag == funcTag || tag == genTag;
+
+	        if (isBuffer(value)) {
+	          return cloneBuffer(value, isDeep);
+	        }
+	        if (tag == objectTag || tag == argsTag || (isFunc && !object)) {
+	          result = (isFlat || isFunc) ? {} : initCloneObject(value);
+	          if (!isDeep) {
+	            return isFlat
+	              ? copySymbolsIn(value, baseAssignIn(result, value))
+	              : copySymbols(value, baseAssign(result, value));
+	          }
+	        } else {
+	          if (!cloneableTags[tag]) {
+	            return object ? value : {};
+	          }
+	          result = initCloneByTag(value, tag, isDeep);
+	        }
+	      }
+	      // Check for circular references and return its corresponding clone.
+	      stack || (stack = new Stack);
+	      var stacked = stack.get(value);
+	      if (stacked) {
+	        return stacked;
+	      }
+	      stack.set(value, result);
+
+	      if (isSet(value)) {
+	        value.forEach(function(subValue) {
+	          result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack));
+	        });
+
+	        return result;
+	      }
+
+	      if (isMap(value)) {
+	        value.forEach(function(subValue, key) {
+	          result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack));
+	        });
+
+	        return result;
+	      }
+
+	      var keysFunc = isFull
+	        ? (isFlat ? getAllKeysIn : getAllKeys)
+	        : (isFlat ? keysIn : keys);
+
+	      var props = isArr ? undefined : keysFunc(value);
+	      arrayEach(props || value, function(subValue, key) {
+	        if (props) {
+	          key = subValue;
+	          subValue = value[key];
+	        }
+	        // Recursively populate clone (susceptible to call stack limits).
+	        assignValue(result, key, baseClone(subValue, bitmask, customizer, key, value, stack));
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.conforms` which doesn't clone `source`.
+	     *
+	     * @private
+	     * @param {Object} source The object of property predicates to conform to.
+	     * @returns {Function} Returns the new spec function.
+	     */
+	    function baseConforms(source) {
+	      var props = keys(source);
+	      return function(object) {
+	        return baseConformsTo(object, source, props);
+	      };
+	    }
+
+	    /**
+	     * The base implementation of `_.conformsTo` which accepts `props` to check.
+	     *
+	     * @private
+	     * @param {Object} object The object to inspect.
+	     * @param {Object} source The object of property predicates to conform to.
+	     * @returns {boolean} Returns `true` if `object` conforms, else `false`.
+	     */
+	    function baseConformsTo(object, source, props) {
+	      var length = props.length;
+	      if (object == null) {
+	        return !length;
+	      }
+	      object = Object(object);
+	      while (length--) {
+	        var key = props[length],
+	            predicate = source[key],
+	            value = object[key];
+
+	        if ((value === undefined && !(key in object)) || !predicate(value)) {
+	          return false;
+	        }
+	      }
+	      return true;
+	    }
+
+	    /**
+	     * The base implementation of `_.delay` and `_.defer` which accepts `args`
+	     * to provide to `func`.
+	     *
+	     * @private
+	     * @param {Function} func The function to delay.
+	     * @param {number} wait The number of milliseconds to delay invocation.
+	     * @param {Array} args The arguments to provide to `func`.
+	     * @returns {number|Object} Returns the timer id or timeout object.
+	     */
+	    function baseDelay(func, wait, args) {
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      return setTimeout(function() { func.apply(undefined, args); }, wait);
+	    }
+
+	    /**
+	     * The base implementation of methods like `_.difference` without support
+	     * for excluding multiple arrays or iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array} array The array to inspect.
+	     * @param {Array} values The values to exclude.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of filtered values.
+	     */
+	    function baseDifference(array, values, iteratee, comparator) {
+	      var index = -1,
+	          includes = arrayIncludes,
+	          isCommon = true,
+	          length = array.length,
+	          result = [],
+	          valuesLength = values.length;
+
+	      if (!length) {
+	        return result;
+	      }
+	      if (iteratee) {
+	        values = arrayMap(values, baseUnary(iteratee));
+	      }
+	      if (comparator) {
+	        includes = arrayIncludesWith;
+	        isCommon = false;
+	      }
+	      else if (values.length >= LARGE_ARRAY_SIZE) {
+	        includes = cacheHas;
+	        isCommon = false;
+	        values = new SetCache(values);
+	      }
+	      outer:
+	      while (++index < length) {
+	        var value = array[index],
+	            computed = iteratee == null ? value : iteratee(value);
+
+	        value = (comparator || value !== 0) ? value : 0;
+	        if (isCommon && computed === computed) {
+	          var valuesIndex = valuesLength;
+	          while (valuesIndex--) {
+	            if (values[valuesIndex] === computed) {
+	              continue outer;
+	            }
+	          }
+	          result.push(value);
+	        }
+	        else if (!includes(values, computed, comparator)) {
+	          result.push(value);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.forEach` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @returns {Array|Object} Returns `collection`.
+	     */
+	    var baseEach = createBaseEach(baseForOwn);
+
+	    /**
+	     * The base implementation of `_.forEachRight` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @returns {Array|Object} Returns `collection`.
+	     */
+	    var baseEachRight = createBaseEach(baseForOwnRight, true);
+
+	    /**
+	     * The base implementation of `_.every` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} predicate The function invoked per iteration.
+	     * @returns {boolean} Returns `true` if all elements pass the predicate check,
+	     *  else `false`
+	     */
+	    function baseEvery(collection, predicate) {
+	      var result = true;
+	      baseEach(collection, function(value, index, collection) {
+	        result = !!predicate(value, index, collection);
+	        return result;
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of methods like `_.max` and `_.min` which accepts a
+	     * `comparator` to determine the extremum value.
+	     *
+	     * @private
+	     * @param {Array} array The array to iterate over.
+	     * @param {Function} iteratee The iteratee invoked per iteration.
+	     * @param {Function} comparator The comparator used to compare values.
+	     * @returns {*} Returns the extremum value.
+	     */
+	    function baseExtremum(array, iteratee, comparator) {
+	      var index = -1,
+	          length = array.length;
+
+	      while (++index < length) {
+	        var value = array[index],
+	            current = iteratee(value);
+
+	        if (current != null && (computed === undefined
+	              ? (current === current && !isSymbol(current))
+	              : comparator(current, computed)
+	            )) {
+	          var computed = current,
+	              result = value;
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.fill` without an iteratee call guard.
+	     *
+	     * @private
+	     * @param {Array} array The array to fill.
+	     * @param {*} value The value to fill `array` with.
+	     * @param {number} [start=0] The start position.
+	     * @param {number} [end=array.length] The end position.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function baseFill(array, value, start, end) {
+	      var length = array.length;
+
+	      start = toInteger(start);
+	      if (start < 0) {
+	        start = -start > length ? 0 : (length + start);
+	      }
+	      end = (end === undefined || end > length) ? length : toInteger(end);
+	      if (end < 0) {
+	        end += length;
+	      }
+	      end = start > end ? 0 : toLength(end);
+	      while (start < end) {
+	        array[start++] = value;
+	      }
+	      return array;
+	    }
+
+	    /**
+	     * The base implementation of `_.filter` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} predicate The function invoked per iteration.
+	     * @returns {Array} Returns the new filtered array.
+	     */
+	    function baseFilter(collection, predicate) {
+	      var result = [];
+	      baseEach(collection, function(value, index, collection) {
+	        if (predicate(value, index, collection)) {
+	          result.push(value);
+	        }
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.flatten` with support for restricting flattening.
+	     *
+	     * @private
+	     * @param {Array} array The array to flatten.
+	     * @param {number} depth The maximum recursion depth.
+	     * @param {boolean} [predicate=isFlattenable] The function invoked per iteration.
+	     * @param {boolean} [isStrict] Restrict to values that pass `predicate` checks.
+	     * @param {Array} [result=[]] The initial result value.
+	     * @returns {Array} Returns the new flattened array.
+	     */
+	    function baseFlatten(array, depth, predicate, isStrict, result) {
+	      var index = -1,
+	          length = array.length;
+
+	      predicate || (predicate = isFlattenable);
+	      result || (result = []);
+
+	      while (++index < length) {
+	        var value = array[index];
+	        if (depth > 0 && predicate(value)) {
+	          if (depth > 1) {
+	            // Recursively flatten arrays (susceptible to call stack limits).
+	            baseFlatten(value, depth - 1, predicate, isStrict, result);
+	          } else {
+	            arrayPush(result, value);
+	          }
+	        } else if (!isStrict) {
+	          result[result.length] = value;
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `baseForOwn` which iterates over `object`
+	     * properties returned by `keysFunc` and invokes `iteratee` for each property.
+	     * Iteratee functions may exit iteration early by explicitly returning `false`.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @param {Function} keysFunc The function to get the keys of `object`.
+	     * @returns {Object} Returns `object`.
+	     */
+	    var baseFor = createBaseFor();
+
+	    /**
+	     * This function is like `baseFor` except that it iterates over properties
+	     * in the opposite order.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @param {Function} keysFunc The function to get the keys of `object`.
+	     * @returns {Object} Returns `object`.
+	     */
+	    var baseForRight = createBaseFor(true);
+
+	    /**
+	     * The base implementation of `_.forOwn` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseForOwn(object, iteratee) {
+	      return object && baseFor(object, iteratee, keys);
+	    }
+
+	    /**
+	     * The base implementation of `_.forOwnRight` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseForOwnRight(object, iteratee) {
+	      return object && baseForRight(object, iteratee, keys);
+	    }
+
+	    /**
+	     * The base implementation of `_.functions` which creates an array of
+	     * `object` function property names filtered from `props`.
+	     *
+	     * @private
+	     * @param {Object} object The object to inspect.
+	     * @param {Array} props The property names to filter.
+	     * @returns {Array} Returns the function names.
+	     */
+	    function baseFunctions(object, props) {
+	      return arrayFilter(props, function(key) {
+	        return isFunction(object[key]);
+	      });
+	    }
+
+	    /**
+	     * The base implementation of `_.get` without support for default values.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path of the property to get.
+	     * @returns {*} Returns the resolved value.
+	     */
+	    function baseGet(object, path) {
+	      path = castPath(path, object);
+
+	      var index = 0,
+	          length = path.length;
+
+	      while (object != null && index < length) {
+	        object = object[toKey(path[index++])];
+	      }
+	      return (index && index == length) ? object : undefined;
+	    }
+
+	    /**
+	     * The base implementation of `getAllKeys` and `getAllKeysIn` which uses
+	     * `keysFunc` and `symbolsFunc` to get the enumerable property names and
+	     * symbols of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {Function} keysFunc The function to get the keys of `object`.
+	     * @param {Function} symbolsFunc The function to get the symbols of `object`.
+	     * @returns {Array} Returns the array of property names and symbols.
+	     */
+	    function baseGetAllKeys(object, keysFunc, symbolsFunc) {
+	      var result = keysFunc(object);
+	      return isArray(object) ? result : arrayPush(result, symbolsFunc(object));
+	    }
+
+	    /**
+	     * The base implementation of `getTag` without fallbacks for buggy environments.
+	     *
+	     * @private
+	     * @param {*} value The value to query.
+	     * @returns {string} Returns the `toStringTag`.
+	     */
+	    function baseGetTag(value) {
+	      if (value == null) {
+	        return value === undefined ? undefinedTag : nullTag;
+	      }
+	      return (symToStringTag && symToStringTag in Object(value))
+	        ? getRawTag(value)
+	        : objectToString(value);
+	    }
+
+	    /**
+	     * The base implementation of `_.gt` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is greater than `other`,
+	     *  else `false`.
+	     */
+	    function baseGt(value, other) {
+	      return value > other;
+	    }
+
+	    /**
+	     * The base implementation of `_.has` without support for deep paths.
+	     *
+	     * @private
+	     * @param {Object} [object] The object to query.
+	     * @param {Array|string} key The key to check.
+	     * @returns {boolean} Returns `true` if `key` exists, else `false`.
+	     */
+	    function baseHas(object, key) {
+	      return object != null && hasOwnProperty.call(object, key);
+	    }
+
+	    /**
+	     * The base implementation of `_.hasIn` without support for deep paths.
+	     *
+	     * @private
+	     * @param {Object} [object] The object to query.
+	     * @param {Array|string} key The key to check.
+	     * @returns {boolean} Returns `true` if `key` exists, else `false`.
+	     */
+	    function baseHasIn(object, key) {
+	      return object != null && key in Object(object);
+	    }
+
+	    /**
+	     * The base implementation of `_.inRange` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {number} number The number to check.
+	     * @param {number} start The start of the range.
+	     * @param {number} end The end of the range.
+	     * @returns {boolean} Returns `true` if `number` is in the range, else `false`.
+	     */
+	    function baseInRange(number, start, end) {
+	      return number >= nativeMin(start, end) && number < nativeMax(start, end);
+	    }
+
+	    /**
+	     * The base implementation of methods like `_.intersection`, without support
+	     * for iteratee shorthands, that accepts an array of arrays to inspect.
+	     *
+	     * @private
+	     * @param {Array} arrays The arrays to inspect.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of shared values.
+	     */
+	    function baseIntersection(arrays, iteratee, comparator) {
+	      var includes = comparator ? arrayIncludesWith : arrayIncludes,
+	          length = arrays[0].length,
+	          othLength = arrays.length,
+	          othIndex = othLength,
+	          caches = Array(othLength),
+	          maxLength = Infinity,
+	          result = [];
+
+	      while (othIndex--) {
+	        var array = arrays[othIndex];
+	        if (othIndex && iteratee) {
+	          array = arrayMap(array, baseUnary(iteratee));
+	        }
+	        maxLength = nativeMin(array.length, maxLength);
+	        caches[othIndex] = !comparator && (iteratee || (length >= 120 && array.length >= 120))
+	          ? new SetCache(othIndex && array)
+	          : undefined;
+	      }
+	      array = arrays[0];
+
+	      var index = -1,
+	          seen = caches[0];
+
+	      outer:
+	      while (++index < length && result.length < maxLength) {
+	        var value = array[index],
+	            computed = iteratee ? iteratee(value) : value;
+
+	        value = (comparator || value !== 0) ? value : 0;
+	        if (!(seen
+	              ? cacheHas(seen, computed)
+	              : includes(result, computed, comparator)
+	            )) {
+	          othIndex = othLength;
+	          while (--othIndex) {
+	            var cache = caches[othIndex];
+	            if (!(cache
+	                  ? cacheHas(cache, computed)
+	                  : includes(arrays[othIndex], computed, comparator))
+	                ) {
+	              continue outer;
+	            }
+	          }
+	          if (seen) {
+	            seen.push(computed);
+	          }
+	          result.push(value);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.invert` and `_.invertBy` which inverts
+	     * `object` with values transformed by `iteratee` and set by `setter`.
+	     *
+	     * @private
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} setter The function to set `accumulator` values.
+	     * @param {Function} iteratee The iteratee to transform values.
+	     * @param {Object} accumulator The initial inverted object.
+	     * @returns {Function} Returns `accumulator`.
+	     */
+	    function baseInverter(object, setter, iteratee, accumulator) {
+	      baseForOwn(object, function(value, key, object) {
+	        setter(accumulator, iteratee(value), key, object);
+	      });
+	      return accumulator;
+	    }
+
+	    /**
+	     * The base implementation of `_.invoke` without support for individual
+	     * method arguments.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path of the method to invoke.
+	     * @param {Array} args The arguments to invoke the method with.
+	     * @returns {*} Returns the result of the invoked method.
+	     */
+	    function baseInvoke(object, path, args) {
+	      path = castPath(path, object);
+	      object = parent(object, path);
+	      var func = object == null ? object : object[toKey(last(path))];
+	      return func == null ? undefined : apply(func, object, args);
+	    }
+
+	    /**
+	     * The base implementation of `_.isArguments`.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an `arguments` object,
+	     */
+	    function baseIsArguments(value) {
+	      return isObjectLike(value) && baseGetTag(value) == argsTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isArrayBuffer` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an array buffer, else `false`.
+	     */
+	    function baseIsArrayBuffer(value) {
+	      return isObjectLike(value) && baseGetTag(value) == arrayBufferTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isDate` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a date object, else `false`.
+	     */
+	    function baseIsDate(value) {
+	      return isObjectLike(value) && baseGetTag(value) == dateTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isEqual` which supports partial comparisons
+	     * and tracks traversed objects.
+	     *
+	     * @private
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @param {boolean} bitmask The bitmask flags.
+	     *  1 - Unordered comparison
+	     *  2 - Partial comparison
+	     * @param {Function} [customizer] The function to customize comparisons.
+	     * @param {Object} [stack] Tracks traversed `value` and `other` objects.
+	     * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+	     */
+	    function baseIsEqual(value, other, bitmask, customizer, stack) {
+	      if (value === other) {
+	        return true;
+	      }
+	      if (value == null || other == null || (!isObjectLike(value) && !isObjectLike(other))) {
+	        return value !== value && other !== other;
+	      }
+	      return baseIsEqualDeep(value, other, bitmask, customizer, baseIsEqual, stack);
+	    }
+
+	    /**
+	     * A specialized version of `baseIsEqual` for arrays and objects which performs
+	     * deep comparisons and tracks traversed objects enabling objects with circular
+	     * references to be compared.
+	     *
+	     * @private
+	     * @param {Object} object The object to compare.
+	     * @param {Object} other The other object to compare.
+	     * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
+	     * @param {Function} customizer The function to customize comparisons.
+	     * @param {Function} equalFunc The function to determine equivalents of values.
+	     * @param {Object} [stack] Tracks traversed `object` and `other` objects.
+	     * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+	     */
+	    function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
+	      var objIsArr = isArray(object),
+	          othIsArr = isArray(other),
+	          objTag = objIsArr ? arrayTag : getTag(object),
+	          othTag = othIsArr ? arrayTag : getTag(other);
+
+	      objTag = objTag == argsTag ? objectTag : objTag;
+	      othTag = othTag == argsTag ? objectTag : othTag;
+
+	      var objIsObj = objTag == objectTag,
+	          othIsObj = othTag == objectTag,
+	          isSameTag = objTag == othTag;
+
+	      if (isSameTag && isBuffer(object)) {
+	        if (!isBuffer(other)) {
+	          return false;
+	        }
+	        objIsArr = true;
+	        objIsObj = false;
+	      }
+	      if (isSameTag && !objIsObj) {
+	        stack || (stack = new Stack);
+	        return (objIsArr || isTypedArray(object))
+	          ? equalArrays(object, other, bitmask, customizer, equalFunc, stack)
+	          : equalByTag(object, other, objTag, bitmask, customizer, equalFunc, stack);
+	      }
+	      if (!(bitmask & COMPARE_PARTIAL_FLAG)) {
+	        var objIsWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
+	            othIsWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
+
+	        if (objIsWrapped || othIsWrapped) {
+	          var objUnwrapped = objIsWrapped ? object.value() : object,
+	              othUnwrapped = othIsWrapped ? other.value() : other;
+
+	          stack || (stack = new Stack);
+	          return equalFunc(objUnwrapped, othUnwrapped, bitmask, customizer, stack);
+	        }
+	      }
+	      if (!isSameTag) {
+	        return false;
+	      }
+	      stack || (stack = new Stack);
+	      return equalObjects(object, other, bitmask, customizer, equalFunc, stack);
+	    }
+
+	    /**
+	     * The base implementation of `_.isMap` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a map, else `false`.
+	     */
+	    function baseIsMap(value) {
+	      return isObjectLike(value) && getTag(value) == mapTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isMatch` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Object} object The object to inspect.
+	     * @param {Object} source The object of property values to match.
+	     * @param {Array} matchData The property names, values, and compare flags to match.
+	     * @param {Function} [customizer] The function to customize comparisons.
+	     * @returns {boolean} Returns `true` if `object` is a match, else `false`.
+	     */
+	    function baseIsMatch(object, source, matchData, customizer) {
+	      var index = matchData.length,
+	          length = index,
+	          noCustomizer = !customizer;
+
+	      if (object == null) {
+	        return !length;
+	      }
+	      object = Object(object);
+	      while (index--) {
+	        var data = matchData[index];
+	        if ((noCustomizer && data[2])
+	              ? data[1] !== object[data[0]]
+	              : !(data[0] in object)
+	            ) {
+	          return false;
+	        }
+	      }
+	      while (++index < length) {
+	        data = matchData[index];
+	        var key = data[0],
+	            objValue = object[key],
+	            srcValue = data[1];
+
+	        if (noCustomizer && data[2]) {
+	          if (objValue === undefined && !(key in object)) {
+	            return false;
+	          }
+	        } else {
+	          var stack = new Stack;
+	          if (customizer) {
+	            var result = customizer(objValue, srcValue, key, object, source, stack);
+	          }
+	          if (!(result === undefined
+	                ? baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG, customizer, stack)
+	                : result
+	              )) {
+	            return false;
+	          }
+	        }
+	      }
+	      return true;
+	    }
+
+	    /**
+	     * The base implementation of `_.isNative` without bad shim checks.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a native function,
+	     *  else `false`.
+	     */
+	    function baseIsNative(value) {
+	      if (!isObject(value) || isMasked(value)) {
+	        return false;
+	      }
+	      var pattern = isFunction(value) ? reIsNative : reIsHostCtor;
+	      return pattern.test(toSource(value));
+	    }
+
+	    /**
+	     * The base implementation of `_.isRegExp` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a regexp, else `false`.
+	     */
+	    function baseIsRegExp(value) {
+	      return isObjectLike(value) && baseGetTag(value) == regexpTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isSet` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a set, else `false`.
+	     */
+	    function baseIsSet(value) {
+	      return isObjectLike(value) && getTag(value) == setTag;
+	    }
+
+	    /**
+	     * The base implementation of `_.isTypedArray` without Node.js optimizations.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.
+	     */
+	    function baseIsTypedArray(value) {
+	      return isObjectLike(value) &&
+	        isLength(value.length) && !!typedArrayTags[baseGetTag(value)];
+	    }
+
+	    /**
+	     * The base implementation of `_.iteratee`.
+	     *
+	     * @private
+	     * @param {*} [value=_.identity] The value to convert to an iteratee.
+	     * @returns {Function} Returns the iteratee.
+	     */
+	    function baseIteratee(value) {
+	      // Don't store the `typeof` result in a variable to avoid a JIT bug in Safari 9.
+	      // See https://bugs.webkit.org/show_bug.cgi?id=156034 for more details.
+	      if (typeof value == 'function') {
+	        return value;
+	      }
+	      if (value == null) {
+	        return identity;
+	      }
+	      if (typeof value == 'object') {
+	        return isArray(value)
+	          ? baseMatchesProperty(value[0], value[1])
+	          : baseMatches(value);
+	      }
+	      return property(value);
+	    }
+
+	    /**
+	     * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names.
+	     */
+	    function baseKeys(object) {
+	      if (!isPrototype(object)) {
+	        return nativeKeys(object);
+	      }
+	      var result = [];
+	      for (var key in Object(object)) {
+	        if (hasOwnProperty.call(object, key) && key != 'constructor') {
+	          result.push(key);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.keysIn` which doesn't treat sparse arrays as dense.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names.
+	     */
+	    function baseKeysIn(object) {
+	      if (!isObject(object)) {
+	        return nativeKeysIn(object);
+	      }
+	      var isProto = isPrototype(object),
+	          result = [];
+
+	      for (var key in object) {
+	        if (!(key == 'constructor' && (isProto || !hasOwnProperty.call(object, key)))) {
+	          result.push(key);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.lt` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is less than `other`,
+	     *  else `false`.
+	     */
+	    function baseLt(value, other) {
+	      return value < other;
+	    }
+
+	    /**
+	     * The base implementation of `_.map` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} iteratee The function invoked per iteration.
+	     * @returns {Array} Returns the new mapped array.
+	     */
+	    function baseMap(collection, iteratee) {
+	      var index = -1,
+	          result = isArrayLike(collection) ? Array(collection.length) : [];
+
+	      baseEach(collection, function(value, key, collection) {
+	        result[++index] = iteratee(value, key, collection);
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.matches` which doesn't clone `source`.
+	     *
+	     * @private
+	     * @param {Object} source The object of property values to match.
+	     * @returns {Function} Returns the new spec function.
+	     */
+	    function baseMatches(source) {
+	      var matchData = getMatchData(source);
+	      if (matchData.length == 1 && matchData[0][2]) {
+	        return matchesStrictComparable(matchData[0][0], matchData[0][1]);
+	      }
+	      return function(object) {
+	        return object === source || baseIsMatch(object, source, matchData);
+	      };
+	    }
+
+	    /**
+	     * The base implementation of `_.matchesProperty` which doesn't clone `srcValue`.
+	     *
+	     * @private
+	     * @param {string} path The path of the property to get.
+	     * @param {*} srcValue The value to match.
+	     * @returns {Function} Returns the new spec function.
+	     */
+	    function baseMatchesProperty(path, srcValue) {
+	      if (isKey(path) && isStrictComparable(srcValue)) {
+	        return matchesStrictComparable(toKey(path), srcValue);
+	      }
+	      return function(object) {
+	        var objValue = get(object, path);
+	        return (objValue === undefined && objValue === srcValue)
+	          ? hasIn(object, path)
+	          : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
+	      };
+	    }
+
+	    /**
+	     * The base implementation of `_.merge` without support for multiple sources.
+	     *
+	     * @private
+	     * @param {Object} object The destination object.
+	     * @param {Object} source The source object.
+	     * @param {number} srcIndex The index of `source`.
+	     * @param {Function} [customizer] The function to customize merged values.
+	     * @param {Object} [stack] Tracks traversed source values and their merged
+	     *  counterparts.
+	     */
+	    function baseMerge(object, source, srcIndex, customizer, stack) {
+	      if (object === source) {
+	        return;
+	      }
+	      baseFor(source, function(srcValue, key) {
+	        if (isObject(srcValue)) {
+	          stack || (stack = new Stack);
+	          baseMergeDeep(object, source, key, srcIndex, baseMerge, customizer, stack);
+	        }
+	        else {
+	          var newValue = customizer
+	            ? customizer(safeGet(object, key), srcValue, (key + ''), object, source, stack)
+	            : undefined;
+
+	          if (newValue === undefined) {
+	            newValue = srcValue;
+	          }
+	          assignMergeValue(object, key, newValue);
+	        }
+	      }, keysIn);
+	    }
+
+	    /**
+	     * A specialized version of `baseMerge` for arrays and objects which performs
+	     * deep merges and tracks traversed objects enabling objects with circular
+	     * references to be merged.
+	     *
+	     * @private
+	     * @param {Object} object The destination object.
+	     * @param {Object} source The source object.
+	     * @param {string} key The key of the value to merge.
+	     * @param {number} srcIndex The index of `source`.
+	     * @param {Function} mergeFunc The function to merge values.
+	     * @param {Function} [customizer] The function to customize assigned values.
+	     * @param {Object} [stack] Tracks traversed source values and their merged
+	     *  counterparts.
+	     */
+	    function baseMergeDeep(object, source, key, srcIndex, mergeFunc, customizer, stack) {
+	      var objValue = safeGet(object, key),
+	          srcValue = safeGet(source, key),
+	          stacked = stack.get(srcValue);
+
+	      if (stacked) {
+	        assignMergeValue(object, key, stacked);
+	        return;
+	      }
+	      var newValue = customizer
+	        ? customizer(objValue, srcValue, (key + ''), object, source, stack)
+	        : undefined;
+
+	      var isCommon = newValue === undefined;
+
+	      if (isCommon) {
+	        var isArr = isArray(srcValue),
+	            isBuff = !isArr && isBuffer(srcValue),
+	            isTyped = !isArr && !isBuff && isTypedArray(srcValue);
+
+	        newValue = srcValue;
+	        if (isArr || isBuff || isTyped) {
+	          if (isArray(objValue)) {
+	            newValue = objValue;
+	          }
+	          else if (isArrayLikeObject(objValue)) {
+	            newValue = copyArray(objValue);
+	          }
+	          else if (isBuff) {
+	            isCommon = false;
+	            newValue = cloneBuffer(srcValue, true);
+	          }
+	          else if (isTyped) {
+	            isCommon = false;
+	            newValue = cloneTypedArray(srcValue, true);
+	          }
+	          else {
+	            newValue = [];
+	          }
+	        }
+	        else if (isPlainObject(srcValue) || isArguments(srcValue)) {
+	          newValue = objValue;
+	          if (isArguments(objValue)) {
+	            newValue = toPlainObject(objValue);
+	          }
+	          else if (!isObject(objValue) || isFunction(objValue)) {
+	            newValue = initCloneObject(srcValue);
+	          }
+	        }
+	        else {
+	          isCommon = false;
+	        }
+	      }
+	      if (isCommon) {
+	        // Recursively merge objects and arrays (susceptible to call stack limits).
+	        stack.set(srcValue, newValue);
+	        mergeFunc(newValue, srcValue, srcIndex, customizer, stack);
+	        stack['delete'](srcValue);
+	      }
+	      assignMergeValue(object, key, newValue);
+	    }
+
+	    /**
+	     * The base implementation of `_.nth` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {Array} array The array to query.
+	     * @param {number} n The index of the element to return.
+	     * @returns {*} Returns the nth element of `array`.
+	     */
+	    function baseNth(array, n) {
+	      var length = array.length;
+	      if (!length) {
+	        return;
+	      }
+	      n += n < 0 ? length : 0;
+	      return isIndex(n, length) ? array[n] : undefined;
+	    }
+
+	    /**
+	     * The base implementation of `_.orderBy` without param guards.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function[]|Object[]|string[]} iteratees The iteratees to sort by.
+	     * @param {string[]} orders The sort orders of `iteratees`.
+	     * @returns {Array} Returns the new sorted array.
+	     */
+	    function baseOrderBy(collection, iteratees, orders) {
+	      var index = -1;
+	      iteratees = arrayMap(iteratees.length ? iteratees : [identity], baseUnary(getIteratee()));
+
+	      var result = baseMap(collection, function(value, key, collection) {
+	        var criteria = arrayMap(iteratees, function(iteratee) {
+	          return iteratee(value);
+	        });
+	        return { 'criteria': criteria, 'index': ++index, 'value': value };
+	      });
+
+	      return baseSortBy(result, function(object, other) {
+	        return compareMultiple(object, other, orders);
+	      });
+	    }
+
+	    /**
+	     * The base implementation of `_.pick` without support for individual
+	     * property identifiers.
+	     *
+	     * @private
+	     * @param {Object} object The source object.
+	     * @param {string[]} paths The property paths to pick.
+	     * @returns {Object} Returns the new object.
+	     */
+	    function basePick(object, paths) {
+	      return basePickBy(object, paths, function(value, path) {
+	        return hasIn(object, path);
+	      });
+	    }
+
+	    /**
+	     * The base implementation of  `_.pickBy` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Object} object The source object.
+	     * @param {string[]} paths The property paths to pick.
+	     * @param {Function} predicate The function invoked per property.
+	     * @returns {Object} Returns the new object.
+	     */
+	    function basePickBy(object, paths, predicate) {
+	      var index = -1,
+	          length = paths.length,
+	          result = {};
+
+	      while (++index < length) {
+	        var path = paths[index],
+	            value = baseGet(object, path);
+
+	        if (predicate(value, path)) {
+	          baseSet(result, castPath(path, object), value);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * A specialized version of `baseProperty` which supports deep paths.
+	     *
+	     * @private
+	     * @param {Array|string} path The path of the property to get.
+	     * @returns {Function} Returns the new accessor function.
+	     */
+	    function basePropertyDeep(path) {
+	      return function(object) {
+	        return baseGet(object, path);
+	      };
+	    }
+
+	    /**
+	     * The base implementation of `_.pullAllBy` without support for iteratee
+	     * shorthands.
+	     *
+	     * @private
+	     * @param {Array} array The array to modify.
+	     * @param {Array} values The values to remove.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function basePullAll(array, values, iteratee, comparator) {
+	      var indexOf = comparator ? baseIndexOfWith : baseIndexOf,
+	          index = -1,
+	          length = values.length,
+	          seen = array;
+
+	      if (array === values) {
+	        values = copyArray(values);
+	      }
+	      if (iteratee) {
+	        seen = arrayMap(array, baseUnary(iteratee));
+	      }
+	      while (++index < length) {
+	        var fromIndex = 0,
+	            value = values[index],
+	            computed = iteratee ? iteratee(value) : value;
+
+	        while ((fromIndex = indexOf(seen, computed, fromIndex, comparator)) > -1) {
+	          if (seen !== array) {
+	            splice.call(seen, fromIndex, 1);
+	          }
+	          splice.call(array, fromIndex, 1);
+	        }
+	      }
+	      return array;
+	    }
+
+	    /**
+	     * The base implementation of `_.pullAt` without support for individual
+	     * indexes or capturing the removed elements.
+	     *
+	     * @private
+	     * @param {Array} array The array to modify.
+	     * @param {number[]} indexes The indexes of elements to remove.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function basePullAt(array, indexes) {
+	      var length = array ? indexes.length : 0,
+	          lastIndex = length - 1;
+
+	      while (length--) {
+	        var index = indexes[length];
+	        if (length == lastIndex || index !== previous) {
+	          var previous = index;
+	          if (isIndex(index)) {
+	            splice.call(array, index, 1);
+	          } else {
+	            baseUnset(array, index);
+	          }
+	        }
+	      }
+	      return array;
+	    }
+
+	    /**
+	     * The base implementation of `_.random` without support for returning
+	     * floating-point numbers.
+	     *
+	     * @private
+	     * @param {number} lower The lower bound.
+	     * @param {number} upper The upper bound.
+	     * @returns {number} Returns the random number.
+	     */
+	    function baseRandom(lower, upper) {
+	      return lower + nativeFloor(nativeRandom() * (upper - lower + 1));
+	    }
+
+	    /**
+	     * The base implementation of `_.range` and `_.rangeRight` which doesn't
+	     * coerce arguments.
+	     *
+	     * @private
+	     * @param {number} start The start of the range.
+	     * @param {number} end The end of the range.
+	     * @param {number} step The value to increment or decrement by.
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Array} Returns the range of numbers.
+	     */
+	    function baseRange(start, end, step, fromRight) {
+	      var index = -1,
+	          length = nativeMax(nativeCeil((end - start) / (step || 1)), 0),
+	          result = Array(length);
+
+	      while (length--) {
+	        result[fromRight ? length : ++index] = start;
+	        start += step;
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.repeat` which doesn't coerce arguments.
+	     *
+	     * @private
+	     * @param {string} string The string to repeat.
+	     * @param {number} n The number of times to repeat the string.
+	     * @returns {string} Returns the repeated string.
+	     */
+	    function baseRepeat(string, n) {
+	      var result = '';
+	      if (!string || n < 1 || n > MAX_SAFE_INTEGER) {
+	        return result;
+	      }
+	      // Leverage the exponentiation by squaring algorithm for a faster repeat.
+	      // See https://en.wikipedia.org/wiki/Exponentiation_by_squaring for more details.
+	      do {
+	        if (n % 2) {
+	          result += string;
+	        }
+	        n = nativeFloor(n / 2);
+	        if (n) {
+	          string += string;
+	        }
+	      } while (n);
+
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.rest` which doesn't validate or coerce arguments.
+	     *
+	     * @private
+	     * @param {Function} func The function to apply a rest parameter to.
+	     * @param {number} [start=func.length-1] The start position of the rest parameter.
+	     * @returns {Function} Returns the new function.
+	     */
+	    function baseRest(func, start) {
+	      return setToString(overRest(func, start, identity), func + '');
+	    }
+
+	    /**
+	     * The base implementation of `_.sample`.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to sample.
+	     * @returns {*} Returns the random element.
+	     */
+	    function baseSample(collection) {
+	      return arraySample(values(collection));
+	    }
+
+	    /**
+	     * The base implementation of `_.sampleSize` without param guards.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to sample.
+	     * @param {number} n The number of elements to sample.
+	     * @returns {Array} Returns the random elements.
+	     */
+	    function baseSampleSize(collection, n) {
+	      var array = values(collection);
+	      return shuffleSelf(array, baseClamp(n, 0, array.length));
+	    }
+
+	    /**
+	     * The base implementation of `_.set`.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to set.
+	     * @param {*} value The value to set.
+	     * @param {Function} [customizer] The function to customize path creation.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseSet(object, path, value, customizer) {
+	      if (!isObject(object)) {
+	        return object;
+	      }
+	      path = castPath(path, object);
+
+	      var index = -1,
+	          length = path.length,
+	          lastIndex = length - 1,
+	          nested = object;
+
+	      while (nested != null && ++index < length) {
+	        var key = toKey(path[index]),
+	            newValue = value;
+
+	        if (index != lastIndex) {
+	          var objValue = nested[key];
+	          newValue = customizer ? customizer(objValue, key, nested) : undefined;
+	          if (newValue === undefined) {
+	            newValue = isObject(objValue)
+	              ? objValue
+	              : (isIndex(path[index + 1]) ? [] : {});
+	          }
+	        }
+	        assignValue(nested, key, newValue);
+	        nested = nested[key];
+	      }
+	      return object;
+	    }
+
+	    /**
+	     * The base implementation of `setData` without support for hot loop shorting.
+	     *
+	     * @private
+	     * @param {Function} func The function to associate metadata with.
+	     * @param {*} data The metadata.
+	     * @returns {Function} Returns `func`.
+	     */
+	    var baseSetData = !metaMap ? identity : function(func, data) {
+	      metaMap.set(func, data);
+	      return func;
+	    };
+
+	    /**
+	     * The base implementation of `setToString` without support for hot loop shorting.
+	     *
+	     * @private
+	     * @param {Function} func The function to modify.
+	     * @param {Function} string The `toString` result.
+	     * @returns {Function} Returns `func`.
+	     */
+	    var baseSetToString = !defineProperty ? identity : function(func, string) {
+	      return defineProperty(func, 'toString', {
+	        'configurable': true,
+	        'enumerable': false,
+	        'value': constant(string),
+	        'writable': true
+	      });
+	    };
+
+	    /**
+	     * The base implementation of `_.shuffle`.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to shuffle.
+	     * @returns {Array} Returns the new shuffled array.
+	     */
+	    function baseShuffle(collection) {
+	      return shuffleSelf(values(collection));
+	    }
+
+	    /**
+	     * The base implementation of `_.slice` without an iteratee call guard.
+	     *
+	     * @private
+	     * @param {Array} array The array to slice.
+	     * @param {number} [start=0] The start position.
+	     * @param {number} [end=array.length] The end position.
+	     * @returns {Array} Returns the slice of `array`.
+	     */
+	    function baseSlice(array, start, end) {
+	      var index = -1,
+	          length = array.length;
+
+	      if (start < 0) {
+	        start = -start > length ? 0 : (length + start);
+	      }
+	      end = end > length ? length : end;
+	      if (end < 0) {
+	        end += length;
+	      }
+	      length = start > end ? 0 : ((end - start) >>> 0);
+	      start >>>= 0;
+
+	      var result = Array(length);
+	      while (++index < length) {
+	        result[index] = array[index + start];
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.some` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} predicate The function invoked per iteration.
+	     * @returns {boolean} Returns `true` if any element passes the predicate check,
+	     *  else `false`.
+	     */
+	    function baseSome(collection, predicate) {
+	      var result;
+
+	      baseEach(collection, function(value, index, collection) {
+	        result = predicate(value, index, collection);
+	        return !result;
+	      });
+	      return !!result;
+	    }
+
+	    /**
+	     * The base implementation of `_.sortedIndex` and `_.sortedLastIndex` which
+	     * performs a binary search of `array` to determine the index at which `value`
+	     * should be inserted into `array` in order to maintain its sort order.
+	     *
+	     * @private
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @param {boolean} [retHighest] Specify returning the highest qualified index.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     */
+	    function baseSortedIndex(array, value, retHighest) {
+	      var low = 0,
+	          high = array == null ? low : array.length;
+
+	      if (typeof value == 'number' && value === value && high <= HALF_MAX_ARRAY_LENGTH) {
+	        while (low < high) {
+	          var mid = (low + high) >>> 1,
+	              computed = array[mid];
+
+	          if (computed !== null && !isSymbol(computed) &&
+	              (retHighest ? (computed <= value) : (computed < value))) {
+	            low = mid + 1;
+	          } else {
+	            high = mid;
+	          }
+	        }
+	        return high;
+	      }
+	      return baseSortedIndexBy(array, value, identity, retHighest);
+	    }
+
+	    /**
+	     * The base implementation of `_.sortedIndexBy` and `_.sortedLastIndexBy`
+	     * which invokes `iteratee` for `value` and each element of `array` to compute
+	     * their sort ranking. The iteratee is invoked with one argument; (value).
+	     *
+	     * @private
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @param {Function} iteratee The iteratee invoked per element.
+	     * @param {boolean} [retHighest] Specify returning the highest qualified index.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     */
+	    function baseSortedIndexBy(array, value, iteratee, retHighest) {
+	      value = iteratee(value);
+
+	      var low = 0,
+	          high = array == null ? 0 : array.length,
+	          valIsNaN = value !== value,
+	          valIsNull = value === null,
+	          valIsSymbol = isSymbol(value),
+	          valIsUndefined = value === undefined;
+
+	      while (low < high) {
+	        var mid = nativeFloor((low + high) / 2),
+	            computed = iteratee(array[mid]),
+	            othIsDefined = computed !== undefined,
+	            othIsNull = computed === null,
+	            othIsReflexive = computed === computed,
+	            othIsSymbol = isSymbol(computed);
+
+	        if (valIsNaN) {
+	          var setLow = retHighest || othIsReflexive;
+	        } else if (valIsUndefined) {
+	          setLow = othIsReflexive && (retHighest || othIsDefined);
+	        } else if (valIsNull) {
+	          setLow = othIsReflexive && othIsDefined && (retHighest || !othIsNull);
+	        } else if (valIsSymbol) {
+	          setLow = othIsReflexive && othIsDefined && !othIsNull && (retHighest || !othIsSymbol);
+	        } else if (othIsNull || othIsSymbol) {
+	          setLow = false;
+	        } else {
+	          setLow = retHighest ? (computed <= value) : (computed < value);
+	        }
+	        if (setLow) {
+	          low = mid + 1;
+	        } else {
+	          high = mid;
+	        }
+	      }
+	      return nativeMin(high, MAX_ARRAY_INDEX);
+	    }
+
+	    /**
+	     * The base implementation of `_.sortedUniq` and `_.sortedUniqBy` without
+	     * support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @returns {Array} Returns the new duplicate free array.
+	     */
+	    function baseSortedUniq(array, iteratee) {
+	      var index = -1,
+	          length = array.length,
+	          resIndex = 0,
+	          result = [];
+
+	      while (++index < length) {
+	        var value = array[index],
+	            computed = iteratee ? iteratee(value) : value;
+
+	        if (!index || !eq(computed, seen)) {
+	          var seen = computed;
+	          result[resIndex++] = value === 0 ? 0 : value;
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.toNumber` which doesn't ensure correct
+	     * conversions of binary, hexadecimal, or octal string values.
+	     *
+	     * @private
+	     * @param {*} value The value to process.
+	     * @returns {number} Returns the number.
+	     */
+	    function baseToNumber(value) {
+	      if (typeof value == 'number') {
+	        return value;
+	      }
+	      if (isSymbol(value)) {
+	        return NAN;
+	      }
+	      return +value;
+	    }
+
+	    /**
+	     * The base implementation of `_.toString` which doesn't convert nullish
+	     * values to empty strings.
+	     *
+	     * @private
+	     * @param {*} value The value to process.
+	     * @returns {string} Returns the string.
+	     */
+	    function baseToString(value) {
+	      // Exit early for strings to avoid a performance hit in some environments.
+	      if (typeof value == 'string') {
+	        return value;
+	      }
+	      if (isArray(value)) {
+	        // Recursively convert values (susceptible to call stack limits).
+	        return arrayMap(value, baseToString) + '';
+	      }
+	      if (isSymbol(value)) {
+	        return symbolToString ? symbolToString.call(value) : '';
+	      }
+	      var result = (value + '');
+	      return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
+	    }
+
+	    /**
+	     * The base implementation of `_.uniqBy` without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new duplicate free array.
+	     */
+	    function baseUniq(array, iteratee, comparator) {
+	      var index = -1,
+	          includes = arrayIncludes,
+	          length = array.length,
+	          isCommon = true,
+	          result = [],
+	          seen = result;
+
+	      if (comparator) {
+	        isCommon = false;
+	        includes = arrayIncludesWith;
+	      }
+	      else if (length >= LARGE_ARRAY_SIZE) {
+	        var set = iteratee ? null : createSet(array);
+	        if (set) {
+	          return setToArray(set);
+	        }
+	        isCommon = false;
+	        includes = cacheHas;
+	        seen = new SetCache;
+	      }
+	      else {
+	        seen = iteratee ? [] : result;
+	      }
+	      outer:
+	      while (++index < length) {
+	        var value = array[index],
+	            computed = iteratee ? iteratee(value) : value;
+
+	        value = (comparator || value !== 0) ? value : 0;
+	        if (isCommon && computed === computed) {
+	          var seenIndex = seen.length;
+	          while (seenIndex--) {
+	            if (seen[seenIndex] === computed) {
+	              continue outer;
+	            }
+	          }
+	          if (iteratee) {
+	            seen.push(computed);
+	          }
+	          result.push(value);
+	        }
+	        else if (!includes(seen, computed, comparator)) {
+	          if (seen !== result) {
+	            seen.push(computed);
+	          }
+	          result.push(value);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * The base implementation of `_.unset`.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The property path to unset.
+	     * @returns {boolean} Returns `true` if the property is deleted, else `false`.
+	     */
+	    function baseUnset(object, path) {
+	      path = castPath(path, object);
+	      object = parent(object, path);
+	      return object == null || delete object[toKey(last(path))];
+	    }
+
+	    /**
+	     * The base implementation of `_.update`.
+	     *
+	     * @private
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to update.
+	     * @param {Function} updater The function to produce the updated value.
+	     * @param {Function} [customizer] The function to customize path creation.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function baseUpdate(object, path, updater, customizer) {
+	      return baseSet(object, path, updater(baseGet(object, path)), customizer);
+	    }
+
+	    /**
+	     * The base implementation of methods like `_.dropWhile` and `_.takeWhile`
+	     * without support for iteratee shorthands.
+	     *
+	     * @private
+	     * @param {Array} array The array to query.
+	     * @param {Function} predicate The function invoked per iteration.
+	     * @param {boolean} [isDrop] Specify dropping elements instead of taking them.
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Array} Returns the slice of `array`.
+	     */
+	    function baseWhile(array, predicate, isDrop, fromRight) {
+	      var length = array.length,
+	          index = fromRight ? length : -1;
+
+	      while ((fromRight ? index-- : ++index < length) &&
+	        predicate(array[index], index, array)) {}
+
+	      return isDrop
+	        ? baseSlice(array, (fromRight ? 0 : index), (fromRight ? index + 1 : length))
+	        : baseSlice(array, (fromRight ? index + 1 : 0), (fromRight ? length : index));
+	    }
+
+	    /**
+	     * The base implementation of `wrapperValue` which returns the result of
+	     * performing a sequence of actions on the unwrapped `value`, where each
+	     * successive action is supplied the return value of the previous.
+	     *
+	     * @private
+	     * @param {*} value The unwrapped value.
+	     * @param {Array} actions Actions to perform to resolve the unwrapped value.
+	     * @returns {*} Returns the resolved value.
+	     */
+	    function baseWrapperValue(value, actions) {
+	      var result = value;
+	      if (result instanceof LazyWrapper) {
+	        result = result.value();
+	      }
+	      return arrayReduce(actions, function(result, action) {
+	        return action.func.apply(action.thisArg, arrayPush([result], action.args));
+	      }, result);
+	    }
+
+	    /**
+	     * The base implementation of methods like `_.xor`, without support for
+	     * iteratee shorthands, that accepts an array of arrays to inspect.
+	     *
+	     * @private
+	     * @param {Array} arrays The arrays to inspect.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of values.
+	     */
+	    function baseXor(arrays, iteratee, comparator) {
+	      var length = arrays.length;
+	      if (length < 2) {
+	        return length ? baseUniq(arrays[0]) : [];
+	      }
+	      var index = -1,
+	          result = Array(length);
+
+	      while (++index < length) {
+	        var array = arrays[index],
+	            othIndex = -1;
+
+	        while (++othIndex < length) {
+	          if (othIndex != index) {
+	            result[index] = baseDifference(result[index] || array, arrays[othIndex], iteratee, comparator);
+	          }
+	        }
+	      }
+	      return baseUniq(baseFlatten(result, 1), iteratee, comparator);
+	    }
+
+	    /**
+	     * This base implementation of `_.zipObject` which assigns values using `assignFunc`.
+	     *
+	     * @private
+	     * @param {Array} props The property identifiers.
+	     * @param {Array} values The property values.
+	     * @param {Function} assignFunc The function to assign values.
+	     * @returns {Object} Returns the new object.
+	     */
+	    function baseZipObject(props, values, assignFunc) {
+	      var index = -1,
+	          length = props.length,
+	          valsLength = values.length,
+	          result = {};
+
+	      while (++index < length) {
+	        var value = index < valsLength ? values[index] : undefined;
+	        assignFunc(result, props[index], value);
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Casts `value` to an empty array if it's not an array like object.
+	     *
+	     * @private
+	     * @param {*} value The value to inspect.
+	     * @returns {Array|Object} Returns the cast array-like object.
+	     */
+	    function castArrayLikeObject(value) {
+	      return isArrayLikeObject(value) ? value : [];
+	    }
+
+	    /**
+	     * Casts `value` to `identity` if it's not a function.
+	     *
+	     * @private
+	     * @param {*} value The value to inspect.
+	     * @returns {Function} Returns cast function.
+	     */
+	    function castFunction(value) {
+	      return typeof value == 'function' ? value : identity;
+	    }
+
+	    /**
+	     * Casts `value` to a path array if it's not one.
+	     *
+	     * @private
+	     * @param {*} value The value to inspect.
+	     * @param {Object} [object] The object to query keys on.
+	     * @returns {Array} Returns the cast property path array.
+	     */
+	    function castPath(value, object) {
+	      if (isArray(value)) {
+	        return value;
+	      }
+	      return isKey(value, object) ? [value] : stringToPath(toString(value));
+	    }
+
+	    /**
+	     * A `baseRest` alias which can be replaced with `identity` by module
+	     * replacement plugins.
+	     *
+	     * @private
+	     * @type {Function}
+	     * @param {Function} func The function to apply a rest parameter to.
+	     * @returns {Function} Returns the new function.
+	     */
+	    var castRest = baseRest;
+
+	    /**
+	     * Casts `array` to a slice if it's needed.
+	     *
+	     * @private
+	     * @param {Array} array The array to inspect.
+	     * @param {number} start The start position.
+	     * @param {number} [end=array.length] The end position.
+	     * @returns {Array} Returns the cast slice.
+	     */
+	    function castSlice(array, start, end) {
+	      var length = array.length;
+	      end = end === undefined ? length : end;
+	      return (!start && end >= length) ? array : baseSlice(array, start, end);
+	    }
+
+	    /**
+	     * A simple wrapper around the global [`clearTimeout`](https://mdn.io/clearTimeout).
+	     *
+	     * @private
+	     * @param {number|Object} id The timer id or timeout object of the timer to clear.
+	     */
+	    var clearTimeout = ctxClearTimeout || function(id) {
+	      return root.clearTimeout(id);
+	    };
+
+	    /**
+	     * Creates a clone of  `buffer`.
+	     *
+	     * @private
+	     * @param {Buffer} buffer The buffer to clone.
+	     * @param {boolean} [isDeep] Specify a deep clone.
+	     * @returns {Buffer} Returns the cloned buffer.
+	     */
+	    function cloneBuffer(buffer, isDeep) {
+	      if (isDeep) {
+	        return buffer.slice();
+	      }
+	      var length = buffer.length,
+	          result = allocUnsafe ? allocUnsafe(length) : new buffer.constructor(length);
+
+	      buffer.copy(result);
+	      return result;
+	    }
+
+	    /**
+	     * Creates a clone of `arrayBuffer`.
+	     *
+	     * @private
+	     * @param {ArrayBuffer} arrayBuffer The array buffer to clone.
+	     * @returns {ArrayBuffer} Returns the cloned array buffer.
+	     */
+	    function cloneArrayBuffer(arrayBuffer) {
+	      var result = new arrayBuffer.constructor(arrayBuffer.byteLength);
+	      new Uint8Array(result).set(new Uint8Array(arrayBuffer));
+	      return result;
+	    }
+
+	    /**
+	     * Creates a clone of `dataView`.
+	     *
+	     * @private
+	     * @param {Object} dataView The data view to clone.
+	     * @param {boolean} [isDeep] Specify a deep clone.
+	     * @returns {Object} Returns the cloned data view.
+	     */
+	    function cloneDataView(dataView, isDeep) {
+	      var buffer = isDeep ? cloneArrayBuffer(dataView.buffer) : dataView.buffer;
+	      return new dataView.constructor(buffer, dataView.byteOffset, dataView.byteLength);
+	    }
+
+	    /**
+	     * Creates a clone of `regexp`.
+	     *
+	     * @private
+	     * @param {Object} regexp The regexp to clone.
+	     * @returns {Object} Returns the cloned regexp.
+	     */
+	    function cloneRegExp(regexp) {
+	      var result = new regexp.constructor(regexp.source, reFlags.exec(regexp));
+	      result.lastIndex = regexp.lastIndex;
+	      return result;
+	    }
+
+	    /**
+	     * Creates a clone of the `symbol` object.
+	     *
+	     * @private
+	     * @param {Object} symbol The symbol object to clone.
+	     * @returns {Object} Returns the cloned symbol object.
+	     */
+	    function cloneSymbol(symbol) {
+	      return symbolValueOf ? Object(symbolValueOf.call(symbol)) : {};
+	    }
+
+	    /**
+	     * Creates a clone of `typedArray`.
+	     *
+	     * @private
+	     * @param {Object} typedArray The typed array to clone.
+	     * @param {boolean} [isDeep] Specify a deep clone.
+	     * @returns {Object} Returns the cloned typed array.
+	     */
+	    function cloneTypedArray(typedArray, isDeep) {
+	      var buffer = isDeep ? cloneArrayBuffer(typedArray.buffer) : typedArray.buffer;
+	      return new typedArray.constructor(buffer, typedArray.byteOffset, typedArray.length);
+	    }
+
+	    /**
+	     * Compares values to sort them in ascending order.
+	     *
+	     * @private
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {number} Returns the sort order indicator for `value`.
+	     */
+	    function compareAscending(value, other) {
+	      if (value !== other) {
+	        var valIsDefined = value !== undefined,
+	            valIsNull = value === null,
+	            valIsReflexive = value === value,
+	            valIsSymbol = isSymbol(value);
+
+	        var othIsDefined = other !== undefined,
+	            othIsNull = other === null,
+	            othIsReflexive = other === other,
+	            othIsSymbol = isSymbol(other);
+
+	        if ((!othIsNull && !othIsSymbol && !valIsSymbol && value > other) ||
+	            (valIsSymbol && othIsDefined && othIsReflexive && !othIsNull && !othIsSymbol) ||
+	            (valIsNull && othIsDefined && othIsReflexive) ||
+	            (!valIsDefined && othIsReflexive) ||
+	            !valIsReflexive) {
+	          return 1;
+	        }
+	        if ((!valIsNull && !valIsSymbol && !othIsSymbol && value < other) ||
+	            (othIsSymbol && valIsDefined && valIsReflexive && !valIsNull && !valIsSymbol) ||
+	            (othIsNull && valIsDefined && valIsReflexive) ||
+	            (!othIsDefined && valIsReflexive) ||
+	            !othIsReflexive) {
+	          return -1;
+	        }
+	      }
+	      return 0;
+	    }
+
+	    /**
+	     * Used by `_.orderBy` to compare multiple properties of a value to another
+	     * and stable sort them.
+	     *
+	     * If `orders` is unspecified, all values are sorted in ascending order. Otherwise,
+	     * specify an order of "desc" for descending or "asc" for ascending sort order
+	     * of corresponding values.
+	     *
+	     * @private
+	     * @param {Object} object The object to compare.
+	     * @param {Object} other The other object to compare.
+	     * @param {boolean[]|string[]} orders The order to sort by for each property.
+	     * @returns {number} Returns the sort order indicator for `object`.
+	     */
+	    function compareMultiple(object, other, orders) {
+	      var index = -1,
+	          objCriteria = object.criteria,
+	          othCriteria = other.criteria,
+	          length = objCriteria.length,
+	          ordersLength = orders.length;
+
+	      while (++index < length) {
+	        var result = compareAscending(objCriteria[index], othCriteria[index]);
+	        if (result) {
+	          if (index >= ordersLength) {
+	            return result;
+	          }
+	          var order = orders[index];
+	          return result * (order == 'desc' ? -1 : 1);
+	        }
+	      }
+	      // Fixes an `Array#sort` bug in the JS engine embedded in Adobe applications
+	      // that causes it, under certain circumstances, to provide the same value for
+	      // `object` and `other`. See https://github.com/jashkenas/underscore/pull/1247
+	      // for more details.
+	      //
+	      // This also ensures a stable sort in V8 and other engines.
+	      // See https://bugs.chromium.org/p/v8/issues/detail?id=90 for more details.
+	      return object.index - other.index;
+	    }
+
+	    /**
+	     * Creates an array that is the composition of partially applied arguments,
+	     * placeholders, and provided arguments into a single array of arguments.
+	     *
+	     * @private
+	     * @param {Array} args The provided arguments.
+	     * @param {Array} partials The arguments to prepend to those provided.
+	     * @param {Array} holders The `partials` placeholder indexes.
+	     * @params {boolean} [isCurried] Specify composing for a curried function.
+	     * @returns {Array} Returns the new array of composed arguments.
+	     */
+	    function composeArgs(args, partials, holders, isCurried) {
+	      var argsIndex = -1,
+	          argsLength = args.length,
+	          holdersLength = holders.length,
+	          leftIndex = -1,
+	          leftLength = partials.length,
+	          rangeLength = nativeMax(argsLength - holdersLength, 0),
+	          result = Array(leftLength + rangeLength),
+	          isUncurried = !isCurried;
+
+	      while (++leftIndex < leftLength) {
+	        result[leftIndex] = partials[leftIndex];
+	      }
+	      while (++argsIndex < holdersLength) {
+	        if (isUncurried || argsIndex < argsLength) {
+	          result[holders[argsIndex]] = args[argsIndex];
+	        }
+	      }
+	      while (rangeLength--) {
+	        result[leftIndex++] = args[argsIndex++];
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * This function is like `composeArgs` except that the arguments composition
+	     * is tailored for `_.partialRight`.
+	     *
+	     * @private
+	     * @param {Array} args The provided arguments.
+	     * @param {Array} partials The arguments to append to those provided.
+	     * @param {Array} holders The `partials` placeholder indexes.
+	     * @params {boolean} [isCurried] Specify composing for a curried function.
+	     * @returns {Array} Returns the new array of composed arguments.
+	     */
+	    function composeArgsRight(args, partials, holders, isCurried) {
+	      var argsIndex = -1,
+	          argsLength = args.length,
+	          holdersIndex = -1,
+	          holdersLength = holders.length,
+	          rightIndex = -1,
+	          rightLength = partials.length,
+	          rangeLength = nativeMax(argsLength - holdersLength, 0),
+	          result = Array(rangeLength + rightLength),
+	          isUncurried = !isCurried;
+
+	      while (++argsIndex < rangeLength) {
+	        result[argsIndex] = args[argsIndex];
+	      }
+	      var offset = argsIndex;
+	      while (++rightIndex < rightLength) {
+	        result[offset + rightIndex] = partials[rightIndex];
+	      }
+	      while (++holdersIndex < holdersLength) {
+	        if (isUncurried || argsIndex < argsLength) {
+	          result[offset + holders[holdersIndex]] = args[argsIndex++];
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Copies the values of `source` to `array`.
+	     *
+	     * @private
+	     * @param {Array} source The array to copy values from.
+	     * @param {Array} [array=[]] The array to copy values to.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function copyArray(source, array) {
+	      var index = -1,
+	          length = source.length;
+
+	      array || (array = Array(length));
+	      while (++index < length) {
+	        array[index] = source[index];
+	      }
+	      return array;
+	    }
+
+	    /**
+	     * Copies properties of `source` to `object`.
+	     *
+	     * @private
+	     * @param {Object} source The object to copy properties from.
+	     * @param {Array} props The property identifiers to copy.
+	     * @param {Object} [object={}] The object to copy properties to.
+	     * @param {Function} [customizer] The function to customize copied values.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function copyObject(source, props, object, customizer) {
+	      var isNew = !object;
+	      object || (object = {});
+
+	      var index = -1,
+	          length = props.length;
+
+	      while (++index < length) {
+	        var key = props[index];
+
+	        var newValue = customizer
+	          ? customizer(object[key], source[key], key, object, source)
+	          : undefined;
+
+	        if (newValue === undefined) {
+	          newValue = source[key];
+	        }
+	        if (isNew) {
+	          baseAssignValue(object, key, newValue);
+	        } else {
+	          assignValue(object, key, newValue);
+	        }
+	      }
+	      return object;
+	    }
+
+	    /**
+	     * Copies own symbols of `source` to `object`.
+	     *
+	     * @private
+	     * @param {Object} source The object to copy symbols from.
+	     * @param {Object} [object={}] The object to copy symbols to.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function copySymbols(source, object) {
+	      return copyObject(source, getSymbols(source), object);
+	    }
+
+	    /**
+	     * Copies own and inherited symbols of `source` to `object`.
+	     *
+	     * @private
+	     * @param {Object} source The object to copy symbols from.
+	     * @param {Object} [object={}] The object to copy symbols to.
+	     * @returns {Object} Returns `object`.
+	     */
+	    function copySymbolsIn(source, object) {
+	      return copyObject(source, getSymbolsIn(source), object);
+	    }
+
+	    /**
+	     * Creates a function like `_.groupBy`.
+	     *
+	     * @private
+	     * @param {Function} setter The function to set accumulator values.
+	     * @param {Function} [initializer] The accumulator object initializer.
+	     * @returns {Function} Returns the new aggregator function.
+	     */
+	    function createAggregator(setter, initializer) {
+	      return function(collection, iteratee) {
+	        var func = isArray(collection) ? arrayAggregator : baseAggregator,
+	            accumulator = initializer ? initializer() : {};
+
+	        return func(collection, setter, getIteratee(iteratee, 2), accumulator);
+	      };
+	    }
+
+	    /**
+	     * Creates a function like `_.assign`.
+	     *
+	     * @private
+	     * @param {Function} assigner The function to assign values.
+	     * @returns {Function} Returns the new assigner function.
+	     */
+	    function createAssigner(assigner) {
+	      return baseRest(function(object, sources) {
+	        var index = -1,
+	            length = sources.length,
+	            customizer = length > 1 ? sources[length - 1] : undefined,
+	            guard = length > 2 ? sources[2] : undefined;
+
+	        customizer = (assigner.length > 3 && typeof customizer == 'function')
+	          ? (length--, customizer)
+	          : undefined;
+
+	        if (guard && isIterateeCall(sources[0], sources[1], guard)) {
+	          customizer = length < 3 ? undefined : customizer;
+	          length = 1;
+	        }
+	        object = Object(object);
+	        while (++index < length) {
+	          var source = sources[index];
+	          if (source) {
+	            assigner(object, source, index, customizer);
+	          }
+	        }
+	        return object;
+	      });
+	    }
+
+	    /**
+	     * Creates a `baseEach` or `baseEachRight` function.
+	     *
+	     * @private
+	     * @param {Function} eachFunc The function to iterate over a collection.
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Function} Returns the new base function.
+	     */
+	    function createBaseEach(eachFunc, fromRight) {
+	      return function(collection, iteratee) {
+	        if (collection == null) {
+	          return collection;
+	        }
+	        if (!isArrayLike(collection)) {
+	          return eachFunc(collection, iteratee);
+	        }
+	        var length = collection.length,
+	            index = fromRight ? length : -1,
+	            iterable = Object(collection);
+
+	        while ((fromRight ? index-- : ++index < length)) {
+	          if (iteratee(iterable[index], index, iterable) === false) {
+	            break;
+	          }
+	        }
+	        return collection;
+	      };
+	    }
+
+	    /**
+	     * Creates a base function for methods like `_.forIn` and `_.forOwn`.
+	     *
+	     * @private
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Function} Returns the new base function.
+	     */
+	    function createBaseFor(fromRight) {
+	      return function(object, iteratee, keysFunc) {
+	        var index = -1,
+	            iterable = Object(object),
+	            props = keysFunc(object),
+	            length = props.length;
+
+	        while (length--) {
+	          var key = props[fromRight ? length : ++index];
+	          if (iteratee(iterable[key], key, iterable) === false) {
+	            break;
+	          }
+	        }
+	        return object;
+	      };
+	    }
+
+	    /**
+	     * Creates a function that wraps `func` to invoke it with the optional `this`
+	     * binding of `thisArg`.
+	     *
+	     * @private
+	     * @param {Function} func The function to wrap.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @param {*} [thisArg] The `this` binding of `func`.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createBind(func, bitmask, thisArg) {
+	      var isBind = bitmask & WRAP_BIND_FLAG,
+	          Ctor = createCtor(func);
+
+	      function wrapper() {
+	        var fn = (this && this !== root && this instanceof wrapper) ? Ctor : func;
+	        return fn.apply(isBind ? thisArg : this, arguments);
+	      }
+	      return wrapper;
+	    }
+
+	    /**
+	     * Creates a function like `_.lowerFirst`.
+	     *
+	     * @private
+	     * @param {string} methodName The name of the `String` case method to use.
+	     * @returns {Function} Returns the new case function.
+	     */
+	    function createCaseFirst(methodName) {
+	      return function(string) {
+	        string = toString(string);
+
+	        var strSymbols = hasUnicode(string)
+	          ? stringToArray(string)
+	          : undefined;
+
+	        var chr = strSymbols
+	          ? strSymbols[0]
+	          : string.charAt(0);
+
+	        var trailing = strSymbols
+	          ? castSlice(strSymbols, 1).join('')
+	          : string.slice(1);
+
+	        return chr[methodName]() + trailing;
+	      };
+	    }
+
+	    /**
+	     * Creates a function like `_.camelCase`.
+	     *
+	     * @private
+	     * @param {Function} callback The function to combine each word.
+	     * @returns {Function} Returns the new compounder function.
+	     */
+	    function createCompounder(callback) {
+	      return function(string) {
+	        return arrayReduce(words(deburr(string).replace(reApos, '')), callback, '');
+	      };
+	    }
+
+	    /**
+	     * Creates a function that produces an instance of `Ctor` regardless of
+	     * whether it was invoked as part of a `new` expression or by `call` or `apply`.
+	     *
+	     * @private
+	     * @param {Function} Ctor The constructor to wrap.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createCtor(Ctor) {
+	      return function() {
+	        // Use a `switch` statement to work with class constructors. See
+	        // http://ecma-international.org/ecma-262/7.0/#sec-ecmascript-function-objects-call-thisargument-argumentslist
+	        // for more details.
+	        var args = arguments;
+	        switch (args.length) {
+	          case 0: return new Ctor;
+	          case 1: return new Ctor(args[0]);
+	          case 2: return new Ctor(args[0], args[1]);
+	          case 3: return new Ctor(args[0], args[1], args[2]);
+	          case 4: return new Ctor(args[0], args[1], args[2], args[3]);
+	          case 5: return new Ctor(args[0], args[1], args[2], args[3], args[4]);
+	          case 6: return new Ctor(args[0], args[1], args[2], args[3], args[4], args[5]);
+	          case 7: return new Ctor(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+	        }
+	        var thisBinding = baseCreate(Ctor.prototype),
+	            result = Ctor.apply(thisBinding, args);
+
+	        // Mimic the constructor's `return` behavior.
+	        // See https://es5.github.io/#x13.2.2 for more details.
+	        return isObject(result) ? result : thisBinding;
+	      };
+	    }
+
+	    /**
+	     * Creates a function that wraps `func` to enable currying.
+	     *
+	     * @private
+	     * @param {Function} func The function to wrap.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @param {number} arity The arity of `func`.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createCurry(func, bitmask, arity) {
+	      var Ctor = createCtor(func);
+
+	      function wrapper() {
+	        var length = arguments.length,
+	            args = Array(length),
+	            index = length,
+	            placeholder = getHolder(wrapper);
+
+	        while (index--) {
+	          args[index] = arguments[index];
+	        }
+	        var holders = (length < 3 && args[0] !== placeholder && args[length - 1] !== placeholder)
+	          ? []
+	          : replaceHolders(args, placeholder);
+
+	        length -= holders.length;
+	        if (length < arity) {
+	          return createRecurry(
+	            func, bitmask, createHybrid, wrapper.placeholder, undefined,
+	            args, holders, undefined, undefined, arity - length);
+	        }
+	        var fn = (this && this !== root && this instanceof wrapper) ? Ctor : func;
+	        return apply(fn, this, args);
+	      }
+	      return wrapper;
+	    }
+
+	    /**
+	     * Creates a `_.find` or `_.findLast` function.
+	     *
+	     * @private
+	     * @param {Function} findIndexFunc The function to find the collection index.
+	     * @returns {Function} Returns the new find function.
+	     */
+	    function createFind(findIndexFunc) {
+	      return function(collection, predicate, fromIndex) {
+	        var iterable = Object(collection);
+	        if (!isArrayLike(collection)) {
+	          var iteratee = getIteratee(predicate, 3);
+	          collection = keys(collection);
+	          predicate = function(key) { return iteratee(iterable[key], key, iterable); };
+	        }
+	        var index = findIndexFunc(collection, predicate, fromIndex);
+	        return index > -1 ? iterable[iteratee ? collection[index] : index] : undefined;
+	      };
+	    }
+
+	    /**
+	     * Creates a `_.flow` or `_.flowRight` function.
+	     *
+	     * @private
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Function} Returns the new flow function.
+	     */
+	    function createFlow(fromRight) {
+	      return flatRest(function(funcs) {
+	        var length = funcs.length,
+	            index = length,
+	            prereq = LodashWrapper.prototype.thru;
+
+	        if (fromRight) {
+	          funcs.reverse();
+	        }
+	        while (index--) {
+	          var func = funcs[index];
+	          if (typeof func != 'function') {
+	            throw new TypeError(FUNC_ERROR_TEXT);
+	          }
+	          if (prereq && !wrapper && getFuncName(func) == 'wrapper') {
+	            var wrapper = new LodashWrapper([], true);
+	          }
+	        }
+	        index = wrapper ? index : length;
+	        while (++index < length) {
+	          func = funcs[index];
+
+	          var funcName = getFuncName(func),
+	              data = funcName == 'wrapper' ? getData(func) : undefined;
+
+	          if (data && isLaziable(data[0]) &&
+	                data[1] == (WRAP_ARY_FLAG | WRAP_CURRY_FLAG | WRAP_PARTIAL_FLAG | WRAP_REARG_FLAG) &&
+	                !data[4].length && data[9] == 1
+	              ) {
+	            wrapper = wrapper[getFuncName(data[0])].apply(wrapper, data[3]);
+	          } else {
+	            wrapper = (func.length == 1 && isLaziable(func))
+	              ? wrapper[funcName]()
+	              : wrapper.thru(func);
+	          }
+	        }
+	        return function() {
+	          var args = arguments,
+	              value = args[0];
+
+	          if (wrapper && args.length == 1 && isArray(value)) {
+	            return wrapper.plant(value).value();
+	          }
+	          var index = 0,
+	              result = length ? funcs[index].apply(this, args) : value;
+
+	          while (++index < length) {
+	            result = funcs[index].call(this, result);
+	          }
+	          return result;
+	        };
+	      });
+	    }
+
+	    /**
+	     * Creates a function that wraps `func` to invoke it with optional `this`
+	     * binding of `thisArg`, partial application, and currying.
+	     *
+	     * @private
+	     * @param {Function|string} func The function or method name to wrap.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @param {*} [thisArg] The `this` binding of `func`.
+	     * @param {Array} [partials] The arguments to prepend to those provided to
+	     *  the new function.
+	     * @param {Array} [holders] The `partials` placeholder indexes.
+	     * @param {Array} [partialsRight] The arguments to append to those provided
+	     *  to the new function.
+	     * @param {Array} [holdersRight] The `partialsRight` placeholder indexes.
+	     * @param {Array} [argPos] The argument positions of the new function.
+	     * @param {number} [ary] The arity cap of `func`.
+	     * @param {number} [arity] The arity of `func`.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createHybrid(func, bitmask, thisArg, partials, holders, partialsRight, holdersRight, argPos, ary, arity) {
+	      var isAry = bitmask & WRAP_ARY_FLAG,
+	          isBind = bitmask & WRAP_BIND_FLAG,
+	          isBindKey = bitmask & WRAP_BIND_KEY_FLAG,
+	          isCurried = bitmask & (WRAP_CURRY_FLAG | WRAP_CURRY_RIGHT_FLAG),
+	          isFlip = bitmask & WRAP_FLIP_FLAG,
+	          Ctor = isBindKey ? undefined : createCtor(func);
+
+	      function wrapper() {
+	        var length = arguments.length,
+	            args = Array(length),
+	            index = length;
+
+	        while (index--) {
+	          args[index] = arguments[index];
+	        }
+	        if (isCurried) {
+	          var placeholder = getHolder(wrapper),
+	              holdersCount = countHolders(args, placeholder);
+	        }
+	        if (partials) {
+	          args = composeArgs(args, partials, holders, isCurried);
+	        }
+	        if (partialsRight) {
+	          args = composeArgsRight(args, partialsRight, holdersRight, isCurried);
+	        }
+	        length -= holdersCount;
+	        if (isCurried && length < arity) {
+	          var newHolders = replaceHolders(args, placeholder);
+	          return createRecurry(
+	            func, bitmask, createHybrid, wrapper.placeholder, thisArg,
+	            args, newHolders, argPos, ary, arity - length
+	          );
+	        }
+	        var thisBinding = isBind ? thisArg : this,
+	            fn = isBindKey ? thisBinding[func] : func;
+
+	        length = args.length;
+	        if (argPos) {
+	          args = reorder(args, argPos);
+	        } else if (isFlip && length > 1) {
+	          args.reverse();
+	        }
+	        if (isAry && ary < length) {
+	          args.length = ary;
+	        }
+	        if (this && this !== root && this instanceof wrapper) {
+	          fn = Ctor || createCtor(fn);
+	        }
+	        return fn.apply(thisBinding, args);
+	      }
+	      return wrapper;
+	    }
+
+	    /**
+	     * Creates a function like `_.invertBy`.
+	     *
+	     * @private
+	     * @param {Function} setter The function to set accumulator values.
+	     * @param {Function} toIteratee The function to resolve iteratees.
+	     * @returns {Function} Returns the new inverter function.
+	     */
+	    function createInverter(setter, toIteratee) {
+	      return function(object, iteratee) {
+	        return baseInverter(object, setter, toIteratee(iteratee), {});
+	      };
+	    }
+
+	    /**
+	     * Creates a function that performs a mathematical operation on two values.
+	     *
+	     * @private
+	     * @param {Function} operator The function to perform the operation.
+	     * @param {number} [defaultValue] The value used for `undefined` arguments.
+	     * @returns {Function} Returns the new mathematical operation function.
+	     */
+	    function createMathOperation(operator, defaultValue) {
+	      return function(value, other) {
+	        var result;
+	        if (value === undefined && other === undefined) {
+	          return defaultValue;
+	        }
+	        if (value !== undefined) {
+	          result = value;
+	        }
+	        if (other !== undefined) {
+	          if (result === undefined) {
+	            return other;
+	          }
+	          if (typeof value == 'string' || typeof other == 'string') {
+	            value = baseToString(value);
+	            other = baseToString(other);
+	          } else {
+	            value = baseToNumber(value);
+	            other = baseToNumber(other);
+	          }
+	          result = operator(value, other);
+	        }
+	        return result;
+	      };
+	    }
+
+	    /**
+	     * Creates a function like `_.over`.
+	     *
+	     * @private
+	     * @param {Function} arrayFunc The function to iterate over iteratees.
+	     * @returns {Function} Returns the new over function.
+	     */
+	    function createOver(arrayFunc) {
+	      return flatRest(function(iteratees) {
+	        iteratees = arrayMap(iteratees, baseUnary(getIteratee()));
+	        return baseRest(function(args) {
+	          var thisArg = this;
+	          return arrayFunc(iteratees, function(iteratee) {
+	            return apply(iteratee, thisArg, args);
+	          });
+	        });
+	      });
+	    }
+
+	    /**
+	     * Creates the padding for `string` based on `length`. The `chars` string
+	     * is truncated if the number of characters exceeds `length`.
+	     *
+	     * @private
+	     * @param {number} length The padding length.
+	     * @param {string} [chars=' '] The string used as padding.
+	     * @returns {string} Returns the padding for `string`.
+	     */
+	    function createPadding(length, chars) {
+	      chars = chars === undefined ? ' ' : baseToString(chars);
+
+	      var charsLength = chars.length;
+	      if (charsLength < 2) {
+	        return charsLength ? baseRepeat(chars, length) : chars;
+	      }
+	      var result = baseRepeat(chars, nativeCeil(length / stringSize(chars)));
+	      return hasUnicode(chars)
+	        ? castSlice(stringToArray(result), 0, length).join('')
+	        : result.slice(0, length);
+	    }
+
+	    /**
+	     * Creates a function that wraps `func` to invoke it with the `this` binding
+	     * of `thisArg` and `partials` prepended to the arguments it receives.
+	     *
+	     * @private
+	     * @param {Function} func The function to wrap.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @param {*} thisArg The `this` binding of `func`.
+	     * @param {Array} partials The arguments to prepend to those provided to
+	     *  the new function.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createPartial(func, bitmask, thisArg, partials) {
+	      var isBind = bitmask & WRAP_BIND_FLAG,
+	          Ctor = createCtor(func);
+
+	      function wrapper() {
+	        var argsIndex = -1,
+	            argsLength = arguments.length,
+	            leftIndex = -1,
+	            leftLength = partials.length,
+	            args = Array(leftLength + argsLength),
+	            fn = (this && this !== root && this instanceof wrapper) ? Ctor : func;
+
+	        while (++leftIndex < leftLength) {
+	          args[leftIndex] = partials[leftIndex];
+	        }
+	        while (argsLength--) {
+	          args[leftIndex++] = arguments[++argsIndex];
+	        }
+	        return apply(fn, isBind ? thisArg : this, args);
+	      }
+	      return wrapper;
+	    }
+
+	    /**
+	     * Creates a `_.range` or `_.rangeRight` function.
+	     *
+	     * @private
+	     * @param {boolean} [fromRight] Specify iterating from right to left.
+	     * @returns {Function} Returns the new range function.
+	     */
+	    function createRange(fromRight) {
+	      return function(start, end, step) {
+	        if (step && typeof step != 'number' && isIterateeCall(start, end, step)) {
+	          end = step = undefined;
+	        }
+	        // Ensure the sign of `-0` is preserved.
+	        start = toFinite(start);
+	        if (end === undefined) {
+	          end = start;
+	          start = 0;
+	        } else {
+	          end = toFinite(end);
+	        }
+	        step = step === undefined ? (start < end ? 1 : -1) : toFinite(step);
+	        return baseRange(start, end, step, fromRight);
+	      };
+	    }
+
+	    /**
+	     * Creates a function that performs a relational operation on two values.
+	     *
+	     * @private
+	     * @param {Function} operator The function to perform the operation.
+	     * @returns {Function} Returns the new relational operation function.
+	     */
+	    function createRelationalOperation(operator) {
+	      return function(value, other) {
+	        if (!(typeof value == 'string' && typeof other == 'string')) {
+	          value = toNumber(value);
+	          other = toNumber(other);
+	        }
+	        return operator(value, other);
+	      };
+	    }
+
+	    /**
+	     * Creates a function that wraps `func` to continue currying.
+	     *
+	     * @private
+	     * @param {Function} func The function to wrap.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @param {Function} wrapFunc The function to create the `func` wrapper.
+	     * @param {*} placeholder The placeholder value.
+	     * @param {*} [thisArg] The `this` binding of `func`.
+	     * @param {Array} [partials] The arguments to prepend to those provided to
+	     *  the new function.
+	     * @param {Array} [holders] The `partials` placeholder indexes.
+	     * @param {Array} [argPos] The argument positions of the new function.
+	     * @param {number} [ary] The arity cap of `func`.
+	     * @param {number} [arity] The arity of `func`.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createRecurry(func, bitmask, wrapFunc, placeholder, thisArg, partials, holders, argPos, ary, arity) {
+	      var isCurry = bitmask & WRAP_CURRY_FLAG,
+	          newHolders = isCurry ? holders : undefined,
+	          newHoldersRight = isCurry ? undefined : holders,
+	          newPartials = isCurry ? partials : undefined,
+	          newPartialsRight = isCurry ? undefined : partials;
+
+	      bitmask |= (isCurry ? WRAP_PARTIAL_FLAG : WRAP_PARTIAL_RIGHT_FLAG);
+	      bitmask &= ~(isCurry ? WRAP_PARTIAL_RIGHT_FLAG : WRAP_PARTIAL_FLAG);
+
+	      if (!(bitmask & WRAP_CURRY_BOUND_FLAG)) {
+	        bitmask &= ~(WRAP_BIND_FLAG | WRAP_BIND_KEY_FLAG);
+	      }
+	      var newData = [
+	        func, bitmask, thisArg, newPartials, newHolders, newPartialsRight,
+	        newHoldersRight, argPos, ary, arity
+	      ];
+
+	      var result = wrapFunc.apply(undefined, newData);
+	      if (isLaziable(func)) {
+	        setData(result, newData);
+	      }
+	      result.placeholder = placeholder;
+	      return setWrapToString(result, func, bitmask);
+	    }
+
+	    /**
+	     * Creates a function like `_.round`.
+	     *
+	     * @private
+	     * @param {string} methodName The name of the `Math` method to use when rounding.
+	     * @returns {Function} Returns the new round function.
+	     */
+	    function createRound(methodName) {
+	      var func = Math[methodName];
+	      return function(number, precision) {
+	        number = toNumber(number);
+	        precision = precision == null ? 0 : nativeMin(toInteger(precision), 292);
+	        if (precision) {
+	          // Shift with exponential notation to avoid floating-point issues.
+	          // See [MDN](https://mdn.io/round#Examples) for more details.
+	          var pair = (toString(number) + 'e').split('e'),
+	              value = func(pair[0] + 'e' + (+pair[1] + precision));
+
+	          pair = (toString(value) + 'e').split('e');
+	          return +(pair[0] + 'e' + (+pair[1] - precision));
+	        }
+	        return func(number);
+	      };
+	    }
+
+	    /**
+	     * Creates a set object of `values`.
+	     *
+	     * @private
+	     * @param {Array} values The values to add to the set.
+	     * @returns {Object} Returns the new set.
+	     */
+	    var createSet = !(Set && (1 / setToArray(new Set([,-0]))[1]) == INFINITY) ? noop : function(values) {
+	      return new Set(values);
+	    };
+
+	    /**
+	     * Creates a `_.toPairs` or `_.toPairsIn` function.
+	     *
+	     * @private
+	     * @param {Function} keysFunc The function to get the keys of a given object.
+	     * @returns {Function} Returns the new pairs function.
+	     */
+	    function createToPairs(keysFunc) {
+	      return function(object) {
+	        var tag = getTag(object);
+	        if (tag == mapTag) {
+	          return mapToArray(object);
+	        }
+	        if (tag == setTag) {
+	          return setToPairs(object);
+	        }
+	        return baseToPairs(object, keysFunc(object));
+	      };
+	    }
+
+	    /**
+	     * Creates a function that either curries or invokes `func` with optional
+	     * `this` binding and partially applied arguments.
+	     *
+	     * @private
+	     * @param {Function|string} func The function or method name to wrap.
+	     * @param {number} bitmask The bitmask flags.
+	     *    1 - `_.bind`
+	     *    2 - `_.bindKey`
+	     *    4 - `_.curry` or `_.curryRight` of a bound function
+	     *    8 - `_.curry`
+	     *   16 - `_.curryRight`
+	     *   32 - `_.partial`
+	     *   64 - `_.partialRight`
+	     *  128 - `_.rearg`
+	     *  256 - `_.ary`
+	     *  512 - `_.flip`
+	     * @param {*} [thisArg] The `this` binding of `func`.
+	     * @param {Array} [partials] The arguments to be partially applied.
+	     * @param {Array} [holders] The `partials` placeholder indexes.
+	     * @param {Array} [argPos] The argument positions of the new function.
+	     * @param {number} [ary] The arity cap of `func`.
+	     * @param {number} [arity] The arity of `func`.
+	     * @returns {Function} Returns the new wrapped function.
+	     */
+	    function createWrap(func, bitmask, thisArg, partials, holders, argPos, ary, arity) {
+	      var isBindKey = bitmask & WRAP_BIND_KEY_FLAG;
+	      if (!isBindKey && typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      var length = partials ? partials.length : 0;
+	      if (!length) {
+	        bitmask &= ~(WRAP_PARTIAL_FLAG | WRAP_PARTIAL_RIGHT_FLAG);
+	        partials = holders = undefined;
+	      }
+	      ary = ary === undefined ? ary : nativeMax(toInteger(ary), 0);
+	      arity = arity === undefined ? arity : toInteger(arity);
+	      length -= holders ? holders.length : 0;
+
+	      if (bitmask & WRAP_PARTIAL_RIGHT_FLAG) {
+	        var partialsRight = partials,
+	            holdersRight = holders;
+
+	        partials = holders = undefined;
+	      }
+	      var data = isBindKey ? undefined : getData(func);
+
+	      var newData = [
+	        func, bitmask, thisArg, partials, holders, partialsRight, holdersRight,
+	        argPos, ary, arity
+	      ];
+
+	      if (data) {
+	        mergeData(newData, data);
+	      }
+	      func = newData[0];
+	      bitmask = newData[1];
+	      thisArg = newData[2];
+	      partials = newData[3];
+	      holders = newData[4];
+	      arity = newData[9] = newData[9] === undefined
+	        ? (isBindKey ? 0 : func.length)
+	        : nativeMax(newData[9] - length, 0);
+
+	      if (!arity && bitmask & (WRAP_CURRY_FLAG | WRAP_CURRY_RIGHT_FLAG)) {
+	        bitmask &= ~(WRAP_CURRY_FLAG | WRAP_CURRY_RIGHT_FLAG);
+	      }
+	      if (!bitmask || bitmask == WRAP_BIND_FLAG) {
+	        var result = createBind(func, bitmask, thisArg);
+	      } else if (bitmask == WRAP_CURRY_FLAG || bitmask == WRAP_CURRY_RIGHT_FLAG) {
+	        result = createCurry(func, bitmask, arity);
+	      } else if ((bitmask == WRAP_PARTIAL_FLAG || bitmask == (WRAP_BIND_FLAG | WRAP_PARTIAL_FLAG)) && !holders.length) {
+	        result = createPartial(func, bitmask, thisArg, partials);
+	      } else {
+	        result = createHybrid.apply(undefined, newData);
+	      }
+	      var setter = data ? baseSetData : setData;
+	      return setWrapToString(setter(result, newData), func, bitmask);
+	    }
+
+	    /**
+	     * Used by `_.defaults` to customize its `_.assignIn` use to assign properties
+	     * of source objects to the destination object for all destination properties
+	     * that resolve to `undefined`.
+	     *
+	     * @private
+	     * @param {*} objValue The destination value.
+	     * @param {*} srcValue The source value.
+	     * @param {string} key The key of the property to assign.
+	     * @param {Object} object The parent object of `objValue`.
+	     * @returns {*} Returns the value to assign.
+	     */
+	    function customDefaultsAssignIn(objValue, srcValue, key, object) {
+	      if (objValue === undefined ||
+	          (eq(objValue, objectProto[key]) && !hasOwnProperty.call(object, key))) {
+	        return srcValue;
+	      }
+	      return objValue;
+	    }
+
+	    /**
+	     * Used by `_.defaultsDeep` to customize its `_.merge` use to merge source
+	     * objects into destination objects that are passed thru.
+	     *
+	     * @private
+	     * @param {*} objValue The destination value.
+	     * @param {*} srcValue The source value.
+	     * @param {string} key The key of the property to merge.
+	     * @param {Object} object The parent object of `objValue`.
+	     * @param {Object} source The parent object of `srcValue`.
+	     * @param {Object} [stack] Tracks traversed source values and their merged
+	     *  counterparts.
+	     * @returns {*} Returns the value to assign.
+	     */
+	    function customDefaultsMerge(objValue, srcValue, key, object, source, stack) {
+	      if (isObject(objValue) && isObject(srcValue)) {
+	        // Recursively merge objects and arrays (susceptible to call stack limits).
+	        stack.set(srcValue, objValue);
+	        baseMerge(objValue, srcValue, undefined, customDefaultsMerge, stack);
+	        stack['delete'](srcValue);
+	      }
+	      return objValue;
+	    }
+
+	    /**
+	     * Used by `_.omit` to customize its `_.cloneDeep` use to only clone plain
+	     * objects.
+	     *
+	     * @private
+	     * @param {*} value The value to inspect.
+	     * @param {string} key The key of the property to inspect.
+	     * @returns {*} Returns the uncloned value or `undefined` to defer cloning to `_.cloneDeep`.
+	     */
+	    function customOmitClone(value) {
+	      return isPlainObject(value) ? undefined : value;
+	    }
+
+	    /**
+	     * A specialized version of `baseIsEqualDeep` for arrays with support for
+	     * partial deep comparisons.
+	     *
+	     * @private
+	     * @param {Array} array The array to compare.
+	     * @param {Array} other The other array to compare.
+	     * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
+	     * @param {Function} customizer The function to customize comparisons.
+	     * @param {Function} equalFunc The function to determine equivalents of values.
+	     * @param {Object} stack Tracks traversed `array` and `other` objects.
+	     * @returns {boolean} Returns `true` if the arrays are equivalent, else `false`.
+	     */
+	    function equalArrays(array, other, bitmask, customizer, equalFunc, stack) {
+	      var isPartial = bitmask & COMPARE_PARTIAL_FLAG,
+	          arrLength = array.length,
+	          othLength = other.length;
+
+	      if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
+	        return false;
+	      }
+	      // Assume cyclic values are equal.
+	      var stacked = stack.get(array);
+	      if (stacked && stack.get(other)) {
+	        return stacked == other;
+	      }
+	      var index = -1,
+	          result = true,
+	          seen = (bitmask & COMPARE_UNORDERED_FLAG) ? new SetCache : undefined;
+
+	      stack.set(array, other);
+	      stack.set(other, array);
+
+	      // Ignore non-index properties.
+	      while (++index < arrLength) {
+	        var arrValue = array[index],
+	            othValue = other[index];
+
+	        if (customizer) {
+	          var compared = isPartial
+	            ? customizer(othValue, arrValue, index, other, array, stack)
+	            : customizer(arrValue, othValue, index, array, other, stack);
+	        }
+	        if (compared !== undefined) {
+	          if (compared) {
+	            continue;
+	          }
+	          result = false;
+	          break;
+	        }
+	        // Recursively compare arrays (susceptible to call stack limits).
+	        if (seen) {
+	          if (!arraySome(other, function(othValue, othIndex) {
+	                if (!cacheHas(seen, othIndex) &&
+	                    (arrValue === othValue || equalFunc(arrValue, othValue, bitmask, customizer, stack))) {
+	                  return seen.push(othIndex);
+	                }
+	              })) {
+	            result = false;
+	            break;
+	          }
+	        } else if (!(
+	              arrValue === othValue ||
+	                equalFunc(arrValue, othValue, bitmask, customizer, stack)
+	            )) {
+	          result = false;
+	          break;
+	        }
+	      }
+	      stack['delete'](array);
+	      stack['delete'](other);
+	      return result;
+	    }
+
+	    /**
+	     * A specialized version of `baseIsEqualDeep` for comparing objects of
+	     * the same `toStringTag`.
+	     *
+	     * **Note:** This function only supports comparing values with tags of
+	     * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
+	     *
+	     * @private
+	     * @param {Object} object The object to compare.
+	     * @param {Object} other The other object to compare.
+	     * @param {string} tag The `toStringTag` of the objects to compare.
+	     * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
+	     * @param {Function} customizer The function to customize comparisons.
+	     * @param {Function} equalFunc The function to determine equivalents of values.
+	     * @param {Object} stack Tracks traversed `object` and `other` objects.
+	     * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+	     */
+	    function equalByTag(object, other, tag, bitmask, customizer, equalFunc, stack) {
+	      switch (tag) {
+	        case dataViewTag:
+	          if ((object.byteLength != other.byteLength) ||
+	              (object.byteOffset != other.byteOffset)) {
+	            return false;
+	          }
+	          object = object.buffer;
+	          other = other.buffer;
+
+	        case arrayBufferTag:
+	          if ((object.byteLength != other.byteLength) ||
+	              !equalFunc(new Uint8Array(object), new Uint8Array(other))) {
+	            return false;
+	          }
+	          return true;
+
+	        case boolTag:
+	        case dateTag:
+	        case numberTag:
+	          // Coerce booleans to `1` or `0` and dates to milliseconds.
+	          // Invalid dates are coerced to `NaN`.
+	          return eq(+object, +other);
+
+	        case errorTag:
+	          return object.name == other.name && object.message == other.message;
+
+	        case regexpTag:
+	        case stringTag:
+	          // Coerce regexes to strings and treat strings, primitives and objects,
+	          // as equal. See http://www.ecma-international.org/ecma-262/7.0/#sec-regexp.prototype.tostring
+	          // for more details.
+	          return object == (other + '');
+
+	        case mapTag:
+	          var convert = mapToArray;
+
+	        case setTag:
+	          var isPartial = bitmask & COMPARE_PARTIAL_FLAG;
+	          convert || (convert = setToArray);
+
+	          if (object.size != other.size && !isPartial) {
+	            return false;
+	          }
+	          // Assume cyclic values are equal.
+	          var stacked = stack.get(object);
+	          if (stacked) {
+	            return stacked == other;
+	          }
+	          bitmask |= COMPARE_UNORDERED_FLAG;
+
+	          // Recursively compare objects (susceptible to call stack limits).
+	          stack.set(object, other);
+	          var result = equalArrays(convert(object), convert(other), bitmask, customizer, equalFunc, stack);
+	          stack['delete'](object);
+	          return result;
+
+	        case symbolTag:
+	          if (symbolValueOf) {
+	            return symbolValueOf.call(object) == symbolValueOf.call(other);
+	          }
+	      }
+	      return false;
+	    }
+
+	    /**
+	     * A specialized version of `baseIsEqualDeep` for objects with support for
+	     * partial deep comparisons.
+	     *
+	     * @private
+	     * @param {Object} object The object to compare.
+	     * @param {Object} other The other object to compare.
+	     * @param {number} bitmask The bitmask flags. See `baseIsEqual` for more details.
+	     * @param {Function} customizer The function to customize comparisons.
+	     * @param {Function} equalFunc The function to determine equivalents of values.
+	     * @param {Object} stack Tracks traversed `object` and `other` objects.
+	     * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+	     */
+	    function equalObjects(object, other, bitmask, customizer, equalFunc, stack) {
+	      var isPartial = bitmask & COMPARE_PARTIAL_FLAG,
+	          objProps = getAllKeys(object),
+	          objLength = objProps.length,
+	          othProps = getAllKeys(other),
+	          othLength = othProps.length;
+
+	      if (objLength != othLength && !isPartial) {
+	        return false;
+	      }
+	      var index = objLength;
+	      while (index--) {
+	        var key = objProps[index];
+	        if (!(isPartial ? key in other : hasOwnProperty.call(other, key))) {
+	          return false;
+	        }
+	      }
+	      // Assume cyclic values are equal.
+	      var stacked = stack.get(object);
+	      if (stacked && stack.get(other)) {
+	        return stacked == other;
+	      }
+	      var result = true;
+	      stack.set(object, other);
+	      stack.set(other, object);
+
+	      var skipCtor = isPartial;
+	      while (++index < objLength) {
+	        key = objProps[index];
+	        var objValue = object[key],
+	            othValue = other[key];
+
+	        if (customizer) {
+	          var compared = isPartial
+	            ? customizer(othValue, objValue, key, other, object, stack)
+	            : customizer(objValue, othValue, key, object, other, stack);
+	        }
+	        // Recursively compare objects (susceptible to call stack limits).
+	        if (!(compared === undefined
+	              ? (objValue === othValue || equalFunc(objValue, othValue, bitmask, customizer, stack))
+	              : compared
+	            )) {
+	          result = false;
+	          break;
+	        }
+	        skipCtor || (skipCtor = key == 'constructor');
+	      }
+	      if (result && !skipCtor) {
+	        var objCtor = object.constructor,
+	            othCtor = other.constructor;
+
+	        // Non `Object` object instances with different constructors are not equal.
+	        if (objCtor != othCtor &&
+	            ('constructor' in object && 'constructor' in other) &&
+	            !(typeof objCtor == 'function' && objCtor instanceof objCtor &&
+	              typeof othCtor == 'function' && othCtor instanceof othCtor)) {
+	          result = false;
+	        }
+	      }
+	      stack['delete'](object);
+	      stack['delete'](other);
+	      return result;
+	    }
+
+	    /**
+	     * A specialized version of `baseRest` which flattens the rest array.
+	     *
+	     * @private
+	     * @param {Function} func The function to apply a rest parameter to.
+	     * @returns {Function} Returns the new function.
+	     */
+	    function flatRest(func) {
+	      return setToString(overRest(func, undefined, flatten), func + '');
+	    }
+
+	    /**
+	     * Creates an array of own enumerable property names and symbols of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names and symbols.
+	     */
+	    function getAllKeys(object) {
+	      return baseGetAllKeys(object, keys, getSymbols);
+	    }
+
+	    /**
+	     * Creates an array of own and inherited enumerable property names and
+	     * symbols of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names and symbols.
+	     */
+	    function getAllKeysIn(object) {
+	      return baseGetAllKeys(object, keysIn, getSymbolsIn);
+	    }
+
+	    /**
+	     * Gets metadata for `func`.
+	     *
+	     * @private
+	     * @param {Function} func The function to query.
+	     * @returns {*} Returns the metadata for `func`.
+	     */
+	    var getData = !metaMap ? noop : function(func) {
+	      return metaMap.get(func);
+	    };
+
+	    /**
+	     * Gets the name of `func`.
+	     *
+	     * @private
+	     * @param {Function} func The function to query.
+	     * @returns {string} Returns the function name.
+	     */
+	    function getFuncName(func) {
+	      var result = (func.name + ''),
+	          array = realNames[result],
+	          length = hasOwnProperty.call(realNames, result) ? array.length : 0;
+
+	      while (length--) {
+	        var data = array[length],
+	            otherFunc = data.func;
+	        if (otherFunc == null || otherFunc == func) {
+	          return data.name;
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Gets the argument placeholder value for `func`.
+	     *
+	     * @private
+	     * @param {Function} func The function to inspect.
+	     * @returns {*} Returns the placeholder value.
+	     */
+	    function getHolder(func) {
+	      var object = hasOwnProperty.call(lodash, 'placeholder') ? lodash : func;
+	      return object.placeholder;
+	    }
+
+	    /**
+	     * Gets the appropriate "iteratee" function. If `_.iteratee` is customized,
+	     * this function returns the custom method, otherwise it returns `baseIteratee`.
+	     * If arguments are provided, the chosen function is invoked with them and
+	     * its result is returned.
+	     *
+	     * @private
+	     * @param {*} [value] The value to convert to an iteratee.
+	     * @param {number} [arity] The arity of the created iteratee.
+	     * @returns {Function} Returns the chosen function or its result.
+	     */
+	    function getIteratee() {
+	      var result = lodash.iteratee || iteratee;
+	      result = result === iteratee ? baseIteratee : result;
+	      return arguments.length ? result(arguments[0], arguments[1]) : result;
+	    }
+
+	    /**
+	     * Gets the data for `map`.
+	     *
+	     * @private
+	     * @param {Object} map The map to query.
+	     * @param {string} key The reference key.
+	     * @returns {*} Returns the map data.
+	     */
+	    function getMapData(map, key) {
+	      var data = map.__data__;
+	      return isKeyable(key)
+	        ? data[typeof key == 'string' ? 'string' : 'hash']
+	        : data.map;
+	    }
+
+	    /**
+	     * Gets the property names, values, and compare flags of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the match data of `object`.
+	     */
+	    function getMatchData(object) {
+	      var result = keys(object),
+	          length = result.length;
+
+	      while (length--) {
+	        var key = result[length],
+	            value = object[key];
+
+	        result[length] = [key, value, isStrictComparable(value)];
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Gets the native function at `key` of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {string} key The key of the method to get.
+	     * @returns {*} Returns the function if it's native, else `undefined`.
+	     */
+	    function getNative(object, key) {
+	      var value = getValue(object, key);
+	      return baseIsNative(value) ? value : undefined;
+	    }
+
+	    /**
+	     * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.
+	     *
+	     * @private
+	     * @param {*} value The value to query.
+	     * @returns {string} Returns the raw `toStringTag`.
+	     */
+	    function getRawTag(value) {
+	      var isOwn = hasOwnProperty.call(value, symToStringTag),
+	          tag = value[symToStringTag];
+
+	      try {
+	        value[symToStringTag] = undefined;
+	        var unmasked = true;
+	      } catch (e) {}
+
+	      var result = nativeObjectToString.call(value);
+	      if (unmasked) {
+	        if (isOwn) {
+	          value[symToStringTag] = tag;
+	        } else {
+	          delete value[symToStringTag];
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Creates an array of the own enumerable symbols of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of symbols.
+	     */
+	    var getSymbols = !nativeGetSymbols ? stubArray : function(object) {
+	      if (object == null) {
+	        return [];
+	      }
+	      object = Object(object);
+	      return arrayFilter(nativeGetSymbols(object), function(symbol) {
+	        return propertyIsEnumerable.call(object, symbol);
+	      });
+	    };
+
+	    /**
+	     * Creates an array of the own and inherited enumerable symbols of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of symbols.
+	     */
+	    var getSymbolsIn = !nativeGetSymbols ? stubArray : function(object) {
+	      var result = [];
+	      while (object) {
+	        arrayPush(result, getSymbols(object));
+	        object = getPrototype(object);
+	      }
+	      return result;
+	    };
+
+	    /**
+	     * Gets the `toStringTag` of `value`.
+	     *
+	     * @private
+	     * @param {*} value The value to query.
+	     * @returns {string} Returns the `toStringTag`.
+	     */
+	    var getTag = baseGetTag;
+
+	    // Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.
+	    if ((DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag) ||
+	        (Map && getTag(new Map) != mapTag) ||
+	        (Promise && getTag(Promise.resolve()) != promiseTag) ||
+	        (Set && getTag(new Set) != setTag) ||
+	        (WeakMap && getTag(new WeakMap) != weakMapTag)) {
+	      getTag = function(value) {
+	        var result = baseGetTag(value),
+	            Ctor = result == objectTag ? value.constructor : undefined,
+	            ctorString = Ctor ? toSource(Ctor) : '';
+
+	        if (ctorString) {
+	          switch (ctorString) {
+	            case dataViewCtorString: return dataViewTag;
+	            case mapCtorString: return mapTag;
+	            case promiseCtorString: return promiseTag;
+	            case setCtorString: return setTag;
+	            case weakMapCtorString: return weakMapTag;
+	          }
+	        }
+	        return result;
+	      };
+	    }
+
+	    /**
+	     * Gets the view, applying any `transforms` to the `start` and `end` positions.
+	     *
+	     * @private
+	     * @param {number} start The start of the view.
+	     * @param {number} end The end of the view.
+	     * @param {Array} transforms The transformations to apply to the view.
+	     * @returns {Object} Returns an object containing the `start` and `end`
+	     *  positions of the view.
+	     */
+	    function getView(start, end, transforms) {
+	      var index = -1,
+	          length = transforms.length;
+
+	      while (++index < length) {
+	        var data = transforms[index],
+	            size = data.size;
+
+	        switch (data.type) {
+	          case 'drop':      start += size; break;
+	          case 'dropRight': end -= size; break;
+	          case 'take':      end = nativeMin(end, start + size); break;
+	          case 'takeRight': start = nativeMax(start, end - size); break;
+	        }
+	      }
+	      return { 'start': start, 'end': end };
+	    }
+
+	    /**
+	     * Extracts wrapper details from the `source` body comment.
+	     *
+	     * @private
+	     * @param {string} source The source to inspect.
+	     * @returns {Array} Returns the wrapper details.
+	     */
+	    function getWrapDetails(source) {
+	      var match = source.match(reWrapDetails);
+	      return match ? match[1].split(reSplitDetails) : [];
+	    }
+
+	    /**
+	     * Checks if `path` exists on `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path to check.
+	     * @param {Function} hasFunc The function to check properties.
+	     * @returns {boolean} Returns `true` if `path` exists, else `false`.
+	     */
+	    function hasPath(object, path, hasFunc) {
+	      path = castPath(path, object);
+
+	      var index = -1,
+	          length = path.length,
+	          result = false;
+
+	      while (++index < length) {
+	        var key = toKey(path[index]);
+	        if (!(result = object != null && hasFunc(object, key))) {
+	          break;
+	        }
+	        object = object[key];
+	      }
+	      if (result || ++index != length) {
+	        return result;
+	      }
+	      length = object == null ? 0 : object.length;
+	      return !!length && isLength(length) && isIndex(key, length) &&
+	        (isArray(object) || isArguments(object));
+	    }
+
+	    /**
+	     * Initializes an array clone.
+	     *
+	     * @private
+	     * @param {Array} array The array to clone.
+	     * @returns {Array} Returns the initialized clone.
+	     */
+	    function initCloneArray(array) {
+	      var length = array.length,
+	          result = new array.constructor(length);
+
+	      // Add properties assigned by `RegExp#exec`.
+	      if (length && typeof array[0] == 'string' && hasOwnProperty.call(array, 'index')) {
+	        result.index = array.index;
+	        result.input = array.input;
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Initializes an object clone.
+	     *
+	     * @private
+	     * @param {Object} object The object to clone.
+	     * @returns {Object} Returns the initialized clone.
+	     */
+	    function initCloneObject(object) {
+	      return (typeof object.constructor == 'function' && !isPrototype(object))
+	        ? baseCreate(getPrototype(object))
+	        : {};
+	    }
+
+	    /**
+	     * Initializes an object clone based on its `toStringTag`.
+	     *
+	     * **Note:** This function only supports cloning values with tags of
+	     * `Boolean`, `Date`, `Error`, `Map`, `Number`, `RegExp`, `Set`, or `String`.
+	     *
+	     * @private
+	     * @param {Object} object The object to clone.
+	     * @param {string} tag The `toStringTag` of the object to clone.
+	     * @param {boolean} [isDeep] Specify a deep clone.
+	     * @returns {Object} Returns the initialized clone.
+	     */
+	    function initCloneByTag(object, tag, isDeep) {
+	      var Ctor = object.constructor;
+	      switch (tag) {
+	        case arrayBufferTag:
+	          return cloneArrayBuffer(object);
+
+	        case boolTag:
+	        case dateTag:
+	          return new Ctor(+object);
+
+	        case dataViewTag:
+	          return cloneDataView(object, isDeep);
+
+	        case float32Tag: case float64Tag:
+	        case int8Tag: case int16Tag: case int32Tag:
+	        case uint8Tag: case uint8ClampedTag: case uint16Tag: case uint32Tag:
+	          return cloneTypedArray(object, isDeep);
+
+	        case mapTag:
+	          return new Ctor;
+
+	        case numberTag:
+	        case stringTag:
+	          return new Ctor(object);
+
+	        case regexpTag:
+	          return cloneRegExp(object);
+
+	        case setTag:
+	          return new Ctor;
+
+	        case symbolTag:
+	          return cloneSymbol(object);
+	      }
+	    }
+
+	    /**
+	     * Inserts wrapper `details` in a comment at the top of the `source` body.
+	     *
+	     * @private
+	     * @param {string} source The source to modify.
+	     * @returns {Array} details The details to insert.
+	     * @returns {string} Returns the modified source.
+	     */
+	    function insertWrapDetails(source, details) {
+	      var length = details.length;
+	      if (!length) {
+	        return source;
+	      }
+	      var lastIndex = length - 1;
+	      details[lastIndex] = (length > 1 ? '& ' : '') + details[lastIndex];
+	      details = details.join(length > 2 ? ', ' : ' ');
+	      return source.replace(reWrapComment, '{\n/* [wrapped with ' + details + '] */\n');
+	    }
+
+	    /**
+	     * Checks if `value` is a flattenable `arguments` object or array.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is flattenable, else `false`.
+	     */
+	    function isFlattenable(value) {
+	      return isArray(value) || isArguments(value) ||
+	        !!(spreadableSymbol && value && value[spreadableSymbol]);
+	    }
+
+	    /**
+	     * Checks if `value` is a valid array-like index.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
+	     * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
+	     */
+	    function isIndex(value, length) {
+	      var type = typeof value;
+	      length = length == null ? MAX_SAFE_INTEGER : length;
+
+	      return !!length &&
+	        (type == 'number' ||
+	          (type != 'symbol' && reIsUint.test(value))) &&
+	            (value > -1 && value % 1 == 0 && value < length);
+	    }
+
+	    /**
+	     * Checks if the given arguments are from an iteratee call.
+	     *
+	     * @private
+	     * @param {*} value The potential iteratee value argument.
+	     * @param {*} index The potential iteratee index or key argument.
+	     * @param {*} object The potential iteratee object argument.
+	     * @returns {boolean} Returns `true` if the arguments are from an iteratee call,
+	     *  else `false`.
+	     */
+	    function isIterateeCall(value, index, object) {
+	      if (!isObject(object)) {
+	        return false;
+	      }
+	      var type = typeof index;
+	      if (type == 'number'
+	            ? (isArrayLike(object) && isIndex(index, object.length))
+	            : (type == 'string' && index in object)
+	          ) {
+	        return eq(object[index], value);
+	      }
+	      return false;
+	    }
+
+	    /**
+	     * Checks if `value` is a property name and not a property path.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @param {Object} [object] The object to query keys on.
+	     * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
+	     */
+	    function isKey(value, object) {
+	      if (isArray(value)) {
+	        return false;
+	      }
+	      var type = typeof value;
+	      if (type == 'number' || type == 'symbol' || type == 'boolean' ||
+	          value == null || isSymbol(value)) {
+	        return true;
+	      }
+	      return reIsPlainProp.test(value) || !reIsDeepProp.test(value) ||
+	        (object != null && value in Object(object));
+	    }
+
+	    /**
+	     * Checks if `value` is suitable for use as unique object key.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
+	     */
+	    function isKeyable(value) {
+	      var type = typeof value;
+	      return (type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean')
+	        ? (value !== '__proto__')
+	        : (value === null);
+	    }
+
+	    /**
+	     * Checks if `func` has a lazy counterpart.
+	     *
+	     * @private
+	     * @param {Function} func The function to check.
+	     * @returns {boolean} Returns `true` if `func` has a lazy counterpart,
+	     *  else `false`.
+	     */
+	    function isLaziable(func) {
+	      var funcName = getFuncName(func),
+	          other = lodash[funcName];
+
+	      if (typeof other != 'function' || !(funcName in LazyWrapper.prototype)) {
+	        return false;
+	      }
+	      if (func === other) {
+	        return true;
+	      }
+	      var data = getData(other);
+	      return !!data && func === data[0];
+	    }
+
+	    /**
+	     * Checks if `func` has its source masked.
+	     *
+	     * @private
+	     * @param {Function} func The function to check.
+	     * @returns {boolean} Returns `true` if `func` is masked, else `false`.
+	     */
+	    function isMasked(func) {
+	      return !!maskSrcKey && (maskSrcKey in func);
+	    }
+
+	    /**
+	     * Checks if `func` is capable of being masked.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `func` is maskable, else `false`.
+	     */
+	    var isMaskable = coreJsData ? isFunction : stubFalse;
+
+	    /**
+	     * Checks if `value` is likely a prototype object.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a prototype, else `false`.
+	     */
+	    function isPrototype(value) {
+	      var Ctor = value && value.constructor,
+	          proto = (typeof Ctor == 'function' && Ctor.prototype) || objectProto;
+
+	      return value === proto;
+	    }
+
+	    /**
+	     * Checks if `value` is suitable for strict equality comparisons, i.e. `===`.
+	     *
+	     * @private
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` if suitable for strict
+	     *  equality comparisons, else `false`.
+	     */
+	    function isStrictComparable(value) {
+	      return value === value && !isObject(value);
+	    }
+
+	    /**
+	     * A specialized version of `matchesProperty` for source values suitable
+	     * for strict equality comparisons, i.e. `===`.
+	     *
+	     * @private
+	     * @param {string} key The key of the property to get.
+	     * @param {*} srcValue The value to match.
+	     * @returns {Function} Returns the new spec function.
+	     */
+	    function matchesStrictComparable(key, srcValue) {
+	      return function(object) {
+	        if (object == null) {
+	          return false;
+	        }
+	        return object[key] === srcValue &&
+	          (srcValue !== undefined || (key in Object(object)));
+	      };
+	    }
+
+	    /**
+	     * A specialized version of `_.memoize` which clears the memoized function's
+	     * cache when it exceeds `MAX_MEMOIZE_SIZE`.
+	     *
+	     * @private
+	     * @param {Function} func The function to have its output memoized.
+	     * @returns {Function} Returns the new memoized function.
+	     */
+	    function memoizeCapped(func) {
+	      var result = memoize(func, function(key) {
+	        if (cache.size === MAX_MEMOIZE_SIZE) {
+	          cache.clear();
+	        }
+	        return key;
+	      });
+
+	      var cache = result.cache;
+	      return result;
+	    }
+
+	    /**
+	     * Merges the function metadata of `source` into `data`.
+	     *
+	     * Merging metadata reduces the number of wrappers used to invoke a function.
+	     * This is possible because methods like `_.bind`, `_.curry`, and `_.partial`
+	     * may be applied regardless of execution order. Methods like `_.ary` and
+	     * `_.rearg` modify function arguments, making the order in which they are
+	     * executed important, preventing the merging of metadata. However, we make
+	     * an exception for a safe combined case where curried functions have `_.ary`
+	     * and or `_.rearg` applied.
+	     *
+	     * @private
+	     * @param {Array} data The destination metadata.
+	     * @param {Array} source The source metadata.
+	     * @returns {Array} Returns `data`.
+	     */
+	    function mergeData(data, source) {
+	      var bitmask = data[1],
+	          srcBitmask = source[1],
+	          newBitmask = bitmask | srcBitmask,
+	          isCommon = newBitmask < (WRAP_BIND_FLAG | WRAP_BIND_KEY_FLAG | WRAP_ARY_FLAG);
+
+	      var isCombo =
+	        ((srcBitmask == WRAP_ARY_FLAG) && (bitmask == WRAP_CURRY_FLAG)) ||
+	        ((srcBitmask == WRAP_ARY_FLAG) && (bitmask == WRAP_REARG_FLAG) && (data[7].length <= source[8])) ||
+	        ((srcBitmask == (WRAP_ARY_FLAG | WRAP_REARG_FLAG)) && (source[7].length <= source[8]) && (bitmask == WRAP_CURRY_FLAG));
+
+	      // Exit early if metadata can't be merged.
+	      if (!(isCommon || isCombo)) {
+	        return data;
+	      }
+	      // Use source `thisArg` if available.
+	      if (srcBitmask & WRAP_BIND_FLAG) {
+	        data[2] = source[2];
+	        // Set when currying a bound function.
+	        newBitmask |= bitmask & WRAP_BIND_FLAG ? 0 : WRAP_CURRY_BOUND_FLAG;
+	      }
+	      // Compose partial arguments.
+	      var value = source[3];
+	      if (value) {
+	        var partials = data[3];
+	        data[3] = partials ? composeArgs(partials, value, source[4]) : value;
+	        data[4] = partials ? replaceHolders(data[3], PLACEHOLDER) : source[4];
+	      }
+	      // Compose partial right arguments.
+	      value = source[5];
+	      if (value) {
+	        partials = data[5];
+	        data[5] = partials ? composeArgsRight(partials, value, source[6]) : value;
+	        data[6] = partials ? replaceHolders(data[5], PLACEHOLDER) : source[6];
+	      }
+	      // Use source `argPos` if available.
+	      value = source[7];
+	      if (value) {
+	        data[7] = value;
+	      }
+	      // Use source `ary` if it's smaller.
+	      if (srcBitmask & WRAP_ARY_FLAG) {
+	        data[8] = data[8] == null ? source[8] : nativeMin(data[8], source[8]);
+	      }
+	      // Use source `arity` if one is not provided.
+	      if (data[9] == null) {
+	        data[9] = source[9];
+	      }
+	      // Use source `func` and merge bitmasks.
+	      data[0] = source[0];
+	      data[1] = newBitmask;
+
+	      return data;
+	    }
+
+	    /**
+	     * This function is like
+	     * [`Object.keys`](http://ecma-international.org/ecma-262/7.0/#sec-object.keys)
+	     * except that it includes inherited enumerable properties.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names.
+	     */
+	    function nativeKeysIn(object) {
+	      var result = [];
+	      if (object != null) {
+	        for (var key in Object(object)) {
+	          result.push(key);
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Converts `value` to a string using `Object.prototype.toString`.
+	     *
+	     * @private
+	     * @param {*} value The value to convert.
+	     * @returns {string} Returns the converted string.
+	     */
+	    function objectToString(value) {
+	      return nativeObjectToString.call(value);
+	    }
+
+	    /**
+	     * A specialized version of `baseRest` which transforms the rest array.
+	     *
+	     * @private
+	     * @param {Function} func The function to apply a rest parameter to.
+	     * @param {number} [start=func.length-1] The start position of the rest parameter.
+	     * @param {Function} transform The rest array transform.
+	     * @returns {Function} Returns the new function.
+	     */
+	    function overRest(func, start, transform) {
+	      start = nativeMax(start === undefined ? (func.length - 1) : start, 0);
+	      return function() {
+	        var args = arguments,
+	            index = -1,
+	            length = nativeMax(args.length - start, 0),
+	            array = Array(length);
+
+	        while (++index < length) {
+	          array[index] = args[start + index];
+	        }
+	        index = -1;
+	        var otherArgs = Array(start + 1);
+	        while (++index < start) {
+	          otherArgs[index] = args[index];
+	        }
+	        otherArgs[start] = transform(array);
+	        return apply(func, this, otherArgs);
+	      };
+	    }
+
+	    /**
+	     * Gets the parent value at `path` of `object`.
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {Array} path The path to get the parent value of.
+	     * @returns {*} Returns the parent value.
+	     */
+	    function parent(object, path) {
+	      return path.length < 2 ? object : baseGet(object, baseSlice(path, 0, -1));
+	    }
+
+	    /**
+	     * Reorder `array` according to the specified indexes where the element at
+	     * the first index is assigned as the first element, the element at
+	     * the second index is assigned as the second element, and so on.
+	     *
+	     * @private
+	     * @param {Array} array The array to reorder.
+	     * @param {Array} indexes The arranged array indexes.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function reorder(array, indexes) {
+	      var arrLength = array.length,
+	          length = nativeMin(indexes.length, arrLength),
+	          oldArray = copyArray(array);
+
+	      while (length--) {
+	        var index = indexes[length];
+	        array[length] = isIndex(index, arrLength) ? oldArray[index] : undefined;
+	      }
+	      return array;
+	    }
+
+	    /**
+	     * Gets the value at `key`, unless `key` is "__proto__".
+	     *
+	     * @private
+	     * @param {Object} object The object to query.
+	     * @param {string} key The key of the property to get.
+	     * @returns {*} Returns the property value.
+	     */
+	    function safeGet(object, key) {
+	      if (key == '__proto__') {
+	        return;
+	      }
+
+	      return object[key];
+	    }
+
+	    /**
+	     * Sets metadata for `func`.
+	     *
+	     * **Note:** If this function becomes hot, i.e. is invoked a lot in a short
+	     * period of time, it will trip its breaker and transition to an identity
+	     * function to avoid garbage collection pauses in V8. See
+	     * [V8 issue 2070](https://bugs.chromium.org/p/v8/issues/detail?id=2070)
+	     * for more details.
+	     *
+	     * @private
+	     * @param {Function} func The function to associate metadata with.
+	     * @param {*} data The metadata.
+	     * @returns {Function} Returns `func`.
+	     */
+	    var setData = shortOut(baseSetData);
+
+	    /**
+	     * A simple wrapper around the global [`setTimeout`](https://mdn.io/setTimeout).
+	     *
+	     * @private
+	     * @param {Function} func The function to delay.
+	     * @param {number} wait The number of milliseconds to delay invocation.
+	     * @returns {number|Object} Returns the timer id or timeout object.
+	     */
+	    var setTimeout = ctxSetTimeout || function(func, wait) {
+	      return root.setTimeout(func, wait);
+	    };
+
+	    /**
+	     * Sets the `toString` method of `func` to return `string`.
+	     *
+	     * @private
+	     * @param {Function} func The function to modify.
+	     * @param {Function} string The `toString` result.
+	     * @returns {Function} Returns `func`.
+	     */
+	    var setToString = shortOut(baseSetToString);
+
+	    /**
+	     * Sets the `toString` method of `wrapper` to mimic the source of `reference`
+	     * with wrapper details in a comment at the top of the source body.
+	     *
+	     * @private
+	     * @param {Function} wrapper The function to modify.
+	     * @param {Function} reference The reference function.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @returns {Function} Returns `wrapper`.
+	     */
+	    function setWrapToString(wrapper, reference, bitmask) {
+	      var source = (reference + '');
+	      return setToString(wrapper, insertWrapDetails(source, updateWrapDetails(getWrapDetails(source), bitmask)));
+	    }
+
+	    /**
+	     * Creates a function that'll short out and invoke `identity` instead
+	     * of `func` when it's called `HOT_COUNT` or more times in `HOT_SPAN`
+	     * milliseconds.
+	     *
+	     * @private
+	     * @param {Function} func The function to restrict.
+	     * @returns {Function} Returns the new shortable function.
+	     */
+	    function shortOut(func) {
+	      var count = 0,
+	          lastCalled = 0;
+
+	      return function() {
+	        var stamp = nativeNow(),
+	            remaining = HOT_SPAN - (stamp - lastCalled);
+
+	        lastCalled = stamp;
+	        if (remaining > 0) {
+	          if (++count >= HOT_COUNT) {
+	            return arguments[0];
+	          }
+	        } else {
+	          count = 0;
+	        }
+	        return func.apply(undefined, arguments);
+	      };
+	    }
+
+	    /**
+	     * A specialized version of `_.shuffle` which mutates and sets the size of `array`.
+	     *
+	     * @private
+	     * @param {Array} array The array to shuffle.
+	     * @param {number} [size=array.length] The size of `array`.
+	     * @returns {Array} Returns `array`.
+	     */
+	    function shuffleSelf(array, size) {
+	      var index = -1,
+	          length = array.length,
+	          lastIndex = length - 1;
+
+	      size = size === undefined ? length : size;
+	      while (++index < size) {
+	        var rand = baseRandom(index, lastIndex),
+	            value = array[rand];
+
+	        array[rand] = array[index];
+	        array[index] = value;
+	      }
+	      array.length = size;
+	      return array;
+	    }
+
+	    /**
+	     * Converts `string` to a property path array.
+	     *
+	     * @private
+	     * @param {string} string The string to convert.
+	     * @returns {Array} Returns the property path array.
+	     */
+	    var stringToPath = memoizeCapped(function(string) {
+	      var result = [];
+	      if (string.charCodeAt(0) === 46 /* . */) {
+	        result.push('');
+	      }
+	      string.replace(rePropName, function(match, number, quote, subString) {
+	        result.push(quote ? subString.replace(reEscapeChar, '$1') : (number || match));
+	      });
+	      return result;
+	    });
+
+	    /**
+	     * Converts `value` to a string key if it's not a string or symbol.
+	     *
+	     * @private
+	     * @param {*} value The value to inspect.
+	     * @returns {string|symbol} Returns the key.
+	     */
+	    function toKey(value) {
+	      if (typeof value == 'string' || isSymbol(value)) {
+	        return value;
+	      }
+	      var result = (value + '');
+	      return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
+	    }
+
+	    /**
+	     * Converts `func` to its source code.
+	     *
+	     * @private
+	     * @param {Function} func The function to convert.
+	     * @returns {string} Returns the source code.
+	     */
+	    function toSource(func) {
+	      if (func != null) {
+	        try {
+	          return funcToString.call(func);
+	        } catch (e) {}
+	        try {
+	          return (func + '');
+	        } catch (e) {}
+	      }
+	      return '';
+	    }
+
+	    /**
+	     * Updates wrapper `details` based on `bitmask` flags.
+	     *
+	     * @private
+	     * @returns {Array} details The details to modify.
+	     * @param {number} bitmask The bitmask flags. See `createWrap` for more details.
+	     * @returns {Array} Returns `details`.
+	     */
+	    function updateWrapDetails(details, bitmask) {
+	      arrayEach(wrapFlags, function(pair) {
+	        var value = '_.' + pair[0];
+	        if ((bitmask & pair[1]) && !arrayIncludes(details, value)) {
+	          details.push(value);
+	        }
+	      });
+	      return details.sort();
+	    }
+
+	    /**
+	     * Creates a clone of `wrapper`.
+	     *
+	     * @private
+	     * @param {Object} wrapper The wrapper to clone.
+	     * @returns {Object} Returns the cloned wrapper.
+	     */
+	    function wrapperClone(wrapper) {
+	      if (wrapper instanceof LazyWrapper) {
+	        return wrapper.clone();
+	      }
+	      var result = new LodashWrapper(wrapper.__wrapped__, wrapper.__chain__);
+	      result.__actions__ = copyArray(wrapper.__actions__);
+	      result.__index__  = wrapper.__index__;
+	      result.__values__ = wrapper.__values__;
+	      return result;
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates an array of elements split into groups the length of `size`.
+	     * If `array` can't be split evenly, the final chunk will be the remaining
+	     * elements.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to process.
+	     * @param {number} [size=1] The length of each chunk
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the new array of chunks.
+	     * @example
+	     *
+	     * _.chunk(['a', 'b', 'c', 'd'], 2);
+	     * // => [['a', 'b'], ['c', 'd']]
+	     *
+	     * _.chunk(['a', 'b', 'c', 'd'], 3);
+	     * // => [['a', 'b', 'c'], ['d']]
+	     */
+	    function chunk(array, size, guard) {
+	      if ((guard ? isIterateeCall(array, size, guard) : size === undefined)) {
+	        size = 1;
+	      } else {
+	        size = nativeMax(toInteger(size), 0);
+	      }
+	      var length = array == null ? 0 : array.length;
+	      if (!length || size < 1) {
+	        return [];
+	      }
+	      var index = 0,
+	          resIndex = 0,
+	          result = Array(nativeCeil(length / size));
+
+	      while (index < length) {
+	        result[resIndex++] = baseSlice(array, index, (index += size));
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Creates an array with all falsey values removed. The values `false`, `null`,
+	     * `0`, `""`, `undefined`, and `NaN` are falsey.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to compact.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @example
+	     *
+	     * _.compact([0, 1, false, 2, '', 3]);
+	     * // => [1, 2, 3]
+	     */
+	    function compact(array) {
+	      var index = -1,
+	          length = array == null ? 0 : array.length,
+	          resIndex = 0,
+	          result = [];
+
+	      while (++index < length) {
+	        var value = array[index];
+	        if (value) {
+	          result[resIndex++] = value;
+	        }
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Creates a new array concatenating `array` with any additional arrays
+	     * and/or values.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to concatenate.
+	     * @param {...*} [values] The values to concatenate.
+	     * @returns {Array} Returns the new concatenated array.
+	     * @example
+	     *
+	     * var array = [1];
+	     * var other = _.concat(array, 2, [3], [[4]]);
+	     *
+	     * console.log(other);
+	     * // => [1, 2, 3, [4]]
+	     *
+	     * console.log(array);
+	     * // => [1]
+	     */
+	    function concat() {
+	      var length = arguments.length;
+	      if (!length) {
+	        return [];
+	      }
+	      var args = Array(length - 1),
+	          array = arguments[0],
+	          index = length;
+
+	      while (index--) {
+	        args[index - 1] = arguments[index];
+	      }
+	      return arrayPush(isArray(array) ? copyArray(array) : [array], baseFlatten(args, 1));
+	    }
+
+	    /**
+	     * Creates an array of `array` values not included in the other given arrays
+	     * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons. The order and references of result values are
+	     * determined by the first array.
+	     *
+	     * **Note:** Unlike `_.pullAll`, this method returns a new array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {...Array} [values] The values to exclude.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @see _.without, _.xor
+	     * @example
+	     *
+	     * _.difference([2, 1], [2, 3]);
+	     * // => [1]
+	     */
+	    var difference = baseRest(function(array, values) {
+	      return isArrayLikeObject(array)
+	        ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true))
+	        : [];
+	    });
+
+	    /**
+	     * This method is like `_.difference` except that it accepts `iteratee` which
+	     * is invoked for each element of `array` and `values` to generate the criterion
+	     * by which they're compared. The order and references of result values are
+	     * determined by the first array. The iteratee is invoked with one argument:
+	     * (value).
+	     *
+	     * **Note:** Unlike `_.pullAllBy`, this method returns a new array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {...Array} [values] The values to exclude.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @example
+	     *
+	     * _.differenceBy([2.1, 1.2], [2.3, 3.4], Math.floor);
+	     * // => [1.2]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.differenceBy([{ 'x': 2 }, { 'x': 1 }], [{ 'x': 1 }], 'x');
+	     * // => [{ 'x': 2 }]
+	     */
+	    var differenceBy = baseRest(function(array, values) {
+	      var iteratee = last(values);
+	      if (isArrayLikeObject(iteratee)) {
+	        iteratee = undefined;
+	      }
+	      return isArrayLikeObject(array)
+	        ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true), getIteratee(iteratee, 2))
+	        : [];
+	    });
+
+	    /**
+	     * This method is like `_.difference` except that it accepts `comparator`
+	     * which is invoked to compare elements of `array` to `values`. The order and
+	     * references of result values are determined by the first array. The comparator
+	     * is invoked with two arguments: (arrVal, othVal).
+	     *
+	     * **Note:** Unlike `_.pullAllWith`, this method returns a new array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {...Array} [values] The values to exclude.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+	     *
+	     * _.differenceWith(objects, [{ 'x': 1, 'y': 2 }], _.isEqual);
+	     * // => [{ 'x': 2, 'y': 1 }]
+	     */
+	    var differenceWith = baseRest(function(array, values) {
+	      var comparator = last(values);
+	      if (isArrayLikeObject(comparator)) {
+	        comparator = undefined;
+	      }
+	      return isArrayLikeObject(array)
+	        ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true), undefined, comparator)
+	        : [];
+	    });
+
+	    /**
+	     * Creates a slice of `array` with `n` elements dropped from the beginning.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.5.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {number} [n=1] The number of elements to drop.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.drop([1, 2, 3]);
+	     * // => [2, 3]
+	     *
+	     * _.drop([1, 2, 3], 2);
+	     * // => [3]
+	     *
+	     * _.drop([1, 2, 3], 5);
+	     * // => []
+	     *
+	     * _.drop([1, 2, 3], 0);
+	     * // => [1, 2, 3]
+	     */
+	    function drop(array, n, guard) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      n = (guard || n === undefined) ? 1 : toInteger(n);
+	      return baseSlice(array, n < 0 ? 0 : n, length);
+	    }
+
+	    /**
+	     * Creates a slice of `array` with `n` elements dropped from the end.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {number} [n=1] The number of elements to drop.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.dropRight([1, 2, 3]);
+	     * // => [1, 2]
+	     *
+	     * _.dropRight([1, 2, 3], 2);
+	     * // => [1]
+	     *
+	     * _.dropRight([1, 2, 3], 5);
+	     * // => []
+	     *
+	     * _.dropRight([1, 2, 3], 0);
+	     * // => [1, 2, 3]
+	     */
+	    function dropRight(array, n, guard) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      n = (guard || n === undefined) ? 1 : toInteger(n);
+	      n = length - n;
+	      return baseSlice(array, 0, n < 0 ? 0 : n);
+	    }
+
+	    /**
+	     * Creates a slice of `array` excluding elements dropped from the end.
+	     * Elements are dropped until `predicate` returns falsey. The predicate is
+	     * invoked with three arguments: (value, index, array).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': true },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': false }
+	     * ];
+	     *
+	     * _.dropRightWhile(users, function(o) { return !o.active; });
+	     * // => objects for ['barney']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.dropRightWhile(users, { 'user': 'pebbles', 'active': false });
+	     * // => objects for ['barney', 'fred']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.dropRightWhile(users, ['active', false]);
+	     * // => objects for ['barney']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.dropRightWhile(users, 'active');
+	     * // => objects for ['barney', 'fred', 'pebbles']
+	     */
+	    function dropRightWhile(array, predicate) {
+	      return (array && array.length)
+	        ? baseWhile(array, getIteratee(predicate, 3), true, true)
+	        : [];
+	    }
+
+	    /**
+	     * Creates a slice of `array` excluding elements dropped from the beginning.
+	     * Elements are dropped until `predicate` returns falsey. The predicate is
+	     * invoked with three arguments: (value, index, array).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': false },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': true }
+	     * ];
+	     *
+	     * _.dropWhile(users, function(o) { return !o.active; });
+	     * // => objects for ['pebbles']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.dropWhile(users, { 'user': 'barney', 'active': false });
+	     * // => objects for ['fred', 'pebbles']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.dropWhile(users, ['active', false]);
+	     * // => objects for ['pebbles']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.dropWhile(users, 'active');
+	     * // => objects for ['barney', 'fred', 'pebbles']
+	     */
+	    function dropWhile(array, predicate) {
+	      return (array && array.length)
+	        ? baseWhile(array, getIteratee(predicate, 3), true)
+	        : [];
+	    }
+
+	    /**
+	     * Fills elements of `array` with `value` from `start` up to, but not
+	     * including, `end`.
+	     *
+	     * **Note:** This method mutates `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.2.0
+	     * @category Array
+	     * @param {Array} array The array to fill.
+	     * @param {*} value The value to fill `array` with.
+	     * @param {number} [start=0] The start position.
+	     * @param {number} [end=array.length] The end position.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = [1, 2, 3];
+	     *
+	     * _.fill(array, 'a');
+	     * console.log(array);
+	     * // => ['a', 'a', 'a']
+	     *
+	     * _.fill(Array(3), 2);
+	     * // => [2, 2, 2]
+	     *
+	     * _.fill([4, 6, 8, 10], '*', 1, 3);
+	     * // => [4, '*', '*', 10]
+	     */
+	    function fill(array, value, start, end) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      if (start && typeof start != 'number' && isIterateeCall(array, value, start)) {
+	        start = 0;
+	        end = length;
+	      }
+	      return baseFill(array, value, start, end);
+	    }
+
+	    /**
+	     * This method is like `_.find` except that it returns the index of the first
+	     * element `predicate` returns truthy for instead of the element itself.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param {number} [fromIndex=0] The index to search from.
+	     * @returns {number} Returns the index of the found element, else `-1`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': false },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': true }
+	     * ];
+	     *
+	     * _.findIndex(users, function(o) { return o.user == 'barney'; });
+	     * // => 0
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.findIndex(users, { 'user': 'fred', 'active': false });
+	     * // => 1
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.findIndex(users, ['active', false]);
+	     * // => 0
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.findIndex(users, 'active');
+	     * // => 2
+	     */
+	    function findIndex(array, predicate, fromIndex) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return -1;
+	      }
+	      var index = fromIndex == null ? 0 : toInteger(fromIndex);
+	      if (index < 0) {
+	        index = nativeMax(length + index, 0);
+	      }
+	      return baseFindIndex(array, getIteratee(predicate, 3), index);
+	    }
+
+	    /**
+	     * This method is like `_.findIndex` except that it iterates over elements
+	     * of `collection` from right to left.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param {number} [fromIndex=array.length-1] The index to search from.
+	     * @returns {number} Returns the index of the found element, else `-1`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': true },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': false }
+	     * ];
+	     *
+	     * _.findLastIndex(users, function(o) { return o.user == 'pebbles'; });
+	     * // => 2
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.findLastIndex(users, { 'user': 'barney', 'active': true });
+	     * // => 0
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.findLastIndex(users, ['active', false]);
+	     * // => 2
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.findLastIndex(users, 'active');
+	     * // => 0
+	     */
+	    function findLastIndex(array, predicate, fromIndex) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return -1;
+	      }
+	      var index = length - 1;
+	      if (fromIndex !== undefined) {
+	        index = toInteger(fromIndex);
+	        index = fromIndex < 0
+	          ? nativeMax(length + index, 0)
+	          : nativeMin(index, length - 1);
+	      }
+	      return baseFindIndex(array, getIteratee(predicate, 3), index, true);
+	    }
+
+	    /**
+	     * Flattens `array` a single level deep.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to flatten.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * _.flatten([1, [2, [3, [4]], 5]]);
+	     * // => [1, 2, [3, [4]], 5]
+	     */
+	    function flatten(array) {
+	      var length = array == null ? 0 : array.length;
+	      return length ? baseFlatten(array, 1) : [];
+	    }
+
+	    /**
+	     * Recursively flattens `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to flatten.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * _.flattenDeep([1, [2, [3, [4]], 5]]);
+	     * // => [1, 2, 3, 4, 5]
+	     */
+	    function flattenDeep(array) {
+	      var length = array == null ? 0 : array.length;
+	      return length ? baseFlatten(array, INFINITY) : [];
+	    }
+
+	    /**
+	     * Recursively flatten `array` up to `depth` times.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.4.0
+	     * @category Array
+	     * @param {Array} array The array to flatten.
+	     * @param {number} [depth=1] The maximum recursion depth.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * var array = [1, [2, [3, [4]], 5]];
+	     *
+	     * _.flattenDepth(array, 1);
+	     * // => [1, 2, [3, [4]], 5]
+	     *
+	     * _.flattenDepth(array, 2);
+	     * // => [1, 2, 3, [4], 5]
+	     */
+	    function flattenDepth(array, depth) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      depth = depth === undefined ? 1 : toInteger(depth);
+	      return baseFlatten(array, depth);
+	    }
+
+	    /**
+	     * The inverse of `_.toPairs`; this method returns an object composed
+	     * from key-value `pairs`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} pairs The key-value pairs.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * _.fromPairs([['a', 1], ['b', 2]]);
+	     * // => { 'a': 1, 'b': 2 }
+	     */
+	    function fromPairs(pairs) {
+	      var index = -1,
+	          length = pairs == null ? 0 : pairs.length,
+	          result = {};
+
+	      while (++index < length) {
+	        var pair = pairs[index];
+	        result[pair[0]] = pair[1];
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Gets the first element of `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @alias first
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @returns {*} Returns the first element of `array`.
+	     * @example
+	     *
+	     * _.head([1, 2, 3]);
+	     * // => 1
+	     *
+	     * _.head([]);
+	     * // => undefined
+	     */
+	    function head(array) {
+	      return (array && array.length) ? array[0] : undefined;
+	    }
+
+	    /**
+	     * Gets the index at which the first occurrence of `value` is found in `array`
+	     * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons. If `fromIndex` is negative, it's used as the
+	     * offset from the end of `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {*} value The value to search for.
+	     * @param {number} [fromIndex=0] The index to search from.
+	     * @returns {number} Returns the index of the matched value, else `-1`.
+	     * @example
+	     *
+	     * _.indexOf([1, 2, 1, 2], 2);
+	     * // => 1
+	     *
+	     * // Search from the `fromIndex`.
+	     * _.indexOf([1, 2, 1, 2], 2, 2);
+	     * // => 3
+	     */
+	    function indexOf(array, value, fromIndex) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return -1;
+	      }
+	      var index = fromIndex == null ? 0 : toInteger(fromIndex);
+	      if (index < 0) {
+	        index = nativeMax(length + index, 0);
+	      }
+	      return baseIndexOf(array, value, index);
+	    }
+
+	    /**
+	     * Gets all but the last element of `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.initial([1, 2, 3]);
+	     * // => [1, 2]
+	     */
+	    function initial(array) {
+	      var length = array == null ? 0 : array.length;
+	      return length ? baseSlice(array, 0, -1) : [];
+	    }
+
+	    /**
+	     * Creates an array of unique values that are included in all given arrays
+	     * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons. The order and references of result values are
+	     * determined by the first array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @returns {Array} Returns the new array of intersecting values.
+	     * @example
+	     *
+	     * _.intersection([2, 1], [2, 3]);
+	     * // => [2]
+	     */
+	    var intersection = baseRest(function(arrays) {
+	      var mapped = arrayMap(arrays, castArrayLikeObject);
+	      return (mapped.length && mapped[0] === arrays[0])
+	        ? baseIntersection(mapped)
+	        : [];
+	    });
+
+	    /**
+	     * This method is like `_.intersection` except that it accepts `iteratee`
+	     * which is invoked for each element of each `arrays` to generate the criterion
+	     * by which they're compared. The order and references of result values are
+	     * determined by the first array. The iteratee is invoked with one argument:
+	     * (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns the new array of intersecting values.
+	     * @example
+	     *
+	     * _.intersectionBy([2.1, 1.2], [2.3, 3.4], Math.floor);
+	     * // => [2.1]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.intersectionBy([{ 'x': 1 }], [{ 'x': 2 }, { 'x': 1 }], 'x');
+	     * // => [{ 'x': 1 }]
+	     */
+	    var intersectionBy = baseRest(function(arrays) {
+	      var iteratee = last(arrays),
+	          mapped = arrayMap(arrays, castArrayLikeObject);
+
+	      if (iteratee === last(mapped)) {
+	        iteratee = undefined;
+	      } else {
+	        mapped.pop();
+	      }
+	      return (mapped.length && mapped[0] === arrays[0])
+	        ? baseIntersection(mapped, getIteratee(iteratee, 2))
+	        : [];
+	    });
+
+	    /**
+	     * This method is like `_.intersection` except that it accepts `comparator`
+	     * which is invoked to compare elements of `arrays`. The order and references
+	     * of result values are determined by the first array. The comparator is
+	     * invoked with two arguments: (arrVal, othVal).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of intersecting values.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+	     * var others = [{ 'x': 1, 'y': 1 }, { 'x': 1, 'y': 2 }];
+	     *
+	     * _.intersectionWith(objects, others, _.isEqual);
+	     * // => [{ 'x': 1, 'y': 2 }]
+	     */
+	    var intersectionWith = baseRest(function(arrays) {
+	      var comparator = last(arrays),
+	          mapped = arrayMap(arrays, castArrayLikeObject);
+
+	      comparator = typeof comparator == 'function' ? comparator : undefined;
+	      if (comparator) {
+	        mapped.pop();
+	      }
+	      return (mapped.length && mapped[0] === arrays[0])
+	        ? baseIntersection(mapped, undefined, comparator)
+	        : [];
+	    });
+
+	    /**
+	     * Converts all elements in `array` into a string separated by `separator`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to convert.
+	     * @param {string} [separator=','] The element separator.
+	     * @returns {string} Returns the joined string.
+	     * @example
+	     *
+	     * _.join(['a', 'b', 'c'], '~');
+	     * // => 'a~b~c'
+	     */
+	    function join(array, separator) {
+	      return array == null ? '' : nativeJoin.call(array, separator);
+	    }
+
+	    /**
+	     * Gets the last element of `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @returns {*} Returns the last element of `array`.
+	     * @example
+	     *
+	     * _.last([1, 2, 3]);
+	     * // => 3
+	     */
+	    function last(array) {
+	      var length = array == null ? 0 : array.length;
+	      return length ? array[length - 1] : undefined;
+	    }
+
+	    /**
+	     * This method is like `_.indexOf` except that it iterates over elements of
+	     * `array` from right to left.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {*} value The value to search for.
+	     * @param {number} [fromIndex=array.length-1] The index to search from.
+	     * @returns {number} Returns the index of the matched value, else `-1`.
+	     * @example
+	     *
+	     * _.lastIndexOf([1, 2, 1, 2], 2);
+	     * // => 3
+	     *
+	     * // Search from the `fromIndex`.
+	     * _.lastIndexOf([1, 2, 1, 2], 2, 2);
+	     * // => 1
+	     */
+	    function lastIndexOf(array, value, fromIndex) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return -1;
+	      }
+	      var index = length;
+	      if (fromIndex !== undefined) {
+	        index = toInteger(fromIndex);
+	        index = index < 0 ? nativeMax(length + index, 0) : nativeMin(index, length - 1);
+	      }
+	      return value === value
+	        ? strictLastIndexOf(array, value, index)
+	        : baseFindIndex(array, baseIsNaN, index, true);
+	    }
+
+	    /**
+	     * Gets the element at index `n` of `array`. If `n` is negative, the nth
+	     * element from the end is returned.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.11.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {number} [n=0] The index of the element to return.
+	     * @returns {*} Returns the nth element of `array`.
+	     * @example
+	     *
+	     * var array = ['a', 'b', 'c', 'd'];
+	     *
+	     * _.nth(array, 1);
+	     * // => 'b'
+	     *
+	     * _.nth(array, -2);
+	     * // => 'c';
+	     */
+	    function nth(array, n) {
+	      return (array && array.length) ? baseNth(array, toInteger(n)) : undefined;
+	    }
+
+	    /**
+	     * Removes all given values from `array` using
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons.
+	     *
+	     * **Note:** Unlike `_.without`, this method mutates `array`. Use `_.remove`
+	     * to remove elements from an array by predicate.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {...*} [values] The values to remove.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = ['a', 'b', 'c', 'a', 'b', 'c'];
+	     *
+	     * _.pull(array, 'a', 'c');
+	     * console.log(array);
+	     * // => ['b', 'b']
+	     */
+	    var pull = baseRest(pullAll);
+
+	    /**
+	     * This method is like `_.pull` except that it accepts an array of values to remove.
+	     *
+	     * **Note:** Unlike `_.difference`, this method mutates `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {Array} values The values to remove.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = ['a', 'b', 'c', 'a', 'b', 'c'];
+	     *
+	     * _.pullAll(array, ['a', 'c']);
+	     * console.log(array);
+	     * // => ['b', 'b']
+	     */
+	    function pullAll(array, values) {
+	      return (array && array.length && values && values.length)
+	        ? basePullAll(array, values)
+	        : array;
+	    }
+
+	    /**
+	     * This method is like `_.pullAll` except that it accepts `iteratee` which is
+	     * invoked for each element of `array` and `values` to generate the criterion
+	     * by which they're compared. The iteratee is invoked with one argument: (value).
+	     *
+	     * **Note:** Unlike `_.differenceBy`, this method mutates `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {Array} values The values to remove.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = [{ 'x': 1 }, { 'x': 2 }, { 'x': 3 }, { 'x': 1 }];
+	     *
+	     * _.pullAllBy(array, [{ 'x': 1 }, { 'x': 3 }], 'x');
+	     * console.log(array);
+	     * // => [{ 'x': 2 }]
+	     */
+	    function pullAllBy(array, values, iteratee) {
+	      return (array && array.length && values && values.length)
+	        ? basePullAll(array, values, getIteratee(iteratee, 2))
+	        : array;
+	    }
+
+	    /**
+	     * This method is like `_.pullAll` except that it accepts `comparator` which
+	     * is invoked to compare elements of `array` to `values`. The comparator is
+	     * invoked with two arguments: (arrVal, othVal).
+	     *
+	     * **Note:** Unlike `_.differenceWith`, this method mutates `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.6.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {Array} values The values to remove.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = [{ 'x': 1, 'y': 2 }, { 'x': 3, 'y': 4 }, { 'x': 5, 'y': 6 }];
+	     *
+	     * _.pullAllWith(array, [{ 'x': 3, 'y': 4 }], _.isEqual);
+	     * console.log(array);
+	     * // => [{ 'x': 1, 'y': 2 }, { 'x': 5, 'y': 6 }]
+	     */
+	    function pullAllWith(array, values, comparator) {
+	      return (array && array.length && values && values.length)
+	        ? basePullAll(array, values, undefined, comparator)
+	        : array;
+	    }
+
+	    /**
+	     * Removes elements from `array` corresponding to `indexes` and returns an
+	     * array of removed elements.
+	     *
+	     * **Note:** Unlike `_.at`, this method mutates `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {...(number|number[])} [indexes] The indexes of elements to remove.
+	     * @returns {Array} Returns the new array of removed elements.
+	     * @example
+	     *
+	     * var array = ['a', 'b', 'c', 'd'];
+	     * var pulled = _.pullAt(array, [1, 3]);
+	     *
+	     * console.log(array);
+	     * // => ['a', 'c']
+	     *
+	     * console.log(pulled);
+	     * // => ['b', 'd']
+	     */
+	    var pullAt = flatRest(function(array, indexes) {
+	      var length = array == null ? 0 : array.length,
+	          result = baseAt(array, indexes);
+
+	      basePullAt(array, arrayMap(indexes, function(index) {
+	        return isIndex(index, length) ? +index : index;
+	      }).sort(compareAscending));
+
+	      return result;
+	    });
+
+	    /**
+	     * Removes all elements from `array` that `predicate` returns truthy for
+	     * and returns an array of the removed elements. The predicate is invoked
+	     * with three arguments: (value, index, array).
+	     *
+	     * **Note:** Unlike `_.filter`, this method mutates `array`. Use `_.pull`
+	     * to pull elements from an array by value.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new array of removed elements.
+	     * @example
+	     *
+	     * var array = [1, 2, 3, 4];
+	     * var evens = _.remove(array, function(n) {
+	     *   return n % 2 == 0;
+	     * });
+	     *
+	     * console.log(array);
+	     * // => [1, 3]
+	     *
+	     * console.log(evens);
+	     * // => [2, 4]
+	     */
+	    function remove(array, predicate) {
+	      var result = [];
+	      if (!(array && array.length)) {
+	        return result;
+	      }
+	      var index = -1,
+	          indexes = [],
+	          length = array.length;
+
+	      predicate = getIteratee(predicate, 3);
+	      while (++index < length) {
+	        var value = array[index];
+	        if (predicate(value, index, array)) {
+	          result.push(value);
+	          indexes.push(index);
+	        }
+	      }
+	      basePullAt(array, indexes);
+	      return result;
+	    }
+
+	    /**
+	     * Reverses `array` so that the first element becomes the last, the second
+	     * element becomes the second to last, and so on.
+	     *
+	     * **Note:** This method mutates `array` and is based on
+	     * [`Array#reverse`](https://mdn.io/Array/reverse).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to modify.
+	     * @returns {Array} Returns `array`.
+	     * @example
+	     *
+	     * var array = [1, 2, 3];
+	     *
+	     * _.reverse(array);
+	     * // => [3, 2, 1]
+	     *
+	     * console.log(array);
+	     * // => [3, 2, 1]
+	     */
+	    function reverse(array) {
+	      return array == null ? array : nativeReverse.call(array);
+	    }
+
+	    /**
+	     * Creates a slice of `array` from `start` up to, but not including, `end`.
+	     *
+	     * **Note:** This method is used instead of
+	     * [`Array#slice`](https://mdn.io/Array/slice) to ensure dense arrays are
+	     * returned.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to slice.
+	     * @param {number} [start=0] The start position.
+	     * @param {number} [end=array.length] The end position.
+	     * @returns {Array} Returns the slice of `array`.
+	     */
+	    function slice(array, start, end) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      if (end && typeof end != 'number' && isIterateeCall(array, start, end)) {
+	        start = 0;
+	        end = length;
+	      }
+	      else {
+	        start = start == null ? 0 : toInteger(start);
+	        end = end === undefined ? length : toInteger(end);
+	      }
+	      return baseSlice(array, start, end);
+	    }
+
+	    /**
+	     * Uses a binary search to determine the lowest index at which `value`
+	     * should be inserted into `array` in order to maintain its sort order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     * @example
+	     *
+	     * _.sortedIndex([30, 50], 40);
+	     * // => 1
+	     */
+	    function sortedIndex(array, value) {
+	      return baseSortedIndex(array, value);
+	    }
+
+	    /**
+	     * This method is like `_.sortedIndex` except that it accepts `iteratee`
+	     * which is invoked for `value` and each element of `array` to compute their
+	     * sort ranking. The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 4 }, { 'x': 5 }];
+	     *
+	     * _.sortedIndexBy(objects, { 'x': 4 }, function(o) { return o.x; });
+	     * // => 0
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.sortedIndexBy(objects, { 'x': 4 }, 'x');
+	     * // => 0
+	     */
+	    function sortedIndexBy(array, value, iteratee) {
+	      return baseSortedIndexBy(array, value, getIteratee(iteratee, 2));
+	    }
+
+	    /**
+	     * This method is like `_.indexOf` except that it performs a binary
+	     * search on a sorted `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {*} value The value to search for.
+	     * @returns {number} Returns the index of the matched value, else `-1`.
+	     * @example
+	     *
+	     * _.sortedIndexOf([4, 5, 5, 5, 6], 5);
+	     * // => 1
+	     */
+	    function sortedIndexOf(array, value) {
+	      var length = array == null ? 0 : array.length;
+	      if (length) {
+	        var index = baseSortedIndex(array, value);
+	        if (index < length && eq(array[index], value)) {
+	          return index;
+	        }
+	      }
+	      return -1;
+	    }
+
+	    /**
+	     * This method is like `_.sortedIndex` except that it returns the highest
+	     * index at which `value` should be inserted into `array` in order to
+	     * maintain its sort order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     * @example
+	     *
+	     * _.sortedLastIndex([4, 5, 5, 5, 6], 5);
+	     * // => 4
+	     */
+	    function sortedLastIndex(array, value) {
+	      return baseSortedIndex(array, value, true);
+	    }
+
+	    /**
+	     * This method is like `_.sortedLastIndex` except that it accepts `iteratee`
+	     * which is invoked for `value` and each element of `array` to compute their
+	     * sort ranking. The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The sorted array to inspect.
+	     * @param {*} value The value to evaluate.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {number} Returns the index at which `value` should be inserted
+	     *  into `array`.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 4 }, { 'x': 5 }];
+	     *
+	     * _.sortedLastIndexBy(objects, { 'x': 4 }, function(o) { return o.x; });
+	     * // => 1
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.sortedLastIndexBy(objects, { 'x': 4 }, 'x');
+	     * // => 1
+	     */
+	    function sortedLastIndexBy(array, value, iteratee) {
+	      return baseSortedIndexBy(array, value, getIteratee(iteratee, 2), true);
+	    }
+
+	    /**
+	     * This method is like `_.lastIndexOf` except that it performs a binary
+	     * search on a sorted `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {*} value The value to search for.
+	     * @returns {number} Returns the index of the matched value, else `-1`.
+	     * @example
+	     *
+	     * _.sortedLastIndexOf([4, 5, 5, 5, 6], 5);
+	     * // => 3
+	     */
+	    function sortedLastIndexOf(array, value) {
+	      var length = array == null ? 0 : array.length;
+	      if (length) {
+	        var index = baseSortedIndex(array, value, true) - 1;
+	        if (eq(array[index], value)) {
+	          return index;
+	        }
+	      }
+	      return -1;
+	    }
+
+	    /**
+	     * This method is like `_.uniq` except that it's designed and optimized
+	     * for sorted arrays.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @returns {Array} Returns the new duplicate free array.
+	     * @example
+	     *
+	     * _.sortedUniq([1, 1, 2]);
+	     * // => [1, 2]
+	     */
+	    function sortedUniq(array) {
+	      return (array && array.length)
+	        ? baseSortedUniq(array)
+	        : [];
+	    }
+
+	    /**
+	     * This method is like `_.uniqBy` except that it's designed and optimized
+	     * for sorted arrays.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [iteratee] The iteratee invoked per element.
+	     * @returns {Array} Returns the new duplicate free array.
+	     * @example
+	     *
+	     * _.sortedUniqBy([1.1, 1.2, 2.3, 2.4], Math.floor);
+	     * // => [1.1, 2.3]
+	     */
+	    function sortedUniqBy(array, iteratee) {
+	      return (array && array.length)
+	        ? baseSortedUniq(array, getIteratee(iteratee, 2))
+	        : [];
+	    }
+
+	    /**
+	     * Gets all but the first element of `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.tail([1, 2, 3]);
+	     * // => [2, 3]
+	     */
+	    function tail(array) {
+	      var length = array == null ? 0 : array.length;
+	      return length ? baseSlice(array, 1, length) : [];
+	    }
+
+	    /**
+	     * Creates a slice of `array` with `n` elements taken from the beginning.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {number} [n=1] The number of elements to take.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.take([1, 2, 3]);
+	     * // => [1]
+	     *
+	     * _.take([1, 2, 3], 2);
+	     * // => [1, 2]
+	     *
+	     * _.take([1, 2, 3], 5);
+	     * // => [1, 2, 3]
+	     *
+	     * _.take([1, 2, 3], 0);
+	     * // => []
+	     */
+	    function take(array, n, guard) {
+	      if (!(array && array.length)) {
+	        return [];
+	      }
+	      n = (guard || n === undefined) ? 1 : toInteger(n);
+	      return baseSlice(array, 0, n < 0 ? 0 : n);
+	    }
+
+	    /**
+	     * Creates a slice of `array` with `n` elements taken from the end.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {number} [n=1] The number of elements to take.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * _.takeRight([1, 2, 3]);
+	     * // => [3]
+	     *
+	     * _.takeRight([1, 2, 3], 2);
+	     * // => [2, 3]
+	     *
+	     * _.takeRight([1, 2, 3], 5);
+	     * // => [1, 2, 3]
+	     *
+	     * _.takeRight([1, 2, 3], 0);
+	     * // => []
+	     */
+	    function takeRight(array, n, guard) {
+	      var length = array == null ? 0 : array.length;
+	      if (!length) {
+	        return [];
+	      }
+	      n = (guard || n === undefined) ? 1 : toInteger(n);
+	      n = length - n;
+	      return baseSlice(array, n < 0 ? 0 : n, length);
+	    }
+
+	    /**
+	     * Creates a slice of `array` with elements taken from the end. Elements are
+	     * taken until `predicate` returns falsey. The predicate is invoked with
+	     * three arguments: (value, index, array).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': true },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': false }
+	     * ];
+	     *
+	     * _.takeRightWhile(users, function(o) { return !o.active; });
+	     * // => objects for ['fred', 'pebbles']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.takeRightWhile(users, { 'user': 'pebbles', 'active': false });
+	     * // => objects for ['pebbles']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.takeRightWhile(users, ['active', false]);
+	     * // => objects for ['fred', 'pebbles']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.takeRightWhile(users, 'active');
+	     * // => []
+	     */
+	    function takeRightWhile(array, predicate) {
+	      return (array && array.length)
+	        ? baseWhile(array, getIteratee(predicate, 3), false, true)
+	        : [];
+	    }
+
+	    /**
+	     * Creates a slice of `array` with elements taken from the beginning. Elements
+	     * are taken until `predicate` returns falsey. The predicate is invoked with
+	     * three arguments: (value, index, array).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Array
+	     * @param {Array} array The array to query.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the slice of `array`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'active': false },
+	     *   { 'user': 'fred',    'active': false },
+	     *   { 'user': 'pebbles', 'active': true }
+	     * ];
+	     *
+	     * _.takeWhile(users, function(o) { return !o.active; });
+	     * // => objects for ['barney', 'fred']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.takeWhile(users, { 'user': 'barney', 'active': false });
+	     * // => objects for ['barney']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.takeWhile(users, ['active', false]);
+	     * // => objects for ['barney', 'fred']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.takeWhile(users, 'active');
+	     * // => []
+	     */
+	    function takeWhile(array, predicate) {
+	      return (array && array.length)
+	        ? baseWhile(array, getIteratee(predicate, 3))
+	        : [];
+	    }
+
+	    /**
+	     * Creates an array of unique values, in order, from all given arrays using
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @returns {Array} Returns the new array of combined values.
+	     * @example
+	     *
+	     * _.union([2], [1, 2]);
+	     * // => [2, 1]
+	     */
+	    var union = baseRest(function(arrays) {
+	      return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true));
+	    });
+
+	    /**
+	     * This method is like `_.union` except that it accepts `iteratee` which is
+	     * invoked for each element of each `arrays` to generate the criterion by
+	     * which uniqueness is computed. Result values are chosen from the first
+	     * array in which the value occurs. The iteratee is invoked with one argument:
+	     * (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns the new array of combined values.
+	     * @example
+	     *
+	     * _.unionBy([2.1], [1.2, 2.3], Math.floor);
+	     * // => [2.1, 1.2]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.unionBy([{ 'x': 1 }], [{ 'x': 2 }, { 'x': 1 }], 'x');
+	     * // => [{ 'x': 1 }, { 'x': 2 }]
+	     */
+	    var unionBy = baseRest(function(arrays) {
+	      var iteratee = last(arrays);
+	      if (isArrayLikeObject(iteratee)) {
+	        iteratee = undefined;
+	      }
+	      return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true), getIteratee(iteratee, 2));
+	    });
+
+	    /**
+	     * This method is like `_.union` except that it accepts `comparator` which
+	     * is invoked to compare elements of `arrays`. Result values are chosen from
+	     * the first array in which the value occurs. The comparator is invoked
+	     * with two arguments: (arrVal, othVal).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of combined values.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+	     * var others = [{ 'x': 1, 'y': 1 }, { 'x': 1, 'y': 2 }];
+	     *
+	     * _.unionWith(objects, others, _.isEqual);
+	     * // => [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }, { 'x': 1, 'y': 1 }]
+	     */
+	    var unionWith = baseRest(function(arrays) {
+	      var comparator = last(arrays);
+	      comparator = typeof comparator == 'function' ? comparator : undefined;
+	      return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true), undefined, comparator);
+	    });
+
+	    /**
+	     * Creates a duplicate-free version of an array, using
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons, in which only the first occurrence of each element
+	     * is kept. The order of result values is determined by the order they occur
+	     * in the array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @returns {Array} Returns the new duplicate free array.
+	     * @example
+	     *
+	     * _.uniq([2, 1, 2]);
+	     * // => [2, 1]
+	     */
+	    function uniq(array) {
+	      return (array && array.length) ? baseUniq(array) : [];
+	    }
+
+	    /**
+	     * This method is like `_.uniq` except that it accepts `iteratee` which is
+	     * invoked for each element in `array` to generate the criterion by which
+	     * uniqueness is computed. The order of result values is determined by the
+	     * order they occur in the array. The iteratee is invoked with one argument:
+	     * (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns the new duplicate free array.
+	     * @example
+	     *
+	     * _.uniqBy([2.1, 1.2, 2.3], Math.floor);
+	     * // => [2.1, 1.2]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.uniqBy([{ 'x': 1 }, { 'x': 2 }, { 'x': 1 }], 'x');
+	     * // => [{ 'x': 1 }, { 'x': 2 }]
+	     */
+	    function uniqBy(array, iteratee) {
+	      return (array && array.length) ? baseUniq(array, getIteratee(iteratee, 2)) : [];
+	    }
+
+	    /**
+	     * This method is like `_.uniq` except that it accepts `comparator` which
+	     * is invoked to compare elements of `array`. The order of result values is
+	     * determined by the order they occur in the array.The comparator is invoked
+	     * with two arguments: (arrVal, othVal).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new duplicate free array.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }, { 'x': 1, 'y': 2 }];
+	     *
+	     * _.uniqWith(objects, _.isEqual);
+	     * // => [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }]
+	     */
+	    function uniqWith(array, comparator) {
+	      comparator = typeof comparator == 'function' ? comparator : undefined;
+	      return (array && array.length) ? baseUniq(array, undefined, comparator) : [];
+	    }
+
+	    /**
+	     * This method is like `_.zip` except that it accepts an array of grouped
+	     * elements and creates an array regrouping the elements to their pre-zip
+	     * configuration.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.2.0
+	     * @category Array
+	     * @param {Array} array The array of grouped elements to process.
+	     * @returns {Array} Returns the new array of regrouped elements.
+	     * @example
+	     *
+	     * var zipped = _.zip(['a', 'b'], [1, 2], [true, false]);
+	     * // => [['a', 1, true], ['b', 2, false]]
+	     *
+	     * _.unzip(zipped);
+	     * // => [['a', 'b'], [1, 2], [true, false]]
+	     */
+	    function unzip(array) {
+	      if (!(array && array.length)) {
+	        return [];
+	      }
+	      var length = 0;
+	      array = arrayFilter(array, function(group) {
+	        if (isArrayLikeObject(group)) {
+	          length = nativeMax(group.length, length);
+	          return true;
+	        }
+	      });
+	      return baseTimes(length, function(index) {
+	        return arrayMap(array, baseProperty(index));
+	      });
+	    }
+
+	    /**
+	     * This method is like `_.unzip` except that it accepts `iteratee` to specify
+	     * how regrouped values should be combined. The iteratee is invoked with the
+	     * elements of each group: (...group).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.8.0
+	     * @category Array
+	     * @param {Array} array The array of grouped elements to process.
+	     * @param {Function} [iteratee=_.identity] The function to combine
+	     *  regrouped values.
+	     * @returns {Array} Returns the new array of regrouped elements.
+	     * @example
+	     *
+	     * var zipped = _.zip([1, 2], [10, 20], [100, 200]);
+	     * // => [[1, 10, 100], [2, 20, 200]]
+	     *
+	     * _.unzipWith(zipped, _.add);
+	     * // => [3, 30, 300]
+	     */
+	    function unzipWith(array, iteratee) {
+	      if (!(array && array.length)) {
+	        return [];
+	      }
+	      var result = unzip(array);
+	      if (iteratee == null) {
+	        return result;
+	      }
+	      return arrayMap(result, function(group) {
+	        return apply(iteratee, undefined, group);
+	      });
+	    }
+
+	    /**
+	     * Creates an array excluding all given values using
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * for equality comparisons.
+	     *
+	     * **Note:** Unlike `_.pull`, this method returns a new array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {Array} array The array to inspect.
+	     * @param {...*} [values] The values to exclude.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @see _.difference, _.xor
+	     * @example
+	     *
+	     * _.without([2, 1, 2, 3], 1, 2);
+	     * // => [3]
+	     */
+	    var without = baseRest(function(array, values) {
+	      return isArrayLikeObject(array)
+	        ? baseDifference(array, values)
+	        : [];
+	    });
+
+	    /**
+	     * Creates an array of unique values that is the
+	     * [symmetric difference](https://en.wikipedia.org/wiki/Symmetric_difference)
+	     * of the given arrays. The order of result values is determined by the order
+	     * they occur in the arrays.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.4.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @see _.difference, _.without
+	     * @example
+	     *
+	     * _.xor([2, 1], [2, 3]);
+	     * // => [1, 3]
+	     */
+	    var xor = baseRest(function(arrays) {
+	      return baseXor(arrayFilter(arrays, isArrayLikeObject));
+	    });
+
+	    /**
+	     * This method is like `_.xor` except that it accepts `iteratee` which is
+	     * invoked for each element of each `arrays` to generate the criterion by
+	     * which by which they're compared. The order of result values is determined
+	     * by the order they occur in the arrays. The iteratee is invoked with one
+	     * argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @example
+	     *
+	     * _.xorBy([2.1, 1.2], [2.3, 3.4], Math.floor);
+	     * // => [1.2, 3.4]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.xorBy([{ 'x': 1 }], [{ 'x': 2 }, { 'x': 1 }], 'x');
+	     * // => [{ 'x': 2 }]
+	     */
+	    var xorBy = baseRest(function(arrays) {
+	      var iteratee = last(arrays);
+	      if (isArrayLikeObject(iteratee)) {
+	        iteratee = undefined;
+	      }
+	      return baseXor(arrayFilter(arrays, isArrayLikeObject), getIteratee(iteratee, 2));
+	    });
+
+	    /**
+	     * This method is like `_.xor` except that it accepts `comparator` which is
+	     * invoked to compare elements of `arrays`. The order of result values is
+	     * determined by the order they occur in the arrays. The comparator is invoked
+	     * with two arguments: (arrVal, othVal).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to inspect.
+	     * @param {Function} [comparator] The comparator invoked per element.
+	     * @returns {Array} Returns the new array of filtered values.
+	     * @example
+	     *
+	     * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+	     * var others = [{ 'x': 1, 'y': 1 }, { 'x': 1, 'y': 2 }];
+	     *
+	     * _.xorWith(objects, others, _.isEqual);
+	     * // => [{ 'x': 2, 'y': 1 }, { 'x': 1, 'y': 1 }]
+	     */
+	    var xorWith = baseRest(function(arrays) {
+	      var comparator = last(arrays);
+	      comparator = typeof comparator == 'function' ? comparator : undefined;
+	      return baseXor(arrayFilter(arrays, isArrayLikeObject), undefined, comparator);
+	    });
+
+	    /**
+	     * Creates an array of grouped elements, the first of which contains the
+	     * first elements of the given arrays, the second of which contains the
+	     * second elements of the given arrays, and so on.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to process.
+	     * @returns {Array} Returns the new array of grouped elements.
+	     * @example
+	     *
+	     * _.zip(['a', 'b'], [1, 2], [true, false]);
+	     * // => [['a', 1, true], ['b', 2, false]]
+	     */
+	    var zip = baseRest(unzip);
+
+	    /**
+	     * This method is like `_.fromPairs` except that it accepts two arrays,
+	     * one of property identifiers and one of corresponding values.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.4.0
+	     * @category Array
+	     * @param {Array} [props=[]] The property identifiers.
+	     * @param {Array} [values=[]] The property values.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * _.zipObject(['a', 'b'], [1, 2]);
+	     * // => { 'a': 1, 'b': 2 }
+	     */
+	    function zipObject(props, values) {
+	      return baseZipObject(props || [], values || [], assignValue);
+	    }
+
+	    /**
+	     * This method is like `_.zipObject` except that it supports property paths.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.1.0
+	     * @category Array
+	     * @param {Array} [props=[]] The property identifiers.
+	     * @param {Array} [values=[]] The property values.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * _.zipObjectDeep(['a.b[0].c', 'a.b[1].d'], [1, 2]);
+	     * // => { 'a': { 'b': [{ 'c': 1 }, { 'd': 2 }] } }
+	     */
+	    function zipObjectDeep(props, values) {
+	      return baseZipObject(props || [], values || [], baseSet);
+	    }
+
+	    /**
+	     * This method is like `_.zip` except that it accepts `iteratee` to specify
+	     * how grouped values should be combined. The iteratee is invoked with the
+	     * elements of each group: (...group).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.8.0
+	     * @category Array
+	     * @param {...Array} [arrays] The arrays to process.
+	     * @param {Function} [iteratee=_.identity] The function to combine
+	     *  grouped values.
+	     * @returns {Array} Returns the new array of grouped elements.
+	     * @example
+	     *
+	     * _.zipWith([1, 2], [10, 20], [100, 200], function(a, b, c) {
+	     *   return a + b + c;
+	     * });
+	     * // => [111, 222]
+	     */
+	    var zipWith = baseRest(function(arrays) {
+	      var length = arrays.length,
+	          iteratee = length > 1 ? arrays[length - 1] : undefined;
+
+	      iteratee = typeof iteratee == 'function' ? (arrays.pop(), iteratee) : undefined;
+	      return unzipWith(arrays, iteratee);
+	    });
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates a `lodash` wrapper instance that wraps `value` with explicit method
+	     * chain sequences enabled. The result of such sequences must be unwrapped
+	     * with `_#value`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.3.0
+	     * @category Seq
+	     * @param {*} value The value to wrap.
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'age': 36 },
+	     *   { 'user': 'fred',    'age': 40 },
+	     *   { 'user': 'pebbles', 'age': 1 }
+	     * ];
+	     *
+	     * var youngest = _
+	     *   .chain(users)
+	     *   .sortBy('age')
+	     *   .map(function(o) {
+	     *     return o.user + ' is ' + o.age;
+	     *   })
+	     *   .head()
+	     *   .value();
+	     * // => 'pebbles is 1'
+	     */
+	    function chain(value) {
+	      var result = lodash(value);
+	      result.__chain__ = true;
+	      return result;
+	    }
+
+	    /**
+	     * This method invokes `interceptor` and returns `value`. The interceptor
+	     * is invoked with one argument; (value). The purpose of this method is to
+	     * "tap into" a method chain sequence in order to modify intermediate results.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Seq
+	     * @param {*} value The value to provide to `interceptor`.
+	     * @param {Function} interceptor The function to invoke.
+	     * @returns {*} Returns `value`.
+	     * @example
+	     *
+	     * _([1, 2, 3])
+	     *  .tap(function(array) {
+	     *    // Mutate input array.
+	     *    array.pop();
+	     *  })
+	     *  .reverse()
+	     *  .value();
+	     * // => [2, 1]
+	     */
+	    function tap(value, interceptor) {
+	      interceptor(value);
+	      return value;
+	    }
+
+	    /**
+	     * This method is like `_.tap` except that it returns the result of `interceptor`.
+	     * The purpose of this method is to "pass thru" values replacing intermediate
+	     * results in a method chain sequence.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Seq
+	     * @param {*} value The value to provide to `interceptor`.
+	     * @param {Function} interceptor The function to invoke.
+	     * @returns {*} Returns the result of `interceptor`.
+	     * @example
+	     *
+	     * _('  abc  ')
+	     *  .chain()
+	     *  .trim()
+	     *  .thru(function(value) {
+	     *    return [value];
+	     *  })
+	     *  .value();
+	     * // => ['abc']
+	     */
+	    function thru(value, interceptor) {
+	      return interceptor(value);
+	    }
+
+	    /**
+	     * This method is the wrapper version of `_.at`.
+	     *
+	     * @name at
+	     * @memberOf _
+	     * @since 1.0.0
+	     * @category Seq
+	     * @param {...(string|string[])} [paths] The property paths to pick.
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 3 } }, 4] };
+	     *
+	     * _(object).at(['a[0].b.c', 'a[1]']).value();
+	     * // => [3, 4]
+	     */
+	    var wrapperAt = flatRest(function(paths) {
+	      var length = paths.length,
+	          start = length ? paths[0] : 0,
+	          value = this.__wrapped__,
+	          interceptor = function(object) { return baseAt(object, paths); };
+
+	      if (length > 1 || this.__actions__.length ||
+	          !(value instanceof LazyWrapper) || !isIndex(start)) {
+	        return this.thru(interceptor);
+	      }
+	      value = value.slice(start, +start + (length ? 1 : 0));
+	      value.__actions__.push({
+	        'func': thru,
+	        'args': [interceptor],
+	        'thisArg': undefined
+	      });
+	      return new LodashWrapper(value, this.__chain__).thru(function(array) {
+	        if (length && !array.length) {
+	          array.push(undefined);
+	        }
+	        return array;
+	      });
+	    });
+
+	    /**
+	     * Creates a `lodash` wrapper instance with explicit method chain sequences enabled.
+	     *
+	     * @name chain
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Seq
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'age': 36 },
+	     *   { 'user': 'fred',   'age': 40 }
+	     * ];
+	     *
+	     * // A sequence without explicit chaining.
+	     * _(users).head();
+	     * // => { 'user': 'barney', 'age': 36 }
+	     *
+	     * // A sequence with explicit chaining.
+	     * _(users)
+	     *   .chain()
+	     *   .head()
+	     *   .pick('user')
+	     *   .value();
+	     * // => { 'user': 'barney' }
+	     */
+	    function wrapperChain() {
+	      return chain(this);
+	    }
+
+	    /**
+	     * Executes the chain sequence and returns the wrapped result.
+	     *
+	     * @name commit
+	     * @memberOf _
+	     * @since 3.2.0
+	     * @category Seq
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * var array = [1, 2];
+	     * var wrapped = _(array).push(3);
+	     *
+	     * console.log(array);
+	     * // => [1, 2]
+	     *
+	     * wrapped = wrapped.commit();
+	     * console.log(array);
+	     * // => [1, 2, 3]
+	     *
+	     * wrapped.last();
+	     * // => 3
+	     *
+	     * console.log(array);
+	     * // => [1, 2, 3]
+	     */
+	    function wrapperCommit() {
+	      return new LodashWrapper(this.value(), this.__chain__);
+	    }
+
+	    /**
+	     * Gets the next value on a wrapped object following the
+	     * [iterator protocol](https://mdn.io/iteration_protocols#iterator).
+	     *
+	     * @name next
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Seq
+	     * @returns {Object} Returns the next iterator value.
+	     * @example
+	     *
+	     * var wrapped = _([1, 2]);
+	     *
+	     * wrapped.next();
+	     * // => { 'done': false, 'value': 1 }
+	     *
+	     * wrapped.next();
+	     * // => { 'done': false, 'value': 2 }
+	     *
+	     * wrapped.next();
+	     * // => { 'done': true, 'value': undefined }
+	     */
+	    function wrapperNext() {
+	      if (this.__values__ === undefined) {
+	        this.__values__ = toArray(this.value());
+	      }
+	      var done = this.__index__ >= this.__values__.length,
+	          value = done ? undefined : this.__values__[this.__index__++];
+
+	      return { 'done': done, 'value': value };
+	    }
+
+	    /**
+	     * Enables the wrapper to be iterable.
+	     *
+	     * @name Symbol.iterator
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Seq
+	     * @returns {Object} Returns the wrapper object.
+	     * @example
+	     *
+	     * var wrapped = _([1, 2]);
+	     *
+	     * wrapped[Symbol.iterator]() === wrapped;
+	     * // => true
+	     *
+	     * Array.from(wrapped);
+	     * // => [1, 2]
+	     */
+	    function wrapperToIterator() {
+	      return this;
+	    }
+
+	    /**
+	     * Creates a clone of the chain sequence planting `value` as the wrapped value.
+	     *
+	     * @name plant
+	     * @memberOf _
+	     * @since 3.2.0
+	     * @category Seq
+	     * @param {*} value The value to plant.
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * var wrapped = _([1, 2]).map(square);
+	     * var other = wrapped.plant([3, 4]);
+	     *
+	     * other.value();
+	     * // => [9, 16]
+	     *
+	     * wrapped.value();
+	     * // => [1, 4]
+	     */
+	    function wrapperPlant(value) {
+	      var result,
+	          parent = this;
+
+	      while (parent instanceof baseLodash) {
+	        var clone = wrapperClone(parent);
+	        clone.__index__ = 0;
+	        clone.__values__ = undefined;
+	        if (result) {
+	          previous.__wrapped__ = clone;
+	        } else {
+	          result = clone;
+	        }
+	        var previous = clone;
+	        parent = parent.__wrapped__;
+	      }
+	      previous.__wrapped__ = value;
+	      return result;
+	    }
+
+	    /**
+	     * This method is the wrapper version of `_.reverse`.
+	     *
+	     * **Note:** This method mutates the wrapped array.
+	     *
+	     * @name reverse
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Seq
+	     * @returns {Object} Returns the new `lodash` wrapper instance.
+	     * @example
+	     *
+	     * var array = [1, 2, 3];
+	     *
+	     * _(array).reverse().value()
+	     * // => [3, 2, 1]
+	     *
+	     * console.log(array);
+	     * // => [3, 2, 1]
+	     */
+	    function wrapperReverse() {
+	      var value = this.__wrapped__;
+	      if (value instanceof LazyWrapper) {
+	        var wrapped = value;
+	        if (this.__actions__.length) {
+	          wrapped = new LazyWrapper(this);
+	        }
+	        wrapped = wrapped.reverse();
+	        wrapped.__actions__.push({
+	          'func': thru,
+	          'args': [reverse],
+	          'thisArg': undefined
+	        });
+	        return new LodashWrapper(wrapped, this.__chain__);
+	      }
+	      return this.thru(reverse);
+	    }
+
+	    /**
+	     * Executes the chain sequence to resolve the unwrapped value.
+	     *
+	     * @name value
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @alias toJSON, valueOf
+	     * @category Seq
+	     * @returns {*} Returns the resolved unwrapped value.
+	     * @example
+	     *
+	     * _([1, 2, 3]).value();
+	     * // => [1, 2, 3]
+	     */
+	    function wrapperValue() {
+	      return baseWrapperValue(this.__wrapped__, this.__actions__);
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Creates an object composed of keys generated from the results of running
+	     * each element of `collection` thru `iteratee`. The corresponding value of
+	     * each key is the number of times the key was returned by `iteratee`. The
+	     * iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.5.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee to transform keys.
+	     * @returns {Object} Returns the composed aggregate object.
+	     * @example
+	     *
+	     * _.countBy([6.1, 4.2, 6.3], Math.floor);
+	     * // => { '4': 1, '6': 2 }
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.countBy(['one', 'two', 'three'], 'length');
+	     * // => { '3': 2, '5': 1 }
+	     */
+	    var countBy = createAggregator(function(result, value, key) {
+	      if (hasOwnProperty.call(result, key)) {
+	        ++result[key];
+	      } else {
+	        baseAssignValue(result, key, 1);
+	      }
+	    });
+
+	    /**
+	     * Checks if `predicate` returns truthy for **all** elements of `collection`.
+	     * Iteration is stopped once `predicate` returns falsey. The predicate is
+	     * invoked with three arguments: (value, index|key, collection).
+	     *
+	     * **Note:** This method returns `true` for
+	     * [empty collections](https://en.wikipedia.org/wiki/Empty_set) because
+	     * [everything is true](https://en.wikipedia.org/wiki/Vacuous_truth) of
+	     * elements of empty collections.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {boolean} Returns `true` if all elements pass the predicate check,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.every([true, 1, null, 'yes'], Boolean);
+	     * // => false
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'age': 36, 'active': false },
+	     *   { 'user': 'fred',   'age': 40, 'active': false }
+	     * ];
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.every(users, { 'user': 'barney', 'active': false });
+	     * // => false
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.every(users, ['active', false]);
+	     * // => true
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.every(users, 'active');
+	     * // => false
+	     */
+	    function every(collection, predicate, guard) {
+	      var func = isArray(collection) ? arrayEvery : baseEvery;
+	      if (guard && isIterateeCall(collection, predicate, guard)) {
+	        predicate = undefined;
+	      }
+	      return func(collection, getIteratee(predicate, 3));
+	    }
+
+	    /**
+	     * Iterates over elements of `collection`, returning an array of all elements
+	     * `predicate` returns truthy for. The predicate is invoked with three
+	     * arguments: (value, index|key, collection).
+	     *
+	     * **Note:** Unlike `_.remove`, this method returns a new array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new filtered array.
+	     * @see _.reject
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'age': 36, 'active': true },
+	     *   { 'user': 'fred',   'age': 40, 'active': false }
+	     * ];
+	     *
+	     * _.filter(users, function(o) { return !o.active; });
+	     * // => objects for ['fred']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.filter(users, { 'age': 36, 'active': true });
+	     * // => objects for ['barney']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.filter(users, ['active', false]);
+	     * // => objects for ['fred']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.filter(users, 'active');
+	     * // => objects for ['barney']
+	     */
+	    function filter(collection, predicate) {
+	      var func = isArray(collection) ? arrayFilter : baseFilter;
+	      return func(collection, getIteratee(predicate, 3));
+	    }
+
+	    /**
+	     * Iterates over elements of `collection`, returning the first element
+	     * `predicate` returns truthy for. The predicate is invoked with three
+	     * arguments: (value, index|key, collection).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param {number} [fromIndex=0] The index to search from.
+	     * @returns {*} Returns the matched element, else `undefined`.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'age': 36, 'active': true },
+	     *   { 'user': 'fred',    'age': 40, 'active': false },
+	     *   { 'user': 'pebbles', 'age': 1,  'active': true }
+	     * ];
+	     *
+	     * _.find(users, function(o) { return o.age < 40; });
+	     * // => object for 'barney'
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.find(users, { 'age': 1, 'active': true });
+	     * // => object for 'pebbles'
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.find(users, ['active', false]);
+	     * // => object for 'fred'
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.find(users, 'active');
+	     * // => object for 'barney'
+	     */
+	    var find = createFind(findIndex);
+
+	    /**
+	     * This method is like `_.find` except that it iterates over elements of
+	     * `collection` from right to left.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param {number} [fromIndex=collection.length-1] The index to search from.
+	     * @returns {*} Returns the matched element, else `undefined`.
+	     * @example
+	     *
+	     * _.findLast([1, 2, 3, 4], function(n) {
+	     *   return n % 2 == 1;
+	     * });
+	     * // => 3
+	     */
+	    var findLast = createFind(findLastIndex);
+
+	    /**
+	     * Creates a flattened array of values by running each element in `collection`
+	     * thru `iteratee` and flattening the mapped results. The iteratee is invoked
+	     * with three arguments: (value, index|key, collection).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * function duplicate(n) {
+	     *   return [n, n];
+	     * }
+	     *
+	     * _.flatMap([1, 2], duplicate);
+	     * // => [1, 1, 2, 2]
+	     */
+	    function flatMap(collection, iteratee) {
+	      return baseFlatten(map(collection, iteratee), 1);
+	    }
+
+	    /**
+	     * This method is like `_.flatMap` except that it recursively flattens the
+	     * mapped results.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.7.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * function duplicate(n) {
+	     *   return [[[n, n]]];
+	     * }
+	     *
+	     * _.flatMapDeep([1, 2], duplicate);
+	     * // => [1, 1, 2, 2]
+	     */
+	    function flatMapDeep(collection, iteratee) {
+	      return baseFlatten(map(collection, iteratee), INFINITY);
+	    }
+
+	    /**
+	     * This method is like `_.flatMap` except that it recursively flattens the
+	     * mapped results up to `depth` times.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.7.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @param {number} [depth=1] The maximum recursion depth.
+	     * @returns {Array} Returns the new flattened array.
+	     * @example
+	     *
+	     * function duplicate(n) {
+	     *   return [[[n, n]]];
+	     * }
+	     *
+	     * _.flatMapDepth([1, 2], duplicate, 2);
+	     * // => [[1, 1], [2, 2]]
+	     */
+	    function flatMapDepth(collection, iteratee, depth) {
+	      depth = depth === undefined ? 1 : toInteger(depth);
+	      return baseFlatten(map(collection, iteratee), depth);
+	    }
+
+	    /**
+	     * Iterates over elements of `collection` and invokes `iteratee` for each element.
+	     * The iteratee is invoked with three arguments: (value, index|key, collection).
+	     * Iteratee functions may exit iteration early by explicitly returning `false`.
+	     *
+	     * **Note:** As with other "Collections" methods, objects with a "length"
+	     * property are iterated like arrays. To avoid this behavior use `_.forIn`
+	     * or `_.forOwn` for object iteration.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @alias each
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array|Object} Returns `collection`.
+	     * @see _.forEachRight
+	     * @example
+	     *
+	     * _.forEach([1, 2], function(value) {
+	     *   console.log(value);
+	     * });
+	     * // => Logs `1` then `2`.
+	     *
+	     * _.forEach({ 'a': 1, 'b': 2 }, function(value, key) {
+	     *   console.log(key);
+	     * });
+	     * // => Logs 'a' then 'b' (iteration order is not guaranteed).
+	     */
+	    function forEach(collection, iteratee) {
+	      var func = isArray(collection) ? arrayEach : baseEach;
+	      return func(collection, getIteratee(iteratee, 3));
+	    }
+
+	    /**
+	     * This method is like `_.forEach` except that it iterates over elements of
+	     * `collection` from right to left.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @alias eachRight
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array|Object} Returns `collection`.
+	     * @see _.forEach
+	     * @example
+	     *
+	     * _.forEachRight([1, 2], function(value) {
+	     *   console.log(value);
+	     * });
+	     * // => Logs `2` then `1`.
+	     */
+	    function forEachRight(collection, iteratee) {
+	      var func = isArray(collection) ? arrayEachRight : baseEachRight;
+	      return func(collection, getIteratee(iteratee, 3));
+	    }
+
+	    /**
+	     * Creates an object composed of keys generated from the results of running
+	     * each element of `collection` thru `iteratee`. The order of grouped values
+	     * is determined by the order they occur in `collection`. The corresponding
+	     * value of each key is an array of elements responsible for generating the
+	     * key. The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee to transform keys.
+	     * @returns {Object} Returns the composed aggregate object.
+	     * @example
+	     *
+	     * _.groupBy([6.1, 4.2, 6.3], Math.floor);
+	     * // => { '4': [4.2], '6': [6.1, 6.3] }
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.groupBy(['one', 'two', 'three'], 'length');
+	     * // => { '3': ['one', 'two'], '5': ['three'] }
+	     */
+	    var groupBy = createAggregator(function(result, value, key) {
+	      if (hasOwnProperty.call(result, key)) {
+	        result[key].push(value);
+	      } else {
+	        baseAssignValue(result, key, [value]);
+	      }
+	    });
+
+	    /**
+	     * Checks if `value` is in `collection`. If `collection` is a string, it's
+	     * checked for a substring of `value`, otherwise
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * is used for equality comparisons. If `fromIndex` is negative, it's used as
+	     * the offset from the end of `collection`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object|string} collection The collection to inspect.
+	     * @param {*} value The value to search for.
+	     * @param {number} [fromIndex=0] The index to search from.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.reduce`.
+	     * @returns {boolean} Returns `true` if `value` is found, else `false`.
+	     * @example
+	     *
+	     * _.includes([1, 2, 3], 1);
+	     * // => true
+	     *
+	     * _.includes([1, 2, 3], 1, 2);
+	     * // => false
+	     *
+	     * _.includes({ 'a': 1, 'b': 2 }, 1);
+	     * // => true
+	     *
+	     * _.includes('abcd', 'bc');
+	     * // => true
+	     */
+	    function includes(collection, value, fromIndex, guard) {
+	      collection = isArrayLike(collection) ? collection : values(collection);
+	      fromIndex = (fromIndex && !guard) ? toInteger(fromIndex) : 0;
+
+	      var length = collection.length;
+	      if (fromIndex < 0) {
+	        fromIndex = nativeMax(length + fromIndex, 0);
+	      }
+	      return isString(collection)
+	        ? (fromIndex <= length && collection.indexOf(value, fromIndex) > -1)
+	        : (!!length && baseIndexOf(collection, value, fromIndex) > -1);
+	    }
+
+	    /**
+	     * Invokes the method at `path` of each element in `collection`, returning
+	     * an array of the results of each invoked method. Any additional arguments
+	     * are provided to each invoked method. If `path` is a function, it's invoked
+	     * for, and `this` bound to, each element in `collection`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Array|Function|string} path The path of the method to invoke or
+	     *  the function invoked per iteration.
+	     * @param {...*} [args] The arguments to invoke each method with.
+	     * @returns {Array} Returns the array of results.
+	     * @example
+	     *
+	     * _.invokeMap([[5, 1, 7], [3, 2, 1]], 'sort');
+	     * // => [[1, 5, 7], [1, 2, 3]]
+	     *
+	     * _.invokeMap([123, 456], String.prototype.split, '');
+	     * // => [['1', '2', '3'], ['4', '5', '6']]
+	     */
+	    var invokeMap = baseRest(function(collection, path, args) {
+	      var index = -1,
+	          isFunc = typeof path == 'function',
+	          result = isArrayLike(collection) ? Array(collection.length) : [];
+
+	      baseEach(collection, function(value) {
+	        result[++index] = isFunc ? apply(path, value, args) : baseInvoke(value, path, args);
+	      });
+	      return result;
+	    });
+
+	    /**
+	     * Creates an object composed of keys generated from the results of running
+	     * each element of `collection` thru `iteratee`. The corresponding value of
+	     * each key is the last element responsible for generating the key. The
+	     * iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee to transform keys.
+	     * @returns {Object} Returns the composed aggregate object.
+	     * @example
+	     *
+	     * var array = [
+	     *   { 'dir': 'left', 'code': 97 },
+	     *   { 'dir': 'right', 'code': 100 }
+	     * ];
+	     *
+	     * _.keyBy(array, function(o) {
+	     *   return String.fromCharCode(o.code);
+	     * });
+	     * // => { 'a': { 'dir': 'left', 'code': 97 }, 'd': { 'dir': 'right', 'code': 100 } }
+	     *
+	     * _.keyBy(array, 'dir');
+	     * // => { 'left': { 'dir': 'left', 'code': 97 }, 'right': { 'dir': 'right', 'code': 100 } }
+	     */
+	    var keyBy = createAggregator(function(result, value, key) {
+	      baseAssignValue(result, key, value);
+	    });
+
+	    /**
+	     * Creates an array of values by running each element in `collection` thru
+	     * `iteratee`. The iteratee is invoked with three arguments:
+	     * (value, index|key, collection).
+	     *
+	     * Many lodash methods are guarded to work as iteratees for methods like
+	     * `_.every`, `_.filter`, `_.map`, `_.mapValues`, `_.reject`, and `_.some`.
+	     *
+	     * The guarded methods are:
+	     * `ary`, `chunk`, `curry`, `curryRight`, `drop`, `dropRight`, `every`,
+	     * `fill`, `invert`, `parseInt`, `random`, `range`, `rangeRight`, `repeat`,
+	     * `sampleSize`, `slice`, `some`, `sortBy`, `split`, `take`, `takeRight`,
+	     * `template`, `trim`, `trimEnd`, `trimStart`, and `words`
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new mapped array.
+	     * @example
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * _.map([4, 8], square);
+	     * // => [16, 64]
+	     *
+	     * _.map({ 'a': 4, 'b': 8 }, square);
+	     * // => [16, 64] (iteration order is not guaranteed)
+	     *
+	     * var users = [
+	     *   { 'user': 'barney' },
+	     *   { 'user': 'fred' }
+	     * ];
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.map(users, 'user');
+	     * // => ['barney', 'fred']
+	     */
+	    function map(collection, iteratee) {
+	      var func = isArray(collection) ? arrayMap : baseMap;
+	      return func(collection, getIteratee(iteratee, 3));
+	    }
+
+	    /**
+	     * This method is like `_.sortBy` except that it allows specifying the sort
+	     * orders of the iteratees to sort by. If `orders` is unspecified, all values
+	     * are sorted in ascending order. Otherwise, specify an order of "desc" for
+	     * descending or "asc" for ascending sort order of corresponding values.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Array[]|Function[]|Object[]|string[]} [iteratees=[_.identity]]
+	     *  The iteratees to sort by.
+	     * @param {string[]} [orders] The sort orders of `iteratees`.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.reduce`.
+	     * @returns {Array} Returns the new sorted array.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'fred',   'age': 48 },
+	     *   { 'user': 'barney', 'age': 34 },
+	     *   { 'user': 'fred',   'age': 40 },
+	     *   { 'user': 'barney', 'age': 36 }
+	     * ];
+	     *
+	     * // Sort by `user` in ascending order and by `age` in descending order.
+	     * _.orderBy(users, ['user', 'age'], ['asc', 'desc']);
+	     * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 40]]
+	     */
+	    function orderBy(collection, iteratees, orders, guard) {
+	      if (collection == null) {
+	        return [];
+	      }
+	      if (!isArray(iteratees)) {
+	        iteratees = iteratees == null ? [] : [iteratees];
+	      }
+	      orders = guard ? undefined : orders;
+	      if (!isArray(orders)) {
+	        orders = orders == null ? [] : [orders];
+	      }
+	      return baseOrderBy(collection, iteratees, orders);
+	    }
+
+	    /**
+	     * Creates an array of elements split into two groups, the first of which
+	     * contains elements `predicate` returns truthy for, the second of which
+	     * contains elements `predicate` returns falsey for. The predicate is
+	     * invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the array of grouped elements.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney',  'age': 36, 'active': false },
+	     *   { 'user': 'fred',    'age': 40, 'active': true },
+	     *   { 'user': 'pebbles', 'age': 1,  'active': false }
+	     * ];
+	     *
+	     * _.partition(users, function(o) { return o.active; });
+	     * // => objects for [['fred'], ['barney', 'pebbles']]
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.partition(users, { 'age': 1, 'active': false });
+	     * // => objects for [['pebbles'], ['barney', 'fred']]
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.partition(users, ['active', false]);
+	     * // => objects for [['barney', 'pebbles'], ['fred']]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.partition(users, 'active');
+	     * // => objects for [['fred'], ['barney', 'pebbles']]
+	     */
+	    var partition = createAggregator(function(result, value, key) {
+	      result[key ? 0 : 1].push(value);
+	    }, function() { return [[], []]; });
+
+	    /**
+	     * Reduces `collection` to a value which is the accumulated result of running
+	     * each element in `collection` thru `iteratee`, where each successive
+	     * invocation is supplied the return value of the previous. If `accumulator`
+	     * is not given, the first element of `collection` is used as the initial
+	     * value. The iteratee is invoked with four arguments:
+	     * (accumulator, value, index|key, collection).
+	     *
+	     * Many lodash methods are guarded to work as iteratees for methods like
+	     * `_.reduce`, `_.reduceRight`, and `_.transform`.
+	     *
+	     * The guarded methods are:
+	     * `assign`, `defaults`, `defaultsDeep`, `includes`, `merge`, `orderBy`,
+	     * and `sortBy`
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @param {*} [accumulator] The initial value.
+	     * @returns {*} Returns the accumulated value.
+	     * @see _.reduceRight
+	     * @example
+	     *
+	     * _.reduce([1, 2], function(sum, n) {
+	     *   return sum + n;
+	     * }, 0);
+	     * // => 3
+	     *
+	     * _.reduce({ 'a': 1, 'b': 2, 'c': 1 }, function(result, value, key) {
+	     *   (result[value] || (result[value] = [])).push(key);
+	     *   return result;
+	     * }, {});
+	     * // => { '1': ['a', 'c'], '2': ['b'] } (iteration order is not guaranteed)
+	     */
+	    function reduce(collection, iteratee, accumulator) {
+	      var func = isArray(collection) ? arrayReduce : baseReduce,
+	          initAccum = arguments.length < 3;
+
+	      return func(collection, getIteratee(iteratee, 4), accumulator, initAccum, baseEach);
+	    }
+
+	    /**
+	     * This method is like `_.reduce` except that it iterates over elements of
+	     * `collection` from right to left.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @param {*} [accumulator] The initial value.
+	     * @returns {*} Returns the accumulated value.
+	     * @see _.reduce
+	     * @example
+	     *
+	     * var array = [[0, 1], [2, 3], [4, 5]];
+	     *
+	     * _.reduceRight(array, function(flattened, other) {
+	     *   return flattened.concat(other);
+	     * }, []);
+	     * // => [4, 5, 2, 3, 0, 1]
+	     */
+	    function reduceRight(collection, iteratee, accumulator) {
+	      var func = isArray(collection) ? arrayReduceRight : baseReduce,
+	          initAccum = arguments.length < 3;
+
+	      return func(collection, getIteratee(iteratee, 4), accumulator, initAccum, baseEachRight);
+	    }
+
+	    /**
+	     * The opposite of `_.filter`; this method returns the elements of `collection`
+	     * that `predicate` does **not** return truthy for.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the new filtered array.
+	     * @see _.filter
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'age': 36, 'active': false },
+	     *   { 'user': 'fred',   'age': 40, 'active': true }
+	     * ];
+	     *
+	     * _.reject(users, function(o) { return !o.active; });
+	     * // => objects for ['fred']
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.reject(users, { 'age': 40, 'active': true });
+	     * // => objects for ['barney']
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.reject(users, ['active', false]);
+	     * // => objects for ['fred']
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.reject(users, 'active');
+	     * // => objects for ['barney']
+	     */
+	    function reject(collection, predicate) {
+	      var func = isArray(collection) ? arrayFilter : baseFilter;
+	      return func(collection, negate(getIteratee(predicate, 3)));
+	    }
+
+	    /**
+	     * Gets a random element from `collection`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to sample.
+	     * @returns {*} Returns the random element.
+	     * @example
+	     *
+	     * _.sample([1, 2, 3, 4]);
+	     * // => 2
+	     */
+	    function sample(collection) {
+	      var func = isArray(collection) ? arraySample : baseSample;
+	      return func(collection);
+	    }
+
+	    /**
+	     * Gets `n` random elements at unique keys from `collection` up to the
+	     * size of `collection`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to sample.
+	     * @param {number} [n=1] The number of elements to sample.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the random elements.
+	     * @example
+	     *
+	     * _.sampleSize([1, 2, 3], 2);
+	     * // => [3, 1]
+	     *
+	     * _.sampleSize([1, 2, 3], 4);
+	     * // => [2, 3, 1]
+	     */
+	    function sampleSize(collection, n, guard) {
+	      if ((guard ? isIterateeCall(collection, n, guard) : n === undefined)) {
+	        n = 1;
+	      } else {
+	        n = toInteger(n);
+	      }
+	      var func = isArray(collection) ? arraySampleSize : baseSampleSize;
+	      return func(collection, n);
+	    }
+
+	    /**
+	     * Creates an array of shuffled values, using a version of the
+	     * [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher-Yates_shuffle).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to shuffle.
+	     * @returns {Array} Returns the new shuffled array.
+	     * @example
+	     *
+	     * _.shuffle([1, 2, 3, 4]);
+	     * // => [4, 1, 3, 2]
+	     */
+	    function shuffle(collection) {
+	      var func = isArray(collection) ? arrayShuffle : baseShuffle;
+	      return func(collection);
+	    }
+
+	    /**
+	     * Gets the size of `collection` by returning its length for array-like
+	     * values or the number of own enumerable string keyed properties for objects.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object|string} collection The collection to inspect.
+	     * @returns {number} Returns the collection size.
+	     * @example
+	     *
+	     * _.size([1, 2, 3]);
+	     * // => 3
+	     *
+	     * _.size({ 'a': 1, 'b': 2 });
+	     * // => 2
+	     *
+	     * _.size('pebbles');
+	     * // => 7
+	     */
+	    function size(collection) {
+	      if (collection == null) {
+	        return 0;
+	      }
+	      if (isArrayLike(collection)) {
+	        return isString(collection) ? stringSize(collection) : collection.length;
+	      }
+	      var tag = getTag(collection);
+	      if (tag == mapTag || tag == setTag) {
+	        return collection.size;
+	      }
+	      return baseKeys(collection).length;
+	    }
+
+	    /**
+	     * Checks if `predicate` returns truthy for **any** element of `collection`.
+	     * Iteration is stopped once `predicate` returns truthy. The predicate is
+	     * invoked with three arguments: (value, index|key, collection).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {boolean} Returns `true` if any element passes the predicate check,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.some([null, 0, 'yes', false], Boolean);
+	     * // => true
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'active': true },
+	     *   { 'user': 'fred',   'active': false }
+	     * ];
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.some(users, { 'user': 'barney', 'active': false });
+	     * // => false
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.some(users, ['active', false]);
+	     * // => true
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.some(users, 'active');
+	     * // => true
+	     */
+	    function some(collection, predicate, guard) {
+	      var func = isArray(collection) ? arraySome : baseSome;
+	      if (guard && isIterateeCall(collection, predicate, guard)) {
+	        predicate = undefined;
+	      }
+	      return func(collection, getIteratee(predicate, 3));
+	    }
+
+	    /**
+	     * Creates an array of elements, sorted in ascending order by the results of
+	     * running each element in a collection thru each iteratee. This method
+	     * performs a stable sort, that is, it preserves the original sort order of
+	     * equal elements. The iteratees are invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Collection
+	     * @param {Array|Object} collection The collection to iterate over.
+	     * @param {...(Function|Function[])} [iteratees=[_.identity]]
+	     *  The iteratees to sort by.
+	     * @returns {Array} Returns the new sorted array.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'fred',   'age': 48 },
+	     *   { 'user': 'barney', 'age': 36 },
+	     *   { 'user': 'fred',   'age': 40 },
+	     *   { 'user': 'barney', 'age': 34 }
+	     * ];
+	     *
+	     * _.sortBy(users, [function(o) { return o.user; }]);
+	     * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 40]]
+	     *
+	     * _.sortBy(users, ['user', 'age']);
+	     * // => objects for [['barney', 34], ['barney', 36], ['fred', 40], ['fred', 48]]
+	     */
+	    var sortBy = baseRest(function(collection, iteratees) {
+	      if (collection == null) {
+	        return [];
+	      }
+	      var length = iteratees.length;
+	      if (length > 1 && isIterateeCall(collection, iteratees[0], iteratees[1])) {
+	        iteratees = [];
+	      } else if (length > 2 && isIterateeCall(iteratees[0], iteratees[1], iteratees[2])) {
+	        iteratees = [iteratees[0]];
+	      }
+	      return baseOrderBy(collection, baseFlatten(iteratees, 1), []);
+	    });
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Gets the timestamp of the number of milliseconds that have elapsed since
+	     * the Unix epoch (1 January 1970 00:00:00 UTC).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.4.0
+	     * @category Date
+	     * @returns {number} Returns the timestamp.
+	     * @example
+	     *
+	     * _.defer(function(stamp) {
+	     *   console.log(_.now() - stamp);
+	     * }, _.now());
+	     * // => Logs the number of milliseconds it took for the deferred invocation.
+	     */
+	    var now = ctxNow || function() {
+	      return root.Date.now();
+	    };
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * The opposite of `_.before`; this method creates a function that invokes
+	     * `func` once it's called `n` or more times.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {number} n The number of calls before `func` is invoked.
+	     * @param {Function} func The function to restrict.
+	     * @returns {Function} Returns the new restricted function.
+	     * @example
+	     *
+	     * var saves = ['profile', 'settings'];
+	     *
+	     * var done = _.after(saves.length, function() {
+	     *   console.log('done saving!');
+	     * });
+	     *
+	     * _.forEach(saves, function(type) {
+	     *   asyncSave({ 'type': type, 'complete': done });
+	     * });
+	     * // => Logs 'done saving!' after the two async saves have completed.
+	     */
+	    function after(n, func) {
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      n = toInteger(n);
+	      return function() {
+	        if (--n < 1) {
+	          return func.apply(this, arguments);
+	        }
+	      };
+	    }
+
+	    /**
+	     * Creates a function that invokes `func`, with up to `n` arguments,
+	     * ignoring any additional arguments.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Function
+	     * @param {Function} func The function to cap arguments for.
+	     * @param {number} [n=func.length] The arity cap.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Function} Returns the new capped function.
+	     * @example
+	     *
+	     * _.map(['6', '8', '10'], _.ary(parseInt, 1));
+	     * // => [6, 8, 10]
+	     */
+	    function ary(func, n, guard) {
+	      n = guard ? undefined : n;
+	      n = (func && n == null) ? func.length : n;
+	      return createWrap(func, WRAP_ARY_FLAG, undefined, undefined, undefined, undefined, n);
+	    }
+
+	    /**
+	     * Creates a function that invokes `func`, with the `this` binding and arguments
+	     * of the created function, while it's called less than `n` times. Subsequent
+	     * calls to the created function return the result of the last `func` invocation.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Function
+	     * @param {number} n The number of calls at which `func` is no longer invoked.
+	     * @param {Function} func The function to restrict.
+	     * @returns {Function} Returns the new restricted function.
+	     * @example
+	     *
+	     * jQuery(element).on('click', _.before(5, addContactToList));
+	     * // => Allows adding up to 4 contacts to the list.
+	     */
+	    function before(n, func) {
+	      var result;
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      n = toInteger(n);
+	      return function() {
+	        if (--n > 0) {
+	          result = func.apply(this, arguments);
+	        }
+	        if (n <= 1) {
+	          func = undefined;
+	        }
+	        return result;
+	      };
+	    }
+
+	    /**
+	     * Creates a function that invokes `func` with the `this` binding of `thisArg`
+	     * and `partials` prepended to the arguments it receives.
+	     *
+	     * The `_.bind.placeholder` value, which defaults to `_` in monolithic builds,
+	     * may be used as a placeholder for partially applied arguments.
+	     *
+	     * **Note:** Unlike native `Function#bind`, this method doesn't set the "length"
+	     * property of bound functions.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to bind.
+	     * @param {*} thisArg The `this` binding of `func`.
+	     * @param {...*} [partials] The arguments to be partially applied.
+	     * @returns {Function} Returns the new bound function.
+	     * @example
+	     *
+	     * function greet(greeting, punctuation) {
+	     *   return greeting + ' ' + this.user + punctuation;
+	     * }
+	     *
+	     * var object = { 'user': 'fred' };
+	     *
+	     * var bound = _.bind(greet, object, 'hi');
+	     * bound('!');
+	     * // => 'hi fred!'
+	     *
+	     * // Bound with placeholders.
+	     * var bound = _.bind(greet, object, _, '!');
+	     * bound('hi');
+	     * // => 'hi fred!'
+	     */
+	    var bind = baseRest(function(func, thisArg, partials) {
+	      var bitmask = WRAP_BIND_FLAG;
+	      if (partials.length) {
+	        var holders = replaceHolders(partials, getHolder(bind));
+	        bitmask |= WRAP_PARTIAL_FLAG;
+	      }
+	      return createWrap(func, bitmask, thisArg, partials, holders);
+	    });
+
+	    /**
+	     * Creates a function that invokes the method at `object[key]` with `partials`
+	     * prepended to the arguments it receives.
+	     *
+	     * This method differs from `_.bind` by allowing bound functions to reference
+	     * methods that may be redefined or don't yet exist. See
+	     * [Peter Michaux's article](http://peter.michaux.ca/articles/lazy-function-definition-pattern)
+	     * for more details.
+	     *
+	     * The `_.bindKey.placeholder` value, which defaults to `_` in monolithic
+	     * builds, may be used as a placeholder for partially applied arguments.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.10.0
+	     * @category Function
+	     * @param {Object} object The object to invoke the method on.
+	     * @param {string} key The key of the method.
+	     * @param {...*} [partials] The arguments to be partially applied.
+	     * @returns {Function} Returns the new bound function.
+	     * @example
+	     *
+	     * var object = {
+	     *   'user': 'fred',
+	     *   'greet': function(greeting, punctuation) {
+	     *     return greeting + ' ' + this.user + punctuation;
+	     *   }
+	     * };
+	     *
+	     * var bound = _.bindKey(object, 'greet', 'hi');
+	     * bound('!');
+	     * // => 'hi fred!'
+	     *
+	     * object.greet = function(greeting, punctuation) {
+	     *   return greeting + 'ya ' + this.user + punctuation;
+	     * };
+	     *
+	     * bound('!');
+	     * // => 'hiya fred!'
+	     *
+	     * // Bound with placeholders.
+	     * var bound = _.bindKey(object, 'greet', _, '!');
+	     * bound('hi');
+	     * // => 'hiya fred!'
+	     */
+	    var bindKey = baseRest(function(object, key, partials) {
+	      var bitmask = WRAP_BIND_FLAG | WRAP_BIND_KEY_FLAG;
+	      if (partials.length) {
+	        var holders = replaceHolders(partials, getHolder(bindKey));
+	        bitmask |= WRAP_PARTIAL_FLAG;
+	      }
+	      return createWrap(key, bitmask, object, partials, holders);
+	    });
+
+	    /**
+	     * Creates a function that accepts arguments of `func` and either invokes
+	     * `func` returning its result, if at least `arity` number of arguments have
+	     * been provided, or returns a function that accepts the remaining `func`
+	     * arguments, and so on. The arity of `func` may be specified if `func.length`
+	     * is not sufficient.
+	     *
+	     * The `_.curry.placeholder` value, which defaults to `_` in monolithic builds,
+	     * may be used as a placeholder for provided arguments.
+	     *
+	     * **Note:** This method doesn't set the "length" property of curried functions.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Function
+	     * @param {Function} func The function to curry.
+	     * @param {number} [arity=func.length] The arity of `func`.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Function} Returns the new curried function.
+	     * @example
+	     *
+	     * var abc = function(a, b, c) {
+	     *   return [a, b, c];
+	     * };
+	     *
+	     * var curried = _.curry(abc);
+	     *
+	     * curried(1)(2)(3);
+	     * // => [1, 2, 3]
+	     *
+	     * curried(1, 2)(3);
+	     * // => [1, 2, 3]
+	     *
+	     * curried(1, 2, 3);
+	     * // => [1, 2, 3]
+	     *
+	     * // Curried with placeholders.
+	     * curried(1)(_, 3)(2);
+	     * // => [1, 2, 3]
+	     */
+	    function curry(func, arity, guard) {
+	      arity = guard ? undefined : arity;
+	      var result = createWrap(func, WRAP_CURRY_FLAG, undefined, undefined, undefined, undefined, undefined, arity);
+	      result.placeholder = curry.placeholder;
+	      return result;
+	    }
+
+	    /**
+	     * This method is like `_.curry` except that arguments are applied to `func`
+	     * in the manner of `_.partialRight` instead of `_.partial`.
+	     *
+	     * The `_.curryRight.placeholder` value, which defaults to `_` in monolithic
+	     * builds, may be used as a placeholder for provided arguments.
+	     *
+	     * **Note:** This method doesn't set the "length" property of curried functions.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Function
+	     * @param {Function} func The function to curry.
+	     * @param {number} [arity=func.length] The arity of `func`.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Function} Returns the new curried function.
+	     * @example
+	     *
+	     * var abc = function(a, b, c) {
+	     *   return [a, b, c];
+	     * };
+	     *
+	     * var curried = _.curryRight(abc);
+	     *
+	     * curried(3)(2)(1);
+	     * // => [1, 2, 3]
+	     *
+	     * curried(2, 3)(1);
+	     * // => [1, 2, 3]
+	     *
+	     * curried(1, 2, 3);
+	     * // => [1, 2, 3]
+	     *
+	     * // Curried with placeholders.
+	     * curried(3)(1, _)(2);
+	     * // => [1, 2, 3]
+	     */
+	    function curryRight(func, arity, guard) {
+	      arity = guard ? undefined : arity;
+	      var result = createWrap(func, WRAP_CURRY_RIGHT_FLAG, undefined, undefined, undefined, undefined, undefined, arity);
+	      result.placeholder = curryRight.placeholder;
+	      return result;
+	    }
+
+	    /**
+	     * Creates a debounced function that delays invoking `func` until after `wait`
+	     * milliseconds have elapsed since the last time the debounced function was
+	     * invoked. The debounced function comes with a `cancel` method to cancel
+	     * delayed `func` invocations and a `flush` method to immediately invoke them.
+	     * Provide `options` to indicate whether `func` should be invoked on the
+	     * leading and/or trailing edge of the `wait` timeout. The `func` is invoked
+	     * with the last arguments provided to the debounced function. Subsequent
+	     * calls to the debounced function return the result of the last `func`
+	     * invocation.
+	     *
+	     * **Note:** If `leading` and `trailing` options are `true`, `func` is
+	     * invoked on the trailing edge of the timeout only if the debounced function
+	     * is invoked more than once during the `wait` timeout.
+	     *
+	     * If `wait` is `0` and `leading` is `false`, `func` invocation is deferred
+	     * until to the next tick, similar to `setTimeout` with a timeout of `0`.
+	     *
+	     * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
+	     * for details over the differences between `_.debounce` and `_.throttle`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to debounce.
+	     * @param {number} [wait=0] The number of milliseconds to delay.
+	     * @param {Object} [options={}] The options object.
+	     * @param {boolean} [options.leading=false]
+	     *  Specify invoking on the leading edge of the timeout.
+	     * @param {number} [options.maxWait]
+	     *  The maximum time `func` is allowed to be delayed before it's invoked.
+	     * @param {boolean} [options.trailing=true]
+	     *  Specify invoking on the trailing edge of the timeout.
+	     * @returns {Function} Returns the new debounced function.
+	     * @example
+	     *
+	     * // Avoid costly calculations while the window size is in flux.
+	     * jQuery(window).on('resize', _.debounce(calculateLayout, 150));
+	     *
+	     * // Invoke `sendMail` when clicked, debouncing subsequent calls.
+	     * jQuery(element).on('click', _.debounce(sendMail, 300, {
+	     *   'leading': true,
+	     *   'trailing': false
+	     * }));
+	     *
+	     * // Ensure `batchLog` is invoked once after 1 second of debounced calls.
+	     * var debounced = _.debounce(batchLog, 250, { 'maxWait': 1000 });
+	     * var source = new EventSource('/stream');
+	     * jQuery(source).on('message', debounced);
+	     *
+	     * // Cancel the trailing debounced invocation.
+	     * jQuery(window).on('popstate', debounced.cancel);
+	     */
+	    function debounce(func, wait, options) {
+	      var lastArgs,
+	          lastThis,
+	          maxWait,
+	          result,
+	          timerId,
+	          lastCallTime,
+	          lastInvokeTime = 0,
+	          leading = false,
+	          maxing = false,
+	          trailing = true;
+
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      wait = toNumber(wait) || 0;
+	      if (isObject(options)) {
+	        leading = !!options.leading;
+	        maxing = 'maxWait' in options;
+	        maxWait = maxing ? nativeMax(toNumber(options.maxWait) || 0, wait) : maxWait;
+	        trailing = 'trailing' in options ? !!options.trailing : trailing;
+	      }
+
+	      function invokeFunc(time) {
+	        var args = lastArgs,
+	            thisArg = lastThis;
+
+	        lastArgs = lastThis = undefined;
+	        lastInvokeTime = time;
+	        result = func.apply(thisArg, args);
+	        return result;
+	      }
+
+	      function leadingEdge(time) {
+	        // Reset any `maxWait` timer.
+	        lastInvokeTime = time;
+	        // Start the timer for the trailing edge.
+	        timerId = setTimeout(timerExpired, wait);
+	        // Invoke the leading edge.
+	        return leading ? invokeFunc(time) : result;
+	      }
+
+	      function remainingWait(time) {
+	        var timeSinceLastCall = time - lastCallTime,
+	            timeSinceLastInvoke = time - lastInvokeTime,
+	            timeWaiting = wait - timeSinceLastCall;
+
+	        return maxing
+	          ? nativeMin(timeWaiting, maxWait - timeSinceLastInvoke)
+	          : timeWaiting;
+	      }
+
+	      function shouldInvoke(time) {
+	        var timeSinceLastCall = time - lastCallTime,
+	            timeSinceLastInvoke = time - lastInvokeTime;
+
+	        // Either this is the first call, activity has stopped and we're at the
+	        // trailing edge, the system time has gone backwards and we're treating
+	        // it as the trailing edge, or we've hit the `maxWait` limit.
+	        return (lastCallTime === undefined || (timeSinceLastCall >= wait) ||
+	          (timeSinceLastCall < 0) || (maxing && timeSinceLastInvoke >= maxWait));
+	      }
+
+	      function timerExpired() {
+	        var time = now();
+	        if (shouldInvoke(time)) {
+	          return trailingEdge(time);
+	        }
+	        // Restart the timer.
+	        timerId = setTimeout(timerExpired, remainingWait(time));
+	      }
+
+	      function trailingEdge(time) {
+	        timerId = undefined;
+
+	        // Only invoke if we have `lastArgs` which means `func` has been
+	        // debounced at least once.
+	        if (trailing && lastArgs) {
+	          return invokeFunc(time);
+	        }
+	        lastArgs = lastThis = undefined;
+	        return result;
+	      }
+
+	      function cancel() {
+	        if (timerId !== undefined) {
+	          clearTimeout(timerId);
+	        }
+	        lastInvokeTime = 0;
+	        lastArgs = lastCallTime = lastThis = timerId = undefined;
+	      }
+
+	      function flush() {
+	        return timerId === undefined ? result : trailingEdge(now());
+	      }
+
+	      function debounced() {
+	        var time = now(),
+	            isInvoking = shouldInvoke(time);
+
+	        lastArgs = arguments;
+	        lastThis = this;
+	        lastCallTime = time;
+
+	        if (isInvoking) {
+	          if (timerId === undefined) {
+	            return leadingEdge(lastCallTime);
+	          }
+	          if (maxing) {
+	            // Handle invocations in a tight loop.
+	            timerId = setTimeout(timerExpired, wait);
+	            return invokeFunc(lastCallTime);
+	          }
+	        }
+	        if (timerId === undefined) {
+	          timerId = setTimeout(timerExpired, wait);
+	        }
+	        return result;
+	      }
+	      debounced.cancel = cancel;
+	      debounced.flush = flush;
+	      return debounced;
+	    }
+
+	    /**
+	     * Defers invoking the `func` until the current call stack has cleared. Any
+	     * additional arguments are provided to `func` when it's invoked.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to defer.
+	     * @param {...*} [args] The arguments to invoke `func` with.
+	     * @returns {number} Returns the timer id.
+	     * @example
+	     *
+	     * _.defer(function(text) {
+	     *   console.log(text);
+	     * }, 'deferred');
+	     * // => Logs 'deferred' after one millisecond.
+	     */
+	    var defer = baseRest(function(func, args) {
+	      return baseDelay(func, 1, args);
+	    });
+
+	    /**
+	     * Invokes `func` after `wait` milliseconds. Any additional arguments are
+	     * provided to `func` when it's invoked.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to delay.
+	     * @param {number} wait The number of milliseconds to delay invocation.
+	     * @param {...*} [args] The arguments to invoke `func` with.
+	     * @returns {number} Returns the timer id.
+	     * @example
+	     *
+	     * _.delay(function(text) {
+	     *   console.log(text);
+	     * }, 1000, 'later');
+	     * // => Logs 'later' after one second.
+	     */
+	    var delay = baseRest(function(func, wait, args) {
+	      return baseDelay(func, toNumber(wait) || 0, args);
+	    });
+
+	    /**
+	     * Creates a function that invokes `func` with arguments reversed.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Function
+	     * @param {Function} func The function to flip arguments for.
+	     * @returns {Function} Returns the new flipped function.
+	     * @example
+	     *
+	     * var flipped = _.flip(function() {
+	     *   return _.toArray(arguments);
+	     * });
+	     *
+	     * flipped('a', 'b', 'c', 'd');
+	     * // => ['d', 'c', 'b', 'a']
+	     */
+	    function flip(func) {
+	      return createWrap(func, WRAP_FLIP_FLAG);
+	    }
+
+	    /**
+	     * Creates a function that memoizes the result of `func`. If `resolver` is
+	     * provided, it determines the cache key for storing the result based on the
+	     * arguments provided to the memoized function. By default, the first argument
+	     * provided to the memoized function is used as the map cache key. The `func`
+	     * is invoked with the `this` binding of the memoized function.
+	     *
+	     * **Note:** The cache is exposed as the `cache` property on the memoized
+	     * function. Its creation may be customized by replacing the `_.memoize.Cache`
+	     * constructor with one whose instances implement the
+	     * [`Map`](http://ecma-international.org/ecma-262/7.0/#sec-properties-of-the-map-prototype-object)
+	     * method interface of `clear`, `delete`, `get`, `has`, and `set`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to have its output memoized.
+	     * @param {Function} [resolver] The function to resolve the cache key.
+	     * @returns {Function} Returns the new memoized function.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': 2 };
+	     * var other = { 'c': 3, 'd': 4 };
+	     *
+	     * var values = _.memoize(_.values);
+	     * values(object);
+	     * // => [1, 2]
+	     *
+	     * values(other);
+	     * // => [3, 4]
+	     *
+	     * object.a = 2;
+	     * values(object);
+	     * // => [1, 2]
+	     *
+	     * // Modify the result cache.
+	     * values.cache.set(object, ['a', 'b']);
+	     * values(object);
+	     * // => ['a', 'b']
+	     *
+	     * // Replace `_.memoize.Cache`.
+	     * _.memoize.Cache = WeakMap;
+	     */
+	    function memoize(func, resolver) {
+	      if (typeof func != 'function' || (resolver != null && typeof resolver != 'function')) {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      var memoized = function() {
+	        var args = arguments,
+	            key = resolver ? resolver.apply(this, args) : args[0],
+	            cache = memoized.cache;
+
+	        if (cache.has(key)) {
+	          return cache.get(key);
+	        }
+	        var result = func.apply(this, args);
+	        memoized.cache = cache.set(key, result) || cache;
+	        return result;
+	      };
+	      memoized.cache = new (memoize.Cache || MapCache);
+	      return memoized;
+	    }
+
+	    // Expose `MapCache`.
+	    memoize.Cache = MapCache;
+
+	    /**
+	     * Creates a function that negates the result of the predicate `func`. The
+	     * `func` predicate is invoked with the `this` binding and arguments of the
+	     * created function.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Function
+	     * @param {Function} predicate The predicate to negate.
+	     * @returns {Function} Returns the new negated function.
+	     * @example
+	     *
+	     * function isEven(n) {
+	     *   return n % 2 == 0;
+	     * }
+	     *
+	     * _.filter([1, 2, 3, 4, 5, 6], _.negate(isEven));
+	     * // => [1, 3, 5]
+	     */
+	    function negate(predicate) {
+	      if (typeof predicate != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      return function() {
+	        var args = arguments;
+	        switch (args.length) {
+	          case 0: return !predicate.call(this);
+	          case 1: return !predicate.call(this, args[0]);
+	          case 2: return !predicate.call(this, args[0], args[1]);
+	          case 3: return !predicate.call(this, args[0], args[1], args[2]);
+	        }
+	        return !predicate.apply(this, args);
+	      };
+	    }
+
+	    /**
+	     * Creates a function that is restricted to invoking `func` once. Repeat calls
+	     * to the function return the value of the first invocation. The `func` is
+	     * invoked with the `this` binding and arguments of the created function.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to restrict.
+	     * @returns {Function} Returns the new restricted function.
+	     * @example
+	     *
+	     * var initialize = _.once(createApplication);
+	     * initialize();
+	     * initialize();
+	     * // => `createApplication` is invoked once
+	     */
+	    function once(func) {
+	      return before(2, func);
+	    }
+
+	    /**
+	     * Creates a function that invokes `func` with its arguments transformed.
+	     *
+	     * @static
+	     * @since 4.0.0
+	     * @memberOf _
+	     * @category Function
+	     * @param {Function} func The function to wrap.
+	     * @param {...(Function|Function[])} [transforms=[_.identity]]
+	     *  The argument transforms.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * function doubled(n) {
+	     *   return n * 2;
+	     * }
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * var func = _.overArgs(function(x, y) {
+	     *   return [x, y];
+	     * }, [square, doubled]);
+	     *
+	     * func(9, 3);
+	     * // => [81, 6]
+	     *
+	     * func(10, 5);
+	     * // => [100, 10]
+	     */
+	    var overArgs = castRest(function(func, transforms) {
+	      transforms = (transforms.length == 1 && isArray(transforms[0]))
+	        ? arrayMap(transforms[0], baseUnary(getIteratee()))
+	        : arrayMap(baseFlatten(transforms, 1), baseUnary(getIteratee()));
+
+	      var funcsLength = transforms.length;
+	      return baseRest(function(args) {
+	        var index = -1,
+	            length = nativeMin(args.length, funcsLength);
+
+	        while (++index < length) {
+	          args[index] = transforms[index].call(this, args[index]);
+	        }
+	        return apply(func, this, args);
+	      });
+	    });
+
+	    /**
+	     * Creates a function that invokes `func` with `partials` prepended to the
+	     * arguments it receives. This method is like `_.bind` except it does **not**
+	     * alter the `this` binding.
+	     *
+	     * The `_.partial.placeholder` value, which defaults to `_` in monolithic
+	     * builds, may be used as a placeholder for partially applied arguments.
+	     *
+	     * **Note:** This method doesn't set the "length" property of partially
+	     * applied functions.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.2.0
+	     * @category Function
+	     * @param {Function} func The function to partially apply arguments to.
+	     * @param {...*} [partials] The arguments to be partially applied.
+	     * @returns {Function} Returns the new partially applied function.
+	     * @example
+	     *
+	     * function greet(greeting, name) {
+	     *   return greeting + ' ' + name;
+	     * }
+	     *
+	     * var sayHelloTo = _.partial(greet, 'hello');
+	     * sayHelloTo('fred');
+	     * // => 'hello fred'
+	     *
+	     * // Partially applied with placeholders.
+	     * var greetFred = _.partial(greet, _, 'fred');
+	     * greetFred('hi');
+	     * // => 'hi fred'
+	     */
+	    var partial = baseRest(function(func, partials) {
+	      var holders = replaceHolders(partials, getHolder(partial));
+	      return createWrap(func, WRAP_PARTIAL_FLAG, undefined, partials, holders);
+	    });
+
+	    /**
+	     * This method is like `_.partial` except that partially applied arguments
+	     * are appended to the arguments it receives.
+	     *
+	     * The `_.partialRight.placeholder` value, which defaults to `_` in monolithic
+	     * builds, may be used as a placeholder for partially applied arguments.
+	     *
+	     * **Note:** This method doesn't set the "length" property of partially
+	     * applied functions.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.0.0
+	     * @category Function
+	     * @param {Function} func The function to partially apply arguments to.
+	     * @param {...*} [partials] The arguments to be partially applied.
+	     * @returns {Function} Returns the new partially applied function.
+	     * @example
+	     *
+	     * function greet(greeting, name) {
+	     *   return greeting + ' ' + name;
+	     * }
+	     *
+	     * var greetFred = _.partialRight(greet, 'fred');
+	     * greetFred('hi');
+	     * // => 'hi fred'
+	     *
+	     * // Partially applied with placeholders.
+	     * var sayHelloTo = _.partialRight(greet, 'hello', _);
+	     * sayHelloTo('fred');
+	     * // => 'hello fred'
+	     */
+	    var partialRight = baseRest(function(func, partials) {
+	      var holders = replaceHolders(partials, getHolder(partialRight));
+	      return createWrap(func, WRAP_PARTIAL_RIGHT_FLAG, undefined, partials, holders);
+	    });
+
+	    /**
+	     * Creates a function that invokes `func` with arguments arranged according
+	     * to the specified `indexes` where the argument value at the first index is
+	     * provided as the first argument, the argument value at the second index is
+	     * provided as the second argument, and so on.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Function
+	     * @param {Function} func The function to rearrange arguments for.
+	     * @param {...(number|number[])} indexes The arranged argument indexes.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var rearged = _.rearg(function(a, b, c) {
+	     *   return [a, b, c];
+	     * }, [2, 0, 1]);
+	     *
+	     * rearged('b', 'c', 'a')
+	     * // => ['a', 'b', 'c']
+	     */
+	    var rearg = flatRest(function(func, indexes) {
+	      return createWrap(func, WRAP_REARG_FLAG, undefined, undefined, undefined, indexes);
+	    });
+
+	    /**
+	     * Creates a function that invokes `func` with the `this` binding of the
+	     * created function and arguments from `start` and beyond provided as
+	     * an array.
+	     *
+	     * **Note:** This method is based on the
+	     * [rest parameter](https://mdn.io/rest_parameters).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Function
+	     * @param {Function} func The function to apply a rest parameter to.
+	     * @param {number} [start=func.length-1] The start position of the rest parameter.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var say = _.rest(function(what, names) {
+	     *   return what + ' ' + _.initial(names).join(', ') +
+	     *     (_.size(names) > 1 ? ', & ' : '') + _.last(names);
+	     * });
+	     *
+	     * say('hello', 'fred', 'barney', 'pebbles');
+	     * // => 'hello fred, barney, & pebbles'
+	     */
+	    function rest(func, start) {
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      start = start === undefined ? start : toInteger(start);
+	      return baseRest(func, start);
+	    }
+
+	    /**
+	     * Creates a function that invokes `func` with the `this` binding of the
+	     * create function and an array of arguments much like
+	     * [`Function#apply`](http://www.ecma-international.org/ecma-262/7.0/#sec-function.prototype.apply).
+	     *
+	     * **Note:** This method is based on the
+	     * [spread operator](https://mdn.io/spread_operator).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.2.0
+	     * @category Function
+	     * @param {Function} func The function to spread arguments over.
+	     * @param {number} [start=0] The start position of the spread.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var say = _.spread(function(who, what) {
+	     *   return who + ' says ' + what;
+	     * });
+	     *
+	     * say(['fred', 'hello']);
+	     * // => 'fred says hello'
+	     *
+	     * var numbers = Promise.all([
+	     *   Promise.resolve(40),
+	     *   Promise.resolve(36)
+	     * ]);
+	     *
+	     * numbers.then(_.spread(function(x, y) {
+	     *   return x + y;
+	     * }));
+	     * // => a Promise of 76
+	     */
+	    function spread(func, start) {
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      start = start == null ? 0 : nativeMax(toInteger(start), 0);
+	      return baseRest(function(args) {
+	        var array = args[start],
+	            otherArgs = castSlice(args, 0, start);
+
+	        if (array) {
+	          arrayPush(otherArgs, array);
+	        }
+	        return apply(func, this, otherArgs);
+	      });
+	    }
+
+	    /**
+	     * Creates a throttled function that only invokes `func` at most once per
+	     * every `wait` milliseconds. The throttled function comes with a `cancel`
+	     * method to cancel delayed `func` invocations and a `flush` method to
+	     * immediately invoke them. Provide `options` to indicate whether `func`
+	     * should be invoked on the leading and/or trailing edge of the `wait`
+	     * timeout. The `func` is invoked with the last arguments provided to the
+	     * throttled function. Subsequent calls to the throttled function return the
+	     * result of the last `func` invocation.
+	     *
+	     * **Note:** If `leading` and `trailing` options are `true`, `func` is
+	     * invoked on the trailing edge of the timeout only if the throttled function
+	     * is invoked more than once during the `wait` timeout.
+	     *
+	     * If `wait` is `0` and `leading` is `false`, `func` invocation is deferred
+	     * until to the next tick, similar to `setTimeout` with a timeout of `0`.
+	     *
+	     * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
+	     * for details over the differences between `_.throttle` and `_.debounce`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {Function} func The function to throttle.
+	     * @param {number} [wait=0] The number of milliseconds to throttle invocations to.
+	     * @param {Object} [options={}] The options object.
+	     * @param {boolean} [options.leading=true]
+	     *  Specify invoking on the leading edge of the timeout.
+	     * @param {boolean} [options.trailing=true]
+	     *  Specify invoking on the trailing edge of the timeout.
+	     * @returns {Function} Returns the new throttled function.
+	     * @example
+	     *
+	     * // Avoid excessively updating the position while scrolling.
+	     * jQuery(window).on('scroll', _.throttle(updatePosition, 100));
+	     *
+	     * // Invoke `renewToken` when the click event is fired, but not more than once every 5 minutes.
+	     * var throttled = _.throttle(renewToken, 300000, { 'trailing': false });
+	     * jQuery(element).on('click', throttled);
+	     *
+	     * // Cancel the trailing throttled invocation.
+	     * jQuery(window).on('popstate', throttled.cancel);
+	     */
+	    function throttle(func, wait, options) {
+	      var leading = true,
+	          trailing = true;
+
+	      if (typeof func != 'function') {
+	        throw new TypeError(FUNC_ERROR_TEXT);
+	      }
+	      if (isObject(options)) {
+	        leading = 'leading' in options ? !!options.leading : leading;
+	        trailing = 'trailing' in options ? !!options.trailing : trailing;
+	      }
+	      return debounce(func, wait, {
+	        'leading': leading,
+	        'maxWait': wait,
+	        'trailing': trailing
+	      });
+	    }
+
+	    /**
+	     * Creates a function that accepts up to one argument, ignoring any
+	     * additional arguments.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Function
+	     * @param {Function} func The function to cap arguments for.
+	     * @returns {Function} Returns the new capped function.
+	     * @example
+	     *
+	     * _.map(['6', '8', '10'], _.unary(parseInt));
+	     * // => [6, 8, 10]
+	     */
+	    function unary(func) {
+	      return ary(func, 1);
+	    }
+
+	    /**
+	     * Creates a function that provides `value` to `wrapper` as its first
+	     * argument. Any additional arguments provided to the function are appended
+	     * to those provided to the `wrapper`. The wrapper is invoked with the `this`
+	     * binding of the created function.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Function
+	     * @param {*} value The value to wrap.
+	     * @param {Function} [wrapper=identity] The wrapper function.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var p = _.wrap(_.escape, function(func, text) {
+	     *   return '<p>' + func(text) + '</p>';
+	     * });
+	     *
+	     * p('fred, barney, & pebbles');
+	     * // => '<p>fred, barney, &amp; pebbles</p>'
+	     */
+	    function wrap(value, wrapper) {
+	      return partial(castFunction(wrapper), value);
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Casts `value` as an array if it's not one.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.4.0
+	     * @category Lang
+	     * @param {*} value The value to inspect.
+	     * @returns {Array} Returns the cast array.
+	     * @example
+	     *
+	     * _.castArray(1);
+	     * // => [1]
+	     *
+	     * _.castArray({ 'a': 1 });
+	     * // => [{ 'a': 1 }]
+	     *
+	     * _.castArray('abc');
+	     * // => ['abc']
+	     *
+	     * _.castArray(null);
+	     * // => [null]
+	     *
+	     * _.castArray(undefined);
+	     * // => [undefined]
+	     *
+	     * _.castArray();
+	     * // => []
+	     *
+	     * var array = [1, 2, 3];
+	     * console.log(_.castArray(array) === array);
+	     * // => true
+	     */
+	    function castArray() {
+	      if (!arguments.length) {
+	        return [];
+	      }
+	      var value = arguments[0];
+	      return isArray(value) ? value : [value];
+	    }
+
+	    /**
+	     * Creates a shallow clone of `value`.
+	     *
+	     * **Note:** This method is loosely based on the
+	     * [structured clone algorithm](https://mdn.io/Structured_clone_algorithm)
+	     * and supports cloning arrays, array buffers, booleans, date objects, maps,
+	     * numbers, `Object` objects, regexes, sets, strings, symbols, and typed
+	     * arrays. The own enumerable properties of `arguments` objects are cloned
+	     * as plain objects. An empty object is returned for uncloneable values such
+	     * as error objects, functions, DOM nodes, and WeakMaps.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to clone.
+	     * @returns {*} Returns the cloned value.
+	     * @see _.cloneDeep
+	     * @example
+	     *
+	     * var objects = [{ 'a': 1 }, { 'b': 2 }];
+	     *
+	     * var shallow = _.clone(objects);
+	     * console.log(shallow[0] === objects[0]);
+	     * // => true
+	     */
+	    function clone(value) {
+	      return baseClone(value, CLONE_SYMBOLS_FLAG);
+	    }
+
+	    /**
+	     * This method is like `_.clone` except that it accepts `customizer` which
+	     * is invoked to produce the cloned value. If `customizer` returns `undefined`,
+	     * cloning is handled by the method instead. The `customizer` is invoked with
+	     * up to four arguments; (value [, index|key, object, stack]).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to clone.
+	     * @param {Function} [customizer] The function to customize cloning.
+	     * @returns {*} Returns the cloned value.
+	     * @see _.cloneDeepWith
+	     * @example
+	     *
+	     * function customizer(value) {
+	     *   if (_.isElement(value)) {
+	     *     return value.cloneNode(false);
+	     *   }
+	     * }
+	     *
+	     * var el = _.cloneWith(document.body, customizer);
+	     *
+	     * console.log(el === document.body);
+	     * // => false
+	     * console.log(el.nodeName);
+	     * // => 'BODY'
+	     * console.log(el.childNodes.length);
+	     * // => 0
+	     */
+	    function cloneWith(value, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      return baseClone(value, CLONE_SYMBOLS_FLAG, customizer);
+	    }
+
+	    /**
+	     * This method is like `_.clone` except that it recursively clones `value`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.0.0
+	     * @category Lang
+	     * @param {*} value The value to recursively clone.
+	     * @returns {*} Returns the deep cloned value.
+	     * @see _.clone
+	     * @example
+	     *
+	     * var objects = [{ 'a': 1 }, { 'b': 2 }];
+	     *
+	     * var deep = _.cloneDeep(objects);
+	     * console.log(deep[0] === objects[0]);
+	     * // => false
+	     */
+	    function cloneDeep(value) {
+	      return baseClone(value, CLONE_DEEP_FLAG | CLONE_SYMBOLS_FLAG);
+	    }
+
+	    /**
+	     * This method is like `_.cloneWith` except that it recursively clones `value`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to recursively clone.
+	     * @param {Function} [customizer] The function to customize cloning.
+	     * @returns {*} Returns the deep cloned value.
+	     * @see _.cloneWith
+	     * @example
+	     *
+	     * function customizer(value) {
+	     *   if (_.isElement(value)) {
+	     *     return value.cloneNode(true);
+	     *   }
+	     * }
+	     *
+	     * var el = _.cloneDeepWith(document.body, customizer);
+	     *
+	     * console.log(el === document.body);
+	     * // => false
+	     * console.log(el.nodeName);
+	     * // => 'BODY'
+	     * console.log(el.childNodes.length);
+	     * // => 20
+	     */
+	    function cloneDeepWith(value, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      return baseClone(value, CLONE_DEEP_FLAG | CLONE_SYMBOLS_FLAG, customizer);
+	    }
+
+	    /**
+	     * Checks if `object` conforms to `source` by invoking the predicate
+	     * properties of `source` with the corresponding property values of `object`.
+	     *
+	     * **Note:** This method is equivalent to `_.conforms` when `source` is
+	     * partially applied.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.14.0
+	     * @category Lang
+	     * @param {Object} object The object to inspect.
+	     * @param {Object} source The object of property predicates to conform to.
+	     * @returns {boolean} Returns `true` if `object` conforms, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': 2 };
+	     *
+	     * _.conformsTo(object, { 'b': function(n) { return n > 1; } });
+	     * // => true
+	     *
+	     * _.conformsTo(object, { 'b': function(n) { return n > 2; } });
+	     * // => false
+	     */
+	    function conformsTo(object, source) {
+	      return source == null || baseConformsTo(object, source, keys(source));
+	    }
+
+	    /**
+	     * Performs a
+	     * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+	     * comparison between two values to determine if they are equivalent.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': 1 };
+	     * var other = { 'a': 1 };
+	     *
+	     * _.eq(object, object);
+	     * // => true
+	     *
+	     * _.eq(object, other);
+	     * // => false
+	     *
+	     * _.eq('a', 'a');
+	     * // => true
+	     *
+	     * _.eq('a', Object('a'));
+	     * // => false
+	     *
+	     * _.eq(NaN, NaN);
+	     * // => true
+	     */
+	    function eq(value, other) {
+	      return value === other || (value !== value && other !== other);
+	    }
+
+	    /**
+	     * Checks if `value` is greater than `other`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.9.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is greater than `other`,
+	     *  else `false`.
+	     * @see _.lt
+	     * @example
+	     *
+	     * _.gt(3, 1);
+	     * // => true
+	     *
+	     * _.gt(3, 3);
+	     * // => false
+	     *
+	     * _.gt(1, 3);
+	     * // => false
+	     */
+	    var gt = createRelationalOperation(baseGt);
+
+	    /**
+	     * Checks if `value` is greater than or equal to `other`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.9.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is greater than or equal to
+	     *  `other`, else `false`.
+	     * @see _.lte
+	     * @example
+	     *
+	     * _.gte(3, 1);
+	     * // => true
+	     *
+	     * _.gte(3, 3);
+	     * // => true
+	     *
+	     * _.gte(1, 3);
+	     * // => false
+	     */
+	    var gte = createRelationalOperation(function(value, other) {
+	      return value >= other;
+	    });
+
+	    /**
+	     * Checks if `value` is likely an `arguments` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an `arguments` object,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.isArguments(function() { return arguments; }());
+	     * // => true
+	     *
+	     * _.isArguments([1, 2, 3]);
+	     * // => false
+	     */
+	    var isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsArguments : function(value) {
+	      return isObjectLike(value) && hasOwnProperty.call(value, 'callee') &&
+	        !propertyIsEnumerable.call(value, 'callee');
+	    };
+
+	    /**
+	     * Checks if `value` is classified as an `Array` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an array, else `false`.
+	     * @example
+	     *
+	     * _.isArray([1, 2, 3]);
+	     * // => true
+	     *
+	     * _.isArray(document.body.children);
+	     * // => false
+	     *
+	     * _.isArray('abc');
+	     * // => false
+	     *
+	     * _.isArray(_.noop);
+	     * // => false
+	     */
+	    var isArray = Array.isArray;
+
+	    /**
+	     * Checks if `value` is classified as an `ArrayBuffer` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an array buffer, else `false`.
+	     * @example
+	     *
+	     * _.isArrayBuffer(new ArrayBuffer(2));
+	     * // => true
+	     *
+	     * _.isArrayBuffer(new Array(2));
+	     * // => false
+	     */
+	    var isArrayBuffer = nodeIsArrayBuffer ? baseUnary(nodeIsArrayBuffer) : baseIsArrayBuffer;
+
+	    /**
+	     * Checks if `value` is array-like. A value is considered array-like if it's
+	     * not a function and has a `value.length` that's an integer greater than or
+	     * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
+	     * @example
+	     *
+	     * _.isArrayLike([1, 2, 3]);
+	     * // => true
+	     *
+	     * _.isArrayLike(document.body.children);
+	     * // => true
+	     *
+	     * _.isArrayLike('abc');
+	     * // => true
+	     *
+	     * _.isArrayLike(_.noop);
+	     * // => false
+	     */
+	    function isArrayLike(value) {
+	      return value != null && isLength(value.length) && !isFunction(value);
+	    }
+
+	    /**
+	     * This method is like `_.isArrayLike` except that it also checks if `value`
+	     * is an object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an array-like object,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.isArrayLikeObject([1, 2, 3]);
+	     * // => true
+	     *
+	     * _.isArrayLikeObject(document.body.children);
+	     * // => true
+	     *
+	     * _.isArrayLikeObject('abc');
+	     * // => false
+	     *
+	     * _.isArrayLikeObject(_.noop);
+	     * // => false
+	     */
+	    function isArrayLikeObject(value) {
+	      return isObjectLike(value) && isArrayLike(value);
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a boolean primitive or object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a boolean, else `false`.
+	     * @example
+	     *
+	     * _.isBoolean(false);
+	     * // => true
+	     *
+	     * _.isBoolean(null);
+	     * // => false
+	     */
+	    function isBoolean(value) {
+	      return value === true || value === false ||
+	        (isObjectLike(value) && baseGetTag(value) == boolTag);
+	    }
+
+	    /**
+	     * Checks if `value` is a buffer.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a buffer, else `false`.
+	     * @example
+	     *
+	     * _.isBuffer(new Buffer(2));
+	     * // => true
+	     *
+	     * _.isBuffer(new Uint8Array(2));
+	     * // => false
+	     */
+	    var isBuffer = nativeIsBuffer || stubFalse;
+
+	    /**
+	     * Checks if `value` is classified as a `Date` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a date object, else `false`.
+	     * @example
+	     *
+	     * _.isDate(new Date);
+	     * // => true
+	     *
+	     * _.isDate('Mon April 23 2012');
+	     * // => false
+	     */
+	    var isDate = nodeIsDate ? baseUnary(nodeIsDate) : baseIsDate;
+
+	    /**
+	     * Checks if `value` is likely a DOM element.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a DOM element, else `false`.
+	     * @example
+	     *
+	     * _.isElement(document.body);
+	     * // => true
+	     *
+	     * _.isElement('<body>');
+	     * // => false
+	     */
+	    function isElement(value) {
+	      return isObjectLike(value) && value.nodeType === 1 && !isPlainObject(value);
+	    }
+
+	    /**
+	     * Checks if `value` is an empty object, collection, map, or set.
+	     *
+	     * Objects are considered empty if they have no own enumerable string keyed
+	     * properties.
+	     *
+	     * Array-like values such as `arguments` objects, arrays, buffers, strings, or
+	     * jQuery-like collections are considered empty if they have a `length` of `0`.
+	     * Similarly, maps and sets are considered empty if they have a `size` of `0`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is empty, else `false`.
+	     * @example
+	     *
+	     * _.isEmpty(null);
+	     * // => true
+	     *
+	     * _.isEmpty(true);
+	     * // => true
+	     *
+	     * _.isEmpty(1);
+	     * // => true
+	     *
+	     * _.isEmpty([1, 2, 3]);
+	     * // => false
+	     *
+	     * _.isEmpty({ 'a': 1 });
+	     * // => false
+	     */
+	    function isEmpty(value) {
+	      if (value == null) {
+	        return true;
+	      }
+	      if (isArrayLike(value) &&
+	          (isArray(value) || typeof value == 'string' || typeof value.splice == 'function' ||
+	            isBuffer(value) || isTypedArray(value) || isArguments(value))) {
+	        return !value.length;
+	      }
+	      var tag = getTag(value);
+	      if (tag == mapTag || tag == setTag) {
+	        return !value.size;
+	      }
+	      if (isPrototype(value)) {
+	        return !baseKeys(value).length;
+	      }
+	      for (var key in value) {
+	        if (hasOwnProperty.call(value, key)) {
+	          return false;
+	        }
+	      }
+	      return true;
+	    }
+
+	    /**
+	     * Performs a deep comparison between two values to determine if they are
+	     * equivalent.
+	     *
+	     * **Note:** This method supports comparing arrays, array buffers, booleans,
+	     * date objects, error objects, maps, numbers, `Object` objects, regexes,
+	     * sets, strings, symbols, and typed arrays. `Object` objects are compared
+	     * by their own, not inherited, enumerable properties. Functions and DOM
+	     * nodes are compared by strict equality, i.e. `===`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': 1 };
+	     * var other = { 'a': 1 };
+	     *
+	     * _.isEqual(object, other);
+	     * // => true
+	     *
+	     * object === other;
+	     * // => false
+	     */
+	    function isEqual(value, other) {
+	      return baseIsEqual(value, other);
+	    }
+
+	    /**
+	     * This method is like `_.isEqual` except that it accepts `customizer` which
+	     * is invoked to compare values. If `customizer` returns `undefined`, comparisons
+	     * are handled by the method instead. The `customizer` is invoked with up to
+	     * six arguments: (objValue, othValue [, index|key, object, other, stack]).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @param {Function} [customizer] The function to customize comparisons.
+	     * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+	     * @example
+	     *
+	     * function isGreeting(value) {
+	     *   return /^h(?:i|ello)$/.test(value);
+	     * }
+	     *
+	     * function customizer(objValue, othValue) {
+	     *   if (isGreeting(objValue) && isGreeting(othValue)) {
+	     *     return true;
+	     *   }
+	     * }
+	     *
+	     * var array = ['hello', 'goodbye'];
+	     * var other = ['hi', 'goodbye'];
+	     *
+	     * _.isEqualWith(array, other, customizer);
+	     * // => true
+	     */
+	    function isEqualWith(value, other, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      var result = customizer ? customizer(value, other) : undefined;
+	      return result === undefined ? baseIsEqual(value, other, undefined, customizer) : !!result;
+	    }
+
+	    /**
+	     * Checks if `value` is an `Error`, `EvalError`, `RangeError`, `ReferenceError`,
+	     * `SyntaxError`, `TypeError`, or `URIError` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an error object, else `false`.
+	     * @example
+	     *
+	     * _.isError(new Error);
+	     * // => true
+	     *
+	     * _.isError(Error);
+	     * // => false
+	     */
+	    function isError(value) {
+	      if (!isObjectLike(value)) {
+	        return false;
+	      }
+	      var tag = baseGetTag(value);
+	      return tag == errorTag || tag == domExcTag ||
+	        (typeof value.message == 'string' && typeof value.name == 'string' && !isPlainObject(value));
+	    }
+
+	    /**
+	     * Checks if `value` is a finite primitive number.
+	     *
+	     * **Note:** This method is based on
+	     * [`Number.isFinite`](https://mdn.io/Number/isFinite).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a finite number, else `false`.
+	     * @example
+	     *
+	     * _.isFinite(3);
+	     * // => true
+	     *
+	     * _.isFinite(Number.MIN_VALUE);
+	     * // => true
+	     *
+	     * _.isFinite(Infinity);
+	     * // => false
+	     *
+	     * _.isFinite('3');
+	     * // => false
+	     */
+	    function isFinite(value) {
+	      return typeof value == 'number' && nativeIsFinite(value);
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `Function` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a function, else `false`.
+	     * @example
+	     *
+	     * _.isFunction(_);
+	     * // => true
+	     *
+	     * _.isFunction(/abc/);
+	     * // => false
+	     */
+	    function isFunction(value) {
+	      if (!isObject(value)) {
+	        return false;
+	      }
+	      // The use of `Object#toString` avoids issues with the `typeof` operator
+	      // in Safari 9 which returns 'object' for typed arrays and other constructors.
+	      var tag = baseGetTag(value);
+	      return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
+	    }
+
+	    /**
+	     * Checks if `value` is an integer.
+	     *
+	     * **Note:** This method is based on
+	     * [`Number.isInteger`](https://mdn.io/Number/isInteger).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an integer, else `false`.
+	     * @example
+	     *
+	     * _.isInteger(3);
+	     * // => true
+	     *
+	     * _.isInteger(Number.MIN_VALUE);
+	     * // => false
+	     *
+	     * _.isInteger(Infinity);
+	     * // => false
+	     *
+	     * _.isInteger('3');
+	     * // => false
+	     */
+	    function isInteger(value) {
+	      return typeof value == 'number' && value == toInteger(value);
+	    }
+
+	    /**
+	     * Checks if `value` is a valid array-like length.
+	     *
+	     * **Note:** This method is loosely based on
+	     * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
+	     * @example
+	     *
+	     * _.isLength(3);
+	     * // => true
+	     *
+	     * _.isLength(Number.MIN_VALUE);
+	     * // => false
+	     *
+	     * _.isLength(Infinity);
+	     * // => false
+	     *
+	     * _.isLength('3');
+	     * // => false
+	     */
+	    function isLength(value) {
+	      return typeof value == 'number' &&
+	        value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+	    }
+
+	    /**
+	     * Checks if `value` is the
+	     * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
+	     * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+	     * @example
+	     *
+	     * _.isObject({});
+	     * // => true
+	     *
+	     * _.isObject([1, 2, 3]);
+	     * // => true
+	     *
+	     * _.isObject(_.noop);
+	     * // => true
+	     *
+	     * _.isObject(null);
+	     * // => false
+	     */
+	    function isObject(value) {
+	      var type = typeof value;
+	      return value != null && (type == 'object' || type == 'function');
+	    }
+
+	    /**
+	     * Checks if `value` is object-like. A value is object-like if it's not `null`
+	     * and has a `typeof` result of "object".
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+	     * @example
+	     *
+	     * _.isObjectLike({});
+	     * // => true
+	     *
+	     * _.isObjectLike([1, 2, 3]);
+	     * // => true
+	     *
+	     * _.isObjectLike(_.noop);
+	     * // => false
+	     *
+	     * _.isObjectLike(null);
+	     * // => false
+	     */
+	    function isObjectLike(value) {
+	      return value != null && typeof value == 'object';
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `Map` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a map, else `false`.
+	     * @example
+	     *
+	     * _.isMap(new Map);
+	     * // => true
+	     *
+	     * _.isMap(new WeakMap);
+	     * // => false
+	     */
+	    var isMap = nodeIsMap ? baseUnary(nodeIsMap) : baseIsMap;
+
+	    /**
+	     * Performs a partial deep comparison between `object` and `source` to
+	     * determine if `object` contains equivalent property values.
+	     *
+	     * **Note:** This method is equivalent to `_.matches` when `source` is
+	     * partially applied.
+	     *
+	     * Partial comparisons will match empty array and empty object `source`
+	     * values against any array or object value, respectively. See `_.isEqual`
+	     * for a list of supported value comparisons.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Lang
+	     * @param {Object} object The object to inspect.
+	     * @param {Object} source The object of property values to match.
+	     * @returns {boolean} Returns `true` if `object` is a match, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': 2 };
+	     *
+	     * _.isMatch(object, { 'b': 2 });
+	     * // => true
+	     *
+	     * _.isMatch(object, { 'b': 1 });
+	     * // => false
+	     */
+	    function isMatch(object, source) {
+	      return object === source || baseIsMatch(object, source, getMatchData(source));
+	    }
+
+	    /**
+	     * This method is like `_.isMatch` except that it accepts `customizer` which
+	     * is invoked to compare values. If `customizer` returns `undefined`, comparisons
+	     * are handled by the method instead. The `customizer` is invoked with five
+	     * arguments: (objValue, srcValue, index|key, object, source).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {Object} object The object to inspect.
+	     * @param {Object} source The object of property values to match.
+	     * @param {Function} [customizer] The function to customize comparisons.
+	     * @returns {boolean} Returns `true` if `object` is a match, else `false`.
+	     * @example
+	     *
+	     * function isGreeting(value) {
+	     *   return /^h(?:i|ello)$/.test(value);
+	     * }
+	     *
+	     * function customizer(objValue, srcValue) {
+	     *   if (isGreeting(objValue) && isGreeting(srcValue)) {
+	     *     return true;
+	     *   }
+	     * }
+	     *
+	     * var object = { 'greeting': 'hello' };
+	     * var source = { 'greeting': 'hi' };
+	     *
+	     * _.isMatchWith(object, source, customizer);
+	     * // => true
+	     */
+	    function isMatchWith(object, source, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      return baseIsMatch(object, source, getMatchData(source), customizer);
+	    }
+
+	    /**
+	     * Checks if `value` is `NaN`.
+	     *
+	     * **Note:** This method is based on
+	     * [`Number.isNaN`](https://mdn.io/Number/isNaN) and is not the same as
+	     * global [`isNaN`](https://mdn.io/isNaN) which returns `true` for
+	     * `undefined` and other non-number values.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is `NaN`, else `false`.
+	     * @example
+	     *
+	     * _.isNaN(NaN);
+	     * // => true
+	     *
+	     * _.isNaN(new Number(NaN));
+	     * // => true
+	     *
+	     * isNaN(undefined);
+	     * // => true
+	     *
+	     * _.isNaN(undefined);
+	     * // => false
+	     */
+	    function isNaN(value) {
+	      // An `NaN` primitive is the only value that is not equal to itself.
+	      // Perform the `toStringTag` check first to avoid errors with some
+	      // ActiveX objects in IE.
+	      return isNumber(value) && value != +value;
+	    }
+
+	    /**
+	     * Checks if `value` is a pristine native function.
+	     *
+	     * **Note:** This method can't reliably detect native functions in the presence
+	     * of the core-js package because core-js circumvents this kind of detection.
+	     * Despite multiple requests, the core-js maintainer has made it clear: any
+	     * attempt to fix the detection will be obstructed. As a result, we're left
+	     * with little choice but to throw an error. Unfortunately, this also affects
+	     * packages, like [babel-polyfill](https://www.npmjs.com/package/babel-polyfill),
+	     * which rely on core-js.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a native function,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.isNative(Array.prototype.push);
+	     * // => true
+	     *
+	     * _.isNative(_);
+	     * // => false
+	     */
+	    function isNative(value) {
+	      if (isMaskable(value)) {
+	        throw new Error(CORE_ERROR_TEXT);
+	      }
+	      return baseIsNative(value);
+	    }
+
+	    /**
+	     * Checks if `value` is `null`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is `null`, else `false`.
+	     * @example
+	     *
+	     * _.isNull(null);
+	     * // => true
+	     *
+	     * _.isNull(void 0);
+	     * // => false
+	     */
+	    function isNull(value) {
+	      return value === null;
+	    }
+
+	    /**
+	     * Checks if `value` is `null` or `undefined`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is nullish, else `false`.
+	     * @example
+	     *
+	     * _.isNil(null);
+	     * // => true
+	     *
+	     * _.isNil(void 0);
+	     * // => true
+	     *
+	     * _.isNil(NaN);
+	     * // => false
+	     */
+	    function isNil(value) {
+	      return value == null;
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `Number` primitive or object.
+	     *
+	     * **Note:** To exclude `Infinity`, `-Infinity`, and `NaN`, which are
+	     * classified as numbers, use the `_.isFinite` method.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a number, else `false`.
+	     * @example
+	     *
+	     * _.isNumber(3);
+	     * // => true
+	     *
+	     * _.isNumber(Number.MIN_VALUE);
+	     * // => true
+	     *
+	     * _.isNumber(Infinity);
+	     * // => true
+	     *
+	     * _.isNumber('3');
+	     * // => false
+	     */
+	    function isNumber(value) {
+	      return typeof value == 'number' ||
+	        (isObjectLike(value) && baseGetTag(value) == numberTag);
+	    }
+
+	    /**
+	     * Checks if `value` is a plain object, that is, an object created by the
+	     * `Object` constructor or one with a `[[Prototype]]` of `null`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.8.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a plain object, else `false`.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     * }
+	     *
+	     * _.isPlainObject(new Foo);
+	     * // => false
+	     *
+	     * _.isPlainObject([1, 2, 3]);
+	     * // => false
+	     *
+	     * _.isPlainObject({ 'x': 0, 'y': 0 });
+	     * // => true
+	     *
+	     * _.isPlainObject(Object.create(null));
+	     * // => true
+	     */
+	    function isPlainObject(value) {
+	      if (!isObjectLike(value) || baseGetTag(value) != objectTag) {
+	        return false;
+	      }
+	      var proto = getPrototype(value);
+	      if (proto === null) {
+	        return true;
+	      }
+	      var Ctor = hasOwnProperty.call(proto, 'constructor') && proto.constructor;
+	      return typeof Ctor == 'function' && Ctor instanceof Ctor &&
+	        funcToString.call(Ctor) == objectCtorString;
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `RegExp` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.1.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a regexp, else `false`.
+	     * @example
+	     *
+	     * _.isRegExp(/abc/);
+	     * // => true
+	     *
+	     * _.isRegExp('/abc/');
+	     * // => false
+	     */
+	    var isRegExp = nodeIsRegExp ? baseUnary(nodeIsRegExp) : baseIsRegExp;
+
+	    /**
+	     * Checks if `value` is a safe integer. An integer is safe if it's an IEEE-754
+	     * double precision number which isn't the result of a rounded unsafe integer.
+	     *
+	     * **Note:** This method is based on
+	     * [`Number.isSafeInteger`](https://mdn.io/Number/isSafeInteger).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a safe integer, else `false`.
+	     * @example
+	     *
+	     * _.isSafeInteger(3);
+	     * // => true
+	     *
+	     * _.isSafeInteger(Number.MIN_VALUE);
+	     * // => false
+	     *
+	     * _.isSafeInteger(Infinity);
+	     * // => false
+	     *
+	     * _.isSafeInteger('3');
+	     * // => false
+	     */
+	    function isSafeInteger(value) {
+	      return isInteger(value) && value >= -MAX_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `Set` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a set, else `false`.
+	     * @example
+	     *
+	     * _.isSet(new Set);
+	     * // => true
+	     *
+	     * _.isSet(new WeakSet);
+	     * // => false
+	     */
+	    var isSet = nodeIsSet ? baseUnary(nodeIsSet) : baseIsSet;
+
+	    /**
+	     * Checks if `value` is classified as a `String` primitive or object.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a string, else `false`.
+	     * @example
+	     *
+	     * _.isString('abc');
+	     * // => true
+	     *
+	     * _.isString(1);
+	     * // => false
+	     */
+	    function isString(value) {
+	      return typeof value == 'string' ||
+	        (!isArray(value) && isObjectLike(value) && baseGetTag(value) == stringTag);
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `Symbol` primitive or object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
+	     * @example
+	     *
+	     * _.isSymbol(Symbol.iterator);
+	     * // => true
+	     *
+	     * _.isSymbol('abc');
+	     * // => false
+	     */
+	    function isSymbol(value) {
+	      return typeof value == 'symbol' ||
+	        (isObjectLike(value) && baseGetTag(value) == symbolTag);
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a typed array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.
+	     * @example
+	     *
+	     * _.isTypedArray(new Uint8Array);
+	     * // => true
+	     *
+	     * _.isTypedArray([]);
+	     * // => false
+	     */
+	    var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
+
+	    /**
+	     * Checks if `value` is `undefined`.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is `undefined`, else `false`.
+	     * @example
+	     *
+	     * _.isUndefined(void 0);
+	     * // => true
+	     *
+	     * _.isUndefined(null);
+	     * // => false
+	     */
+	    function isUndefined(value) {
+	      return value === undefined;
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `WeakMap` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a weak map, else `false`.
+	     * @example
+	     *
+	     * _.isWeakMap(new WeakMap);
+	     * // => true
+	     *
+	     * _.isWeakMap(new Map);
+	     * // => false
+	     */
+	    function isWeakMap(value) {
+	      return isObjectLike(value) && getTag(value) == weakMapTag;
+	    }
+
+	    /**
+	     * Checks if `value` is classified as a `WeakSet` object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.3.0
+	     * @category Lang
+	     * @param {*} value The value to check.
+	     * @returns {boolean} Returns `true` if `value` is a weak set, else `false`.
+	     * @example
+	     *
+	     * _.isWeakSet(new WeakSet);
+	     * // => true
+	     *
+	     * _.isWeakSet(new Set);
+	     * // => false
+	     */
+	    function isWeakSet(value) {
+	      return isObjectLike(value) && baseGetTag(value) == weakSetTag;
+	    }
+
+	    /**
+	     * Checks if `value` is less than `other`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.9.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is less than `other`,
+	     *  else `false`.
+	     * @see _.gt
+	     * @example
+	     *
+	     * _.lt(1, 3);
+	     * // => true
+	     *
+	     * _.lt(3, 3);
+	     * // => false
+	     *
+	     * _.lt(3, 1);
+	     * // => false
+	     */
+	    var lt = createRelationalOperation(baseLt);
+
+	    /**
+	     * Checks if `value` is less than or equal to `other`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.9.0
+	     * @category Lang
+	     * @param {*} value The value to compare.
+	     * @param {*} other The other value to compare.
+	     * @returns {boolean} Returns `true` if `value` is less than or equal to
+	     *  `other`, else `false`.
+	     * @see _.gte
+	     * @example
+	     *
+	     * _.lte(1, 3);
+	     * // => true
+	     *
+	     * _.lte(3, 3);
+	     * // => true
+	     *
+	     * _.lte(3, 1);
+	     * // => false
+	     */
+	    var lte = createRelationalOperation(function(value, other) {
+	      return value <= other;
+	    });
+
+	    /**
+	     * Converts `value` to an array.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {Array} Returns the converted array.
+	     * @example
+	     *
+	     * _.toArray({ 'a': 1, 'b': 2 });
+	     * // => [1, 2]
+	     *
+	     * _.toArray('abc');
+	     * // => ['a', 'b', 'c']
+	     *
+	     * _.toArray(1);
+	     * // => []
+	     *
+	     * _.toArray(null);
+	     * // => []
+	     */
+	    function toArray(value) {
+	      if (!value) {
+	        return [];
+	      }
+	      if (isArrayLike(value)) {
+	        return isString(value) ? stringToArray(value) : copyArray(value);
+	      }
+	      if (symIterator && value[symIterator]) {
+	        return iteratorToArray(value[symIterator]());
+	      }
+	      var tag = getTag(value),
+	          func = tag == mapTag ? mapToArray : (tag == setTag ? setToArray : values);
+
+	      return func(value);
+	    }
+
+	    /**
+	     * Converts `value` to a finite number.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.12.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {number} Returns the converted number.
+	     * @example
+	     *
+	     * _.toFinite(3.2);
+	     * // => 3.2
+	     *
+	     * _.toFinite(Number.MIN_VALUE);
+	     * // => 5e-324
+	     *
+	     * _.toFinite(Infinity);
+	     * // => 1.7976931348623157e+308
+	     *
+	     * _.toFinite('3.2');
+	     * // => 3.2
+	     */
+	    function toFinite(value) {
+	      if (!value) {
+	        return value === 0 ? value : 0;
+	      }
+	      value = toNumber(value);
+	      if (value === INFINITY || value === -INFINITY) {
+	        var sign = (value < 0 ? -1 : 1);
+	        return sign * MAX_INTEGER;
+	      }
+	      return value === value ? value : 0;
+	    }
+
+	    /**
+	     * Converts `value` to an integer.
+	     *
+	     * **Note:** This method is loosely based on
+	     * [`ToInteger`](http://www.ecma-international.org/ecma-262/7.0/#sec-tointeger).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {number} Returns the converted integer.
+	     * @example
+	     *
+	     * _.toInteger(3.2);
+	     * // => 3
+	     *
+	     * _.toInteger(Number.MIN_VALUE);
+	     * // => 0
+	     *
+	     * _.toInteger(Infinity);
+	     * // => 1.7976931348623157e+308
+	     *
+	     * _.toInteger('3.2');
+	     * // => 3
+	     */
+	    function toInteger(value) {
+	      var result = toFinite(value),
+	          remainder = result % 1;
+
+	      return result === result ? (remainder ? result - remainder : result) : 0;
+	    }
+
+	    /**
+	     * Converts `value` to an integer suitable for use as the length of an
+	     * array-like object.
+	     *
+	     * **Note:** This method is based on
+	     * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {number} Returns the converted integer.
+	     * @example
+	     *
+	     * _.toLength(3.2);
+	     * // => 3
+	     *
+	     * _.toLength(Number.MIN_VALUE);
+	     * // => 0
+	     *
+	     * _.toLength(Infinity);
+	     * // => 4294967295
+	     *
+	     * _.toLength('3.2');
+	     * // => 3
+	     */
+	    function toLength(value) {
+	      return value ? baseClamp(toInteger(value), 0, MAX_ARRAY_LENGTH) : 0;
+	    }
+
+	    /**
+	     * Converts `value` to a number.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to process.
+	     * @returns {number} Returns the number.
+	     * @example
+	     *
+	     * _.toNumber(3.2);
+	     * // => 3.2
+	     *
+	     * _.toNumber(Number.MIN_VALUE);
+	     * // => 5e-324
+	     *
+	     * _.toNumber(Infinity);
+	     * // => Infinity
+	     *
+	     * _.toNumber('3.2');
+	     * // => 3.2
+	     */
+	    function toNumber(value) {
+	      if (typeof value == 'number') {
+	        return value;
+	      }
+	      if (isSymbol(value)) {
+	        return NAN;
+	      }
+	      if (isObject(value)) {
+	        var other = typeof value.valueOf == 'function' ? value.valueOf() : value;
+	        value = isObject(other) ? (other + '') : other;
+	      }
+	      if (typeof value != 'string') {
+	        return value === 0 ? value : +value;
+	      }
+	      value = value.replace(reTrim, '');
+	      var isBinary = reIsBinary.test(value);
+	      return (isBinary || reIsOctal.test(value))
+	        ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
+	        : (reIsBadHex.test(value) ? NAN : +value);
+	    }
+
+	    /**
+	     * Converts `value` to a plain object flattening inherited enumerable string
+	     * keyed properties of `value` to own properties of the plain object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {Object} Returns the converted plain object.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.assign({ 'a': 1 }, new Foo);
+	     * // => { 'a': 1, 'b': 2 }
+	     *
+	     * _.assign({ 'a': 1 }, _.toPlainObject(new Foo));
+	     * // => { 'a': 1, 'b': 2, 'c': 3 }
+	     */
+	    function toPlainObject(value) {
+	      return copyObject(value, keysIn(value));
+	    }
+
+	    /**
+	     * Converts `value` to a safe integer. A safe integer can be compared and
+	     * represented correctly.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {number} Returns the converted integer.
+	     * @example
+	     *
+	     * _.toSafeInteger(3.2);
+	     * // => 3
+	     *
+	     * _.toSafeInteger(Number.MIN_VALUE);
+	     * // => 0
+	     *
+	     * _.toSafeInteger(Infinity);
+	     * // => 9007199254740991
+	     *
+	     * _.toSafeInteger('3.2');
+	     * // => 3
+	     */
+	    function toSafeInteger(value) {
+	      return value
+	        ? baseClamp(toInteger(value), -MAX_SAFE_INTEGER, MAX_SAFE_INTEGER)
+	        : (value === 0 ? value : 0);
+	    }
+
+	    /**
+	     * Converts `value` to a string. An empty string is returned for `null`
+	     * and `undefined` values. The sign of `-0` is preserved.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Lang
+	     * @param {*} value The value to convert.
+	     * @returns {string} Returns the converted string.
+	     * @example
+	     *
+	     * _.toString(null);
+	     * // => ''
+	     *
+	     * _.toString(-0);
+	     * // => '-0'
+	     *
+	     * _.toString([1, 2, 3]);
+	     * // => '1,2,3'
+	     */
+	    function toString(value) {
+	      return value == null ? '' : baseToString(value);
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Assigns own enumerable string keyed properties of source objects to the
+	     * destination object. Source objects are applied from left to right.
+	     * Subsequent sources overwrite property assignments of previous sources.
+	     *
+	     * **Note:** This method mutates `object` and is loosely based on
+	     * [`Object.assign`](https://mdn.io/Object/assign).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.10.0
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} [sources] The source objects.
+	     * @returns {Object} Returns `object`.
+	     * @see _.assignIn
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     * }
+	     *
+	     * function Bar() {
+	     *   this.c = 3;
+	     * }
+	     *
+	     * Foo.prototype.b = 2;
+	     * Bar.prototype.d = 4;
+	     *
+	     * _.assign({ 'a': 0 }, new Foo, new Bar);
+	     * // => { 'a': 1, 'c': 3 }
+	     */
+	    var assign = createAssigner(function(object, source) {
+	      if (isPrototype(source) || isArrayLike(source)) {
+	        copyObject(source, keys(source), object);
+	        return;
+	      }
+	      for (var key in source) {
+	        if (hasOwnProperty.call(source, key)) {
+	          assignValue(object, key, source[key]);
+	        }
+	      }
+	    });
+
+	    /**
+	     * This method is like `_.assign` except that it iterates over own and
+	     * inherited source properties.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @alias extend
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} [sources] The source objects.
+	     * @returns {Object} Returns `object`.
+	     * @see _.assign
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     * }
+	     *
+	     * function Bar() {
+	     *   this.c = 3;
+	     * }
+	     *
+	     * Foo.prototype.b = 2;
+	     * Bar.prototype.d = 4;
+	     *
+	     * _.assignIn({ 'a': 0 }, new Foo, new Bar);
+	     * // => { 'a': 1, 'b': 2, 'c': 3, 'd': 4 }
+	     */
+	    var assignIn = createAssigner(function(object, source) {
+	      copyObject(source, keysIn(source), object);
+	    });
+
+	    /**
+	     * This method is like `_.assignIn` except that it accepts `customizer`
+	     * which is invoked to produce the assigned values. If `customizer` returns
+	     * `undefined`, assignment is handled by the method instead. The `customizer`
+	     * is invoked with five arguments: (objValue, srcValue, key, object, source).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @alias extendWith
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} sources The source objects.
+	     * @param {Function} [customizer] The function to customize assigned values.
+	     * @returns {Object} Returns `object`.
+	     * @see _.assignWith
+	     * @example
+	     *
+	     * function customizer(objValue, srcValue) {
+	     *   return _.isUndefined(objValue) ? srcValue : objValue;
+	     * }
+	     *
+	     * var defaults = _.partialRight(_.assignInWith, customizer);
+	     *
+	     * defaults({ 'a': 1 }, { 'b': 2 }, { 'a': 3 });
+	     * // => { 'a': 1, 'b': 2 }
+	     */
+	    var assignInWith = createAssigner(function(object, source, srcIndex, customizer) {
+	      copyObject(source, keysIn(source), object, customizer);
+	    });
+
+	    /**
+	     * This method is like `_.assign` except that it accepts `customizer`
+	     * which is invoked to produce the assigned values. If `customizer` returns
+	     * `undefined`, assignment is handled by the method instead. The `customizer`
+	     * is invoked with five arguments: (objValue, srcValue, key, object, source).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} sources The source objects.
+	     * @param {Function} [customizer] The function to customize assigned values.
+	     * @returns {Object} Returns `object`.
+	     * @see _.assignInWith
+	     * @example
+	     *
+	     * function customizer(objValue, srcValue) {
+	     *   return _.isUndefined(objValue) ? srcValue : objValue;
+	     * }
+	     *
+	     * var defaults = _.partialRight(_.assignWith, customizer);
+	     *
+	     * defaults({ 'a': 1 }, { 'b': 2 }, { 'a': 3 });
+	     * // => { 'a': 1, 'b': 2 }
+	     */
+	    var assignWith = createAssigner(function(object, source, srcIndex, customizer) {
+	      copyObject(source, keys(source), object, customizer);
+	    });
+
+	    /**
+	     * Creates an array of values corresponding to `paths` of `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.0.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {...(string|string[])} [paths] The property paths to pick.
+	     * @returns {Array} Returns the picked values.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 3 } }, 4] };
+	     *
+	     * _.at(object, ['a[0].b.c', 'a[1]']);
+	     * // => [3, 4]
+	     */
+	    var at = flatRest(baseAt);
+
+	    /**
+	     * Creates an object that inherits from the `prototype` object. If a
+	     * `properties` object is given, its own enumerable string keyed properties
+	     * are assigned to the created object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.3.0
+	     * @category Object
+	     * @param {Object} prototype The object to inherit from.
+	     * @param {Object} [properties] The properties to assign to the object.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * function Shape() {
+	     *   this.x = 0;
+	     *   this.y = 0;
+	     * }
+	     *
+	     * function Circle() {
+	     *   Shape.call(this);
+	     * }
+	     *
+	     * Circle.prototype = _.create(Shape.prototype, {
+	     *   'constructor': Circle
+	     * });
+	     *
+	     * var circle = new Circle;
+	     * circle instanceof Circle;
+	     * // => true
+	     *
+	     * circle instanceof Shape;
+	     * // => true
+	     */
+	    function create(prototype, properties) {
+	      var result = baseCreate(prototype);
+	      return properties == null ? result : baseAssign(result, properties);
+	    }
+
+	    /**
+	     * Assigns own and inherited enumerable string keyed properties of source
+	     * objects to the destination object for all destination properties that
+	     * resolve to `undefined`. Source objects are applied from left to right.
+	     * Once a property is set, additional values of the same property are ignored.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} [sources] The source objects.
+	     * @returns {Object} Returns `object`.
+	     * @see _.defaultsDeep
+	     * @example
+	     *
+	     * _.defaults({ 'a': 1 }, { 'b': 2 }, { 'a': 3 });
+	     * // => { 'a': 1, 'b': 2 }
+	     */
+	    var defaults = baseRest(function(object, sources) {
+	      object = Object(object);
+
+	      var index = -1;
+	      var length = sources.length;
+	      var guard = length > 2 ? sources[2] : undefined;
+
+	      if (guard && isIterateeCall(sources[0], sources[1], guard)) {
+	        length = 1;
+	      }
+
+	      while (++index < length) {
+	        var source = sources[index];
+	        var props = keysIn(source);
+	        var propsIndex = -1;
+	        var propsLength = props.length;
+
+	        while (++propsIndex < propsLength) {
+	          var key = props[propsIndex];
+	          var value = object[key];
+
+	          if (value === undefined ||
+	              (eq(value, objectProto[key]) && !hasOwnProperty.call(object, key))) {
+	            object[key] = source[key];
+	          }
+	        }
+	      }
+
+	      return object;
+	    });
+
+	    /**
+	     * This method is like `_.defaults` except that it recursively assigns
+	     * default properties.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.10.0
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} [sources] The source objects.
+	     * @returns {Object} Returns `object`.
+	     * @see _.defaults
+	     * @example
+	     *
+	     * _.defaultsDeep({ 'a': { 'b': 2 } }, { 'a': { 'b': 1, 'c': 3 } });
+	     * // => { 'a': { 'b': 2, 'c': 3 } }
+	     */
+	    var defaultsDeep = baseRest(function(args) {
+	      args.push(undefined, customDefaultsMerge);
+	      return apply(mergeWith, undefined, args);
+	    });
+
+	    /**
+	     * This method is like `_.find` except that it returns the key of the first
+	     * element `predicate` returns truthy for instead of the element itself.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.1.0
+	     * @category Object
+	     * @param {Object} object The object to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {string|undefined} Returns the key of the matched element,
+	     *  else `undefined`.
+	     * @example
+	     *
+	     * var users = {
+	     *   'barney':  { 'age': 36, 'active': true },
+	     *   'fred':    { 'age': 40, 'active': false },
+	     *   'pebbles': { 'age': 1,  'active': true }
+	     * };
+	     *
+	     * _.findKey(users, function(o) { return o.age < 40; });
+	     * // => 'barney' (iteration order is not guaranteed)
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.findKey(users, { 'age': 1, 'active': true });
+	     * // => 'pebbles'
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.findKey(users, ['active', false]);
+	     * // => 'fred'
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.findKey(users, 'active');
+	     * // => 'barney'
+	     */
+	    function findKey(object, predicate) {
+	      return baseFindKey(object, getIteratee(predicate, 3), baseForOwn);
+	    }
+
+	    /**
+	     * This method is like `_.findKey` except that it iterates over elements of
+	     * a collection in the opposite order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Object
+	     * @param {Object} object The object to inspect.
+	     * @param {Function} [predicate=_.identity] The function invoked per iteration.
+	     * @returns {string|undefined} Returns the key of the matched element,
+	     *  else `undefined`.
+	     * @example
+	     *
+	     * var users = {
+	     *   'barney':  { 'age': 36, 'active': true },
+	     *   'fred':    { 'age': 40, 'active': false },
+	     *   'pebbles': { 'age': 1,  'active': true }
+	     * };
+	     *
+	     * _.findLastKey(users, function(o) { return o.age < 40; });
+	     * // => returns 'pebbles' assuming `_.findKey` returns 'barney'
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.findLastKey(users, { 'age': 36, 'active': true });
+	     * // => 'barney'
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.findLastKey(users, ['active', false]);
+	     * // => 'fred'
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.findLastKey(users, 'active');
+	     * // => 'pebbles'
+	     */
+	    function findLastKey(object, predicate) {
+	      return baseFindKey(object, getIteratee(predicate, 3), baseForOwnRight);
+	    }
+
+	    /**
+	     * Iterates over own and inherited enumerable string keyed properties of an
+	     * object and invokes `iteratee` for each property. The iteratee is invoked
+	     * with three arguments: (value, key, object). Iteratee functions may exit
+	     * iteration early by explicitly returning `false`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.3.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     * @see _.forInRight
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.forIn(new Foo, function(value, key) {
+	     *   console.log(key);
+	     * });
+	     * // => Logs 'a', 'b', then 'c' (iteration order is not guaranteed).
+	     */
+	    function forIn(object, iteratee) {
+	      return object == null
+	        ? object
+	        : baseFor(object, getIteratee(iteratee, 3), keysIn);
+	    }
+
+	    /**
+	     * This method is like `_.forIn` except that it iterates over properties of
+	     * `object` in the opposite order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     * @see _.forIn
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.forInRight(new Foo, function(value, key) {
+	     *   console.log(key);
+	     * });
+	     * // => Logs 'c', 'b', then 'a' assuming `_.forIn` logs 'a', 'b', then 'c'.
+	     */
+	    function forInRight(object, iteratee) {
+	      return object == null
+	        ? object
+	        : baseForRight(object, getIteratee(iteratee, 3), keysIn);
+	    }
+
+	    /**
+	     * Iterates over own enumerable string keyed properties of an object and
+	     * invokes `iteratee` for each property. The iteratee is invoked with three
+	     * arguments: (value, key, object). Iteratee functions may exit iteration
+	     * early by explicitly returning `false`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.3.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     * @see _.forOwnRight
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.forOwn(new Foo, function(value, key) {
+	     *   console.log(key);
+	     * });
+	     * // => Logs 'a' then 'b' (iteration order is not guaranteed).
+	     */
+	    function forOwn(object, iteratee) {
+	      return object && baseForOwn(object, getIteratee(iteratee, 3));
+	    }
+
+	    /**
+	     * This method is like `_.forOwn` except that it iterates over properties of
+	     * `object` in the opposite order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.0.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns `object`.
+	     * @see _.forOwn
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.forOwnRight(new Foo, function(value, key) {
+	     *   console.log(key);
+	     * });
+	     * // => Logs 'b' then 'a' assuming `_.forOwn` logs 'a' then 'b'.
+	     */
+	    function forOwnRight(object, iteratee) {
+	      return object && baseForOwnRight(object, getIteratee(iteratee, 3));
+	    }
+
+	    /**
+	     * Creates an array of function property names from own enumerable properties
+	     * of `object`.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The object to inspect.
+	     * @returns {Array} Returns the function names.
+	     * @see _.functionsIn
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = _.constant('a');
+	     *   this.b = _.constant('b');
+	     * }
+	     *
+	     * Foo.prototype.c = _.constant('c');
+	     *
+	     * _.functions(new Foo);
+	     * // => ['a', 'b']
+	     */
+	    function functions(object) {
+	      return object == null ? [] : baseFunctions(object, keys(object));
+	    }
+
+	    /**
+	     * Creates an array of function property names from own and inherited
+	     * enumerable properties of `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The object to inspect.
+	     * @returns {Array} Returns the function names.
+	     * @see _.functions
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = _.constant('a');
+	     *   this.b = _.constant('b');
+	     * }
+	     *
+	     * Foo.prototype.c = _.constant('c');
+	     *
+	     * _.functionsIn(new Foo);
+	     * // => ['a', 'b', 'c']
+	     */
+	    function functionsIn(object) {
+	      return object == null ? [] : baseFunctions(object, keysIn(object));
+	    }
+
+	    /**
+	     * Gets the value at `path` of `object`. If the resolved value is
+	     * `undefined`, the `defaultValue` is returned in its place.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.7.0
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path of the property to get.
+	     * @param {*} [defaultValue] The value returned for `undefined` resolved values.
+	     * @returns {*} Returns the resolved value.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 3 } }] };
+	     *
+	     * _.get(object, 'a[0].b.c');
+	     * // => 3
+	     *
+	     * _.get(object, ['a', '0', 'b', 'c']);
+	     * // => 3
+	     *
+	     * _.get(object, 'a.b.c', 'default');
+	     * // => 'default'
+	     */
+	    function get(object, path, defaultValue) {
+	      var result = object == null ? undefined : baseGet(object, path);
+	      return result === undefined ? defaultValue : result;
+	    }
+
+	    /**
+	     * Checks if `path` is a direct property of `object`.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path to check.
+	     * @returns {boolean} Returns `true` if `path` exists, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': { 'b': 2 } };
+	     * var other = _.create({ 'a': _.create({ 'b': 2 }) });
+	     *
+	     * _.has(object, 'a');
+	     * // => true
+	     *
+	     * _.has(object, 'a.b');
+	     * // => true
+	     *
+	     * _.has(object, ['a', 'b']);
+	     * // => true
+	     *
+	     * _.has(other, 'a');
+	     * // => false
+	     */
+	    function has(object, path) {
+	      return object != null && hasPath(object, path, baseHas);
+	    }
+
+	    /**
+	     * Checks if `path` is a direct or inherited property of `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path to check.
+	     * @returns {boolean} Returns `true` if `path` exists, else `false`.
+	     * @example
+	     *
+	     * var object = _.create({ 'a': _.create({ 'b': 2 }) });
+	     *
+	     * _.hasIn(object, 'a');
+	     * // => true
+	     *
+	     * _.hasIn(object, 'a.b');
+	     * // => true
+	     *
+	     * _.hasIn(object, ['a', 'b']);
+	     * // => true
+	     *
+	     * _.hasIn(object, 'b');
+	     * // => false
+	     */
+	    function hasIn(object, path) {
+	      return object != null && hasPath(object, path, baseHasIn);
+	    }
+
+	    /**
+	     * Creates an object composed of the inverted keys and values of `object`.
+	     * If `object` contains duplicate values, subsequent values overwrite
+	     * property assignments of previous values.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.7.0
+	     * @category Object
+	     * @param {Object} object The object to invert.
+	     * @returns {Object} Returns the new inverted object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': 2, 'c': 1 };
+	     *
+	     * _.invert(object);
+	     * // => { '1': 'c', '2': 'b' }
+	     */
+	    var invert = createInverter(function(result, value, key) {
+	      if (value != null &&
+	          typeof value.toString != 'function') {
+	        value = nativeObjectToString.call(value);
+	      }
+
+	      result[value] = key;
+	    }, constant(identity));
+
+	    /**
+	     * This method is like `_.invert` except that the inverted object is generated
+	     * from the results of running each element of `object` thru `iteratee`. The
+	     * corresponding inverted value of each inverted key is an array of keys
+	     * responsible for generating the inverted value. The iteratee is invoked
+	     * with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.1.0
+	     * @category Object
+	     * @param {Object} object The object to invert.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {Object} Returns the new inverted object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': 2, 'c': 1 };
+	     *
+	     * _.invertBy(object);
+	     * // => { '1': ['a', 'c'], '2': ['b'] }
+	     *
+	     * _.invertBy(object, function(value) {
+	     *   return 'group' + value;
+	     * });
+	     * // => { 'group1': ['a', 'c'], 'group2': ['b'] }
+	     */
+	    var invertBy = createInverter(function(result, value, key) {
+	      if (value != null &&
+	          typeof value.toString != 'function') {
+	        value = nativeObjectToString.call(value);
+	      }
+
+	      if (hasOwnProperty.call(result, value)) {
+	        result[value].push(key);
+	      } else {
+	        result[value] = [key];
+	      }
+	    }, getIteratee);
+
+	    /**
+	     * Invokes the method at `path` of `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path of the method to invoke.
+	     * @param {...*} [args] The arguments to invoke the method with.
+	     * @returns {*} Returns the result of the invoked method.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': [1, 2, 3, 4] } }] };
+	     *
+	     * _.invoke(object, 'a[0].b.c.slice', 1, 3);
+	     * // => [2, 3]
+	     */
+	    var invoke = baseRest(baseInvoke);
+
+	    /**
+	     * Creates an array of the own enumerable property names of `object`.
+	     *
+	     * **Note:** Non-object values are coerced to objects. See the
+	     * [ES spec](http://ecma-international.org/ecma-262/7.0/#sec-object.keys)
+	     * for more details.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.keys(new Foo);
+	     * // => ['a', 'b'] (iteration order is not guaranteed)
+	     *
+	     * _.keys('hi');
+	     * // => ['0', '1']
+	     */
+	    function keys(object) {
+	      return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
+	    }
+
+	    /**
+	     * Creates an array of the own and inherited enumerable property names of `object`.
+	     *
+	     * **Note:** Non-object values are coerced to objects.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property names.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.keysIn(new Foo);
+	     * // => ['a', 'b', 'c'] (iteration order is not guaranteed)
+	     */
+	    function keysIn(object) {
+	      return isArrayLike(object) ? arrayLikeKeys(object, true) : baseKeysIn(object);
+	    }
+
+	    /**
+	     * The opposite of `_.mapValues`; this method creates an object with the
+	     * same values as `object` and keys generated by running each own enumerable
+	     * string keyed property of `object` thru `iteratee`. The iteratee is invoked
+	     * with three arguments: (value, key, object).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.8.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns the new mapped object.
+	     * @see _.mapValues
+	     * @example
+	     *
+	     * _.mapKeys({ 'a': 1, 'b': 2 }, function(value, key) {
+	     *   return key + value;
+	     * });
+	     * // => { 'a1': 1, 'b2': 2 }
+	     */
+	    function mapKeys(object, iteratee) {
+	      var result = {};
+	      iteratee = getIteratee(iteratee, 3);
+
+	      baseForOwn(object, function(value, key, object) {
+	        baseAssignValue(result, iteratee(value, key, object), value);
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * Creates an object with the same keys as `object` and values generated
+	     * by running each own enumerable string keyed property of `object` thru
+	     * `iteratee`. The iteratee is invoked with three arguments:
+	     * (value, key, object).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.4.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Object} Returns the new mapped object.
+	     * @see _.mapKeys
+	     * @example
+	     *
+	     * var users = {
+	     *   'fred':    { 'user': 'fred',    'age': 40 },
+	     *   'pebbles': { 'user': 'pebbles', 'age': 1 }
+	     * };
+	     *
+	     * _.mapValues(users, function(o) { return o.age; });
+	     * // => { 'fred': 40, 'pebbles': 1 } (iteration order is not guaranteed)
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.mapValues(users, 'age');
+	     * // => { 'fred': 40, 'pebbles': 1 } (iteration order is not guaranteed)
+	     */
+	    function mapValues(object, iteratee) {
+	      var result = {};
+	      iteratee = getIteratee(iteratee, 3);
+
+	      baseForOwn(object, function(value, key, object) {
+	        baseAssignValue(result, key, iteratee(value, key, object));
+	      });
+	      return result;
+	    }
+
+	    /**
+	     * This method is like `_.assign` except that it recursively merges own and
+	     * inherited enumerable string keyed properties of source objects into the
+	     * destination object. Source properties that resolve to `undefined` are
+	     * skipped if a destination value exists. Array and plain object properties
+	     * are merged recursively. Other objects and value types are overridden by
+	     * assignment. Source objects are applied from left to right. Subsequent
+	     * sources overwrite property assignments of previous sources.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.5.0
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} [sources] The source objects.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var object = {
+	     *   'a': [{ 'b': 2 }, { 'd': 4 }]
+	     * };
+	     *
+	     * var other = {
+	     *   'a': [{ 'c': 3 }, { 'e': 5 }]
+	     * };
+	     *
+	     * _.merge(object, other);
+	     * // => { 'a': [{ 'b': 2, 'c': 3 }, { 'd': 4, 'e': 5 }] }
+	     */
+	    var merge = createAssigner(function(object, source, srcIndex) {
+	      baseMerge(object, source, srcIndex);
+	    });
+
+	    /**
+	     * This method is like `_.merge` except that it accepts `customizer` which
+	     * is invoked to produce the merged values of the destination and source
+	     * properties. If `customizer` returns `undefined`, merging is handled by the
+	     * method instead. The `customizer` is invoked with six arguments:
+	     * (objValue, srcValue, key, object, source, stack).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The destination object.
+	     * @param {...Object} sources The source objects.
+	     * @param {Function} customizer The function to customize assigned values.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * function customizer(objValue, srcValue) {
+	     *   if (_.isArray(objValue)) {
+	     *     return objValue.concat(srcValue);
+	     *   }
+	     * }
+	     *
+	     * var object = { 'a': [1], 'b': [2] };
+	     * var other = { 'a': [3], 'b': [4] };
+	     *
+	     * _.mergeWith(object, other, customizer);
+	     * // => { 'a': [1, 3], 'b': [2, 4] }
+	     */
+	    var mergeWith = createAssigner(function(object, source, srcIndex, customizer) {
+	      baseMerge(object, source, srcIndex, customizer);
+	    });
+
+	    /**
+	     * The opposite of `_.pick`; this method creates an object composed of the
+	     * own and inherited enumerable property paths of `object` that are not omitted.
+	     *
+	     * **Note:** This method is considerably slower than `_.pick`.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The source object.
+	     * @param {...(string|string[])} [paths] The property paths to omit.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': '2', 'c': 3 };
+	     *
+	     * _.omit(object, ['a', 'c']);
+	     * // => { 'b': '2' }
+	     */
+	    var omit = flatRest(function(object, paths) {
+	      var result = {};
+	      if (object == null) {
+	        return result;
+	      }
+	      var isDeep = false;
+	      paths = arrayMap(paths, function(path) {
+	        path = castPath(path, object);
+	        isDeep || (isDeep = path.length > 1);
+	        return path;
+	      });
+	      copyObject(object, getAllKeysIn(object), result);
+	      if (isDeep) {
+	        result = baseClone(result, CLONE_DEEP_FLAG | CLONE_FLAT_FLAG | CLONE_SYMBOLS_FLAG, customOmitClone);
+	      }
+	      var length = paths.length;
+	      while (length--) {
+	        baseUnset(result, paths[length]);
+	      }
+	      return result;
+	    });
+
+	    /**
+	     * The opposite of `_.pickBy`; this method creates an object composed of
+	     * the own and inherited enumerable string keyed properties of `object` that
+	     * `predicate` doesn't return truthy for. The predicate is invoked with two
+	     * arguments: (value, key).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The source object.
+	     * @param {Function} [predicate=_.identity] The function invoked per property.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': '2', 'c': 3 };
+	     *
+	     * _.omitBy(object, _.isNumber);
+	     * // => { 'b': '2' }
+	     */
+	    function omitBy(object, predicate) {
+	      return pickBy(object, negate(getIteratee(predicate)));
+	    }
+
+	    /**
+	     * Creates an object composed of the picked `object` properties.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The source object.
+	     * @param {...(string|string[])} [paths] The property paths to pick.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': '2', 'c': 3 };
+	     *
+	     * _.pick(object, ['a', 'c']);
+	     * // => { 'a': 1, 'c': 3 }
+	     */
+	    var pick = flatRest(function(object, paths) {
+	      return object == null ? {} : basePick(object, paths);
+	    });
+
+	    /**
+	     * Creates an object composed of the `object` properties `predicate` returns
+	     * truthy for. The predicate is invoked with two arguments: (value, key).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The source object.
+	     * @param {Function} [predicate=_.identity] The function invoked per property.
+	     * @returns {Object} Returns the new object.
+	     * @example
+	     *
+	     * var object = { 'a': 1, 'b': '2', 'c': 3 };
+	     *
+	     * _.pickBy(object, _.isNumber);
+	     * // => { 'a': 1, 'c': 3 }
+	     */
+	    function pickBy(object, predicate) {
+	      if (object == null) {
+	        return {};
+	      }
+	      var props = arrayMap(getAllKeysIn(object), function(prop) {
+	        return [prop];
+	      });
+	      predicate = getIteratee(predicate);
+	      return basePickBy(object, props, function(value, path) {
+	        return predicate(value, path[0]);
+	      });
+	    }
+
+	    /**
+	     * This method is like `_.get` except that if the resolved value is a
+	     * function it's invoked with the `this` binding of its parent object and
+	     * its result is returned.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @param {Array|string} path The path of the property to resolve.
+	     * @param {*} [defaultValue] The value returned for `undefined` resolved values.
+	     * @returns {*} Returns the resolved value.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c1': 3, 'c2': _.constant(4) } }] };
+	     *
+	     * _.result(object, 'a[0].b.c1');
+	     * // => 3
+	     *
+	     * _.result(object, 'a[0].b.c2');
+	     * // => 4
+	     *
+	     * _.result(object, 'a[0].b.c3', 'default');
+	     * // => 'default'
+	     *
+	     * _.result(object, 'a[0].b.c3', _.constant('default'));
+	     * // => 'default'
+	     */
+	    function result(object, path, defaultValue) {
+	      path = castPath(path, object);
+
+	      var index = -1,
+	          length = path.length;
+
+	      // Ensure the loop is entered when path is empty.
+	      if (!length) {
+	        length = 1;
+	        object = undefined;
+	      }
+	      while (++index < length) {
+	        var value = object == null ? undefined : object[toKey(path[index])];
+	        if (value === undefined) {
+	          index = length;
+	          value = defaultValue;
+	        }
+	        object = isFunction(value) ? value.call(object) : value;
+	      }
+	      return object;
+	    }
+
+	    /**
+	     * Sets the value at `path` of `object`. If a portion of `path` doesn't exist,
+	     * it's created. Arrays are created for missing index properties while objects
+	     * are created for all other missing properties. Use `_.setWith` to customize
+	     * `path` creation.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.7.0
+	     * @category Object
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to set.
+	     * @param {*} value The value to set.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 3 } }] };
+	     *
+	     * _.set(object, 'a[0].b.c', 4);
+	     * console.log(object.a[0].b.c);
+	     * // => 4
+	     *
+	     * _.set(object, ['x', '0', 'y', 'z'], 5);
+	     * console.log(object.x[0].y.z);
+	     * // => 5
+	     */
+	    function set(object, path, value) {
+	      return object == null ? object : baseSet(object, path, value);
+	    }
+
+	    /**
+	     * This method is like `_.set` except that it accepts `customizer` which is
+	     * invoked to produce the objects of `path`.  If `customizer` returns `undefined`
+	     * path creation is handled by the method instead. The `customizer` is invoked
+	     * with three arguments: (nsValue, key, nsObject).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to set.
+	     * @param {*} value The value to set.
+	     * @param {Function} [customizer] The function to customize assigned values.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var object = {};
+	     *
+	     * _.setWith(object, '[0][1]', 'a', Object);
+	     * // => { '0': { '1': 'a' } }
+	     */
+	    function setWith(object, path, value, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      return object == null ? object : baseSet(object, path, value, customizer);
+	    }
+
+	    /**
+	     * Creates an array of own enumerable string keyed-value pairs for `object`
+	     * which can be consumed by `_.fromPairs`. If `object` is a map or set, its
+	     * entries are returned.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @alias entries
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the key-value pairs.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.toPairs(new Foo);
+	     * // => [['a', 1], ['b', 2]] (iteration order is not guaranteed)
+	     */
+	    var toPairs = createToPairs(keys);
+
+	    /**
+	     * Creates an array of own and inherited enumerable string keyed-value pairs
+	     * for `object` which can be consumed by `_.fromPairs`. If `object` is a map
+	     * or set, its entries are returned.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @alias entriesIn
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the key-value pairs.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.toPairsIn(new Foo);
+	     * // => [['a', 1], ['b', 2], ['c', 3]] (iteration order is not guaranteed)
+	     */
+	    var toPairsIn = createToPairs(keysIn);
+
+	    /**
+	     * An alternative to `_.reduce`; this method transforms `object` to a new
+	     * `accumulator` object which is the result of running each of its own
+	     * enumerable string keyed properties thru `iteratee`, with each invocation
+	     * potentially mutating the `accumulator` object. If `accumulator` is not
+	     * provided, a new object with the same `[[Prototype]]` will be used. The
+	     * iteratee is invoked with four arguments: (accumulator, value, key, object).
+	     * Iteratee functions may exit iteration early by explicitly returning `false`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.3.0
+	     * @category Object
+	     * @param {Object} object The object to iterate over.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @param {*} [accumulator] The custom accumulator value.
+	     * @returns {*} Returns the accumulated value.
+	     * @example
+	     *
+	     * _.transform([2, 3, 4], function(result, n) {
+	     *   result.push(n *= n);
+	     *   return n % 2 == 0;
+	     * }, []);
+	     * // => [4, 9]
+	     *
+	     * _.transform({ 'a': 1, 'b': 2, 'c': 1 }, function(result, value, key) {
+	     *   (result[value] || (result[value] = [])).push(key);
+	     * }, {});
+	     * // => { '1': ['a', 'c'], '2': ['b'] }
+	     */
+	    function transform(object, iteratee, accumulator) {
+	      var isArr = isArray(object),
+	          isArrLike = isArr || isBuffer(object) || isTypedArray(object);
+
+	      iteratee = getIteratee(iteratee, 4);
+	      if (accumulator == null) {
+	        var Ctor = object && object.constructor;
+	        if (isArrLike) {
+	          accumulator = isArr ? new Ctor : [];
+	        }
+	        else if (isObject(object)) {
+	          accumulator = isFunction(Ctor) ? baseCreate(getPrototype(object)) : {};
+	        }
+	        else {
+	          accumulator = {};
+	        }
+	      }
+	      (isArrLike ? arrayEach : baseForOwn)(object, function(value, index, object) {
+	        return iteratee(accumulator, value, index, object);
+	      });
+	      return accumulator;
+	    }
+
+	    /**
+	     * Removes the property at `path` of `object`.
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Object
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to unset.
+	     * @returns {boolean} Returns `true` if the property is deleted, else `false`.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 7 } }] };
+	     * _.unset(object, 'a[0].b.c');
+	     * // => true
+	     *
+	     * console.log(object);
+	     * // => { 'a': [{ 'b': {} }] };
+	     *
+	     * _.unset(object, ['a', '0', 'b', 'c']);
+	     * // => true
+	     *
+	     * console.log(object);
+	     * // => { 'a': [{ 'b': {} }] };
+	     */
+	    function unset(object, path) {
+	      return object == null ? true : baseUnset(object, path);
+	    }
+
+	    /**
+	     * This method is like `_.set` except that accepts `updater` to produce the
+	     * value to set. Use `_.updateWith` to customize `path` creation. The `updater`
+	     * is invoked with one argument: (value).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.6.0
+	     * @category Object
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to set.
+	     * @param {Function} updater The function to produce the updated value.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var object = { 'a': [{ 'b': { 'c': 3 } }] };
+	     *
+	     * _.update(object, 'a[0].b.c', function(n) { return n * n; });
+	     * console.log(object.a[0].b.c);
+	     * // => 9
+	     *
+	     * _.update(object, 'x[0].y.z', function(n) { return n ? n + 1 : 0; });
+	     * console.log(object.x[0].y.z);
+	     * // => 0
+	     */
+	    function update(object, path, updater) {
+	      return object == null ? object : baseUpdate(object, path, castFunction(updater));
+	    }
+
+	    /**
+	     * This method is like `_.update` except that it accepts `customizer` which is
+	     * invoked to produce the objects of `path`.  If `customizer` returns `undefined`
+	     * path creation is handled by the method instead. The `customizer` is invoked
+	     * with three arguments: (nsValue, key, nsObject).
+	     *
+	     * **Note:** This method mutates `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.6.0
+	     * @category Object
+	     * @param {Object} object The object to modify.
+	     * @param {Array|string} path The path of the property to set.
+	     * @param {Function} updater The function to produce the updated value.
+	     * @param {Function} [customizer] The function to customize assigned values.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var object = {};
+	     *
+	     * _.updateWith(object, '[0][1]', _.constant('a'), Object);
+	     * // => { '0': { '1': 'a' } }
+	     */
+	    function updateWith(object, path, updater, customizer) {
+	      customizer = typeof customizer == 'function' ? customizer : undefined;
+	      return object == null ? object : baseUpdate(object, path, castFunction(updater), customizer);
+	    }
+
+	    /**
+	     * Creates an array of the own enumerable string keyed property values of `object`.
+	     *
+	     * **Note:** Non-object values are coerced to objects.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property values.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.values(new Foo);
+	     * // => [1, 2] (iteration order is not guaranteed)
+	     *
+	     * _.values('hi');
+	     * // => ['h', 'i']
+	     */
+	    function values(object) {
+	      return object == null ? [] : baseValues(object, keys(object));
+	    }
+
+	    /**
+	     * Creates an array of the own and inherited enumerable string keyed property
+	     * values of `object`.
+	     *
+	     * **Note:** Non-object values are coerced to objects.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Object
+	     * @param {Object} object The object to query.
+	     * @returns {Array} Returns the array of property values.
+	     * @example
+	     *
+	     * function Foo() {
+	     *   this.a = 1;
+	     *   this.b = 2;
+	     * }
+	     *
+	     * Foo.prototype.c = 3;
+	     *
+	     * _.valuesIn(new Foo);
+	     * // => [1, 2, 3] (iteration order is not guaranteed)
+	     */
+	    function valuesIn(object) {
+	      return object == null ? [] : baseValues(object, keysIn(object));
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Clamps `number` within the inclusive `lower` and `upper` bounds.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Number
+	     * @param {number} number The number to clamp.
+	     * @param {number} [lower] The lower bound.
+	     * @param {number} upper The upper bound.
+	     * @returns {number} Returns the clamped number.
+	     * @example
+	     *
+	     * _.clamp(-10, -5, 5);
+	     * // => -5
+	     *
+	     * _.clamp(10, -5, 5);
+	     * // => 5
+	     */
+	    function clamp(number, lower, upper) {
+	      if (upper === undefined) {
+	        upper = lower;
+	        lower = undefined;
+	      }
+	      if (upper !== undefined) {
+	        upper = toNumber(upper);
+	        upper = upper === upper ? upper : 0;
+	      }
+	      if (lower !== undefined) {
+	        lower = toNumber(lower);
+	        lower = lower === lower ? lower : 0;
+	      }
+	      return baseClamp(toNumber(number), lower, upper);
+	    }
+
+	    /**
+	     * Checks if `n` is between `start` and up to, but not including, `end`. If
+	     * `end` is not specified, it's set to `start` with `start` then set to `0`.
+	     * If `start` is greater than `end` the params are swapped to support
+	     * negative ranges.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.3.0
+	     * @category Number
+	     * @param {number} number The number to check.
+	     * @param {number} [start=0] The start of the range.
+	     * @param {number} end The end of the range.
+	     * @returns {boolean} Returns `true` if `number` is in the range, else `false`.
+	     * @see _.range, _.rangeRight
+	     * @example
+	     *
+	     * _.inRange(3, 2, 4);
+	     * // => true
+	     *
+	     * _.inRange(4, 8);
+	     * // => true
+	     *
+	     * _.inRange(4, 2);
+	     * // => false
+	     *
+	     * _.inRange(2, 2);
+	     * // => false
+	     *
+	     * _.inRange(1.2, 2);
+	     * // => true
+	     *
+	     * _.inRange(5.2, 4);
+	     * // => false
+	     *
+	     * _.inRange(-3, -2, -6);
+	     * // => true
+	     */
+	    function inRange(number, start, end) {
+	      start = toFinite(start);
+	      if (end === undefined) {
+	        end = start;
+	        start = 0;
+	      } else {
+	        end = toFinite(end);
+	      }
+	      number = toNumber(number);
+	      return baseInRange(number, start, end);
+	    }
+
+	    /**
+	     * Produces a random number between the inclusive `lower` and `upper` bounds.
+	     * If only one argument is provided a number between `0` and the given number
+	     * is returned. If `floating` is `true`, or either `lower` or `upper` are
+	     * floats, a floating-point number is returned instead of an integer.
+	     *
+	     * **Note:** JavaScript follows the IEEE-754 standard for resolving
+	     * floating-point values which can produce unexpected results.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.7.0
+	     * @category Number
+	     * @param {number} [lower=0] The lower bound.
+	     * @param {number} [upper=1] The upper bound.
+	     * @param {boolean} [floating] Specify returning a floating-point number.
+	     * @returns {number} Returns the random number.
+	     * @example
+	     *
+	     * _.random(0, 5);
+	     * // => an integer between 0 and 5
+	     *
+	     * _.random(5);
+	     * // => also an integer between 0 and 5
+	     *
+	     * _.random(5, true);
+	     * // => a floating-point number between 0 and 5
+	     *
+	     * _.random(1.2, 5.2);
+	     * // => a floating-point number between 1.2 and 5.2
+	     */
+	    function random(lower, upper, floating) {
+	      if (floating && typeof floating != 'boolean' && isIterateeCall(lower, upper, floating)) {
+	        upper = floating = undefined;
+	      }
+	      if (floating === undefined) {
+	        if (typeof upper == 'boolean') {
+	          floating = upper;
+	          upper = undefined;
+	        }
+	        else if (typeof lower == 'boolean') {
+	          floating = lower;
+	          lower = undefined;
+	        }
+	      }
+	      if (lower === undefined && upper === undefined) {
+	        lower = 0;
+	        upper = 1;
+	      }
+	      else {
+	        lower = toFinite(lower);
+	        if (upper === undefined) {
+	          upper = lower;
+	          lower = 0;
+	        } else {
+	          upper = toFinite(upper);
+	        }
+	      }
+	      if (lower > upper) {
+	        var temp = lower;
+	        lower = upper;
+	        upper = temp;
+	      }
+	      if (floating || lower % 1 || upper % 1) {
+	        var rand = nativeRandom();
+	        return nativeMin(lower + (rand * (upper - lower + freeParseFloat('1e-' + ((rand + '').length - 1)))), upper);
+	      }
+	      return baseRandom(lower, upper);
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Converts `string` to [camel case](https://en.wikipedia.org/wiki/CamelCase).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the camel cased string.
+	     * @example
+	     *
+	     * _.camelCase('Foo Bar');
+	     * // => 'fooBar'
+	     *
+	     * _.camelCase('--foo-bar--');
+	     * // => 'fooBar'
+	     *
+	     * _.camelCase('__FOO_BAR__');
+	     * // => 'fooBar'
+	     */
+	    var camelCase = createCompounder(function(result, word, index) {
+	      word = word.toLowerCase();
+	      return result + (index ? capitalize(word) : word);
+	    });
+
+	    /**
+	     * Converts the first character of `string` to upper case and the remaining
+	     * to lower case.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to capitalize.
+	     * @returns {string} Returns the capitalized string.
+	     * @example
+	     *
+	     * _.capitalize('FRED');
+	     * // => 'Fred'
+	     */
+	    function capitalize(string) {
+	      return upperFirst(toString(string).toLowerCase());
+	    }
+
+	    /**
+	     * Deburrs `string` by converting
+	     * [Latin-1 Supplement](https://en.wikipedia.org/wiki/Latin-1_Supplement_(Unicode_block)#Character_table)
+	     * and [Latin Extended-A](https://en.wikipedia.org/wiki/Latin_Extended-A)
+	     * letters to basic Latin letters and removing
+	     * [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to deburr.
+	     * @returns {string} Returns the deburred string.
+	     * @example
+	     *
+	     * _.deburr('déjà vu');
+	     * // => 'deja vu'
+	     */
+	    function deburr(string) {
+	      string = toString(string);
+	      return string && string.replace(reLatin, deburrLetter).replace(reComboMark, '');
+	    }
+
+	    /**
+	     * Checks if `string` ends with the given target string.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to inspect.
+	     * @param {string} [target] The string to search for.
+	     * @param {number} [position=string.length] The position to search up to.
+	     * @returns {boolean} Returns `true` if `string` ends with `target`,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.endsWith('abc', 'c');
+	     * // => true
+	     *
+	     * _.endsWith('abc', 'b');
+	     * // => false
+	     *
+	     * _.endsWith('abc', 'b', 2);
+	     * // => true
+	     */
+	    function endsWith(string, target, position) {
+	      string = toString(string);
+	      target = baseToString(target);
+
+	      var length = string.length;
+	      position = position === undefined
+	        ? length
+	        : baseClamp(toInteger(position), 0, length);
+
+	      var end = position;
+	      position -= target.length;
+	      return position >= 0 && string.slice(position, end) == target;
+	    }
+
+	    /**
+	     * Converts the characters "&", "<", ">", '"', and "'" in `string` to their
+	     * corresponding HTML entities.
+	     *
+	     * **Note:** No other characters are escaped. To escape additional
+	     * characters use a third-party library like [_he_](https://mths.be/he).
+	     *
+	     * Though the ">" character is escaped for symmetry, characters like
+	     * ">" and "/" don't need escaping in HTML and have no special meaning
+	     * unless they're part of a tag or unquoted attribute value. See
+	     * [Mathias Bynens's article](https://mathiasbynens.be/notes/ambiguous-ampersands)
+	     * (under "semi-related fun fact") for more details.
+	     *
+	     * When working with HTML you should always
+	     * [quote attribute values](http://wonko.com/post/html-escaping) to reduce
+	     * XSS vectors.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category String
+	     * @param {string} [string=''] The string to escape.
+	     * @returns {string} Returns the escaped string.
+	     * @example
+	     *
+	     * _.escape('fred, barney, & pebbles');
+	     * // => 'fred, barney, &amp; pebbles'
+	     */
+	    function escape(string) {
+	      string = toString(string);
+	      return (string && reHasUnescapedHtml.test(string))
+	        ? string.replace(reUnescapedHtml, escapeHtmlChar)
+	        : string;
+	    }
+
+	    /**
+	     * Escapes the `RegExp` special characters "^", "$", "\", ".", "*", "+",
+	     * "?", "(", ")", "[", "]", "{", "}", and "|" in `string`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to escape.
+	     * @returns {string} Returns the escaped string.
+	     * @example
+	     *
+	     * _.escapeRegExp('[lodash](https://lodash.com/)');
+	     * // => '\[lodash\]\(https://lodash\.com/\)'
+	     */
+	    function escapeRegExp(string) {
+	      string = toString(string);
+	      return (string && reHasRegExpChar.test(string))
+	        ? string.replace(reRegExpChar, '\\$&')
+	        : string;
+	    }
+
+	    /**
+	     * Converts `string` to
+	     * [kebab case](https://en.wikipedia.org/wiki/Letter_case#Special_case_styles).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the kebab cased string.
+	     * @example
+	     *
+	     * _.kebabCase('Foo Bar');
+	     * // => 'foo-bar'
+	     *
+	     * _.kebabCase('fooBar');
+	     * // => 'foo-bar'
+	     *
+	     * _.kebabCase('__FOO_BAR__');
+	     * // => 'foo-bar'
+	     */
+	    var kebabCase = createCompounder(function(result, word, index) {
+	      return result + (index ? '-' : '') + word.toLowerCase();
+	    });
+
+	    /**
+	     * Converts `string`, as space separated words, to lower case.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the lower cased string.
+	     * @example
+	     *
+	     * _.lowerCase('--Foo-Bar--');
+	     * // => 'foo bar'
+	     *
+	     * _.lowerCase('fooBar');
+	     * // => 'foo bar'
+	     *
+	     * _.lowerCase('__FOO_BAR__');
+	     * // => 'foo bar'
+	     */
+	    var lowerCase = createCompounder(function(result, word, index) {
+	      return result + (index ? ' ' : '') + word.toLowerCase();
+	    });
+
+	    /**
+	     * Converts the first character of `string` to lower case.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the converted string.
+	     * @example
+	     *
+	     * _.lowerFirst('Fred');
+	     * // => 'fred'
+	     *
+	     * _.lowerFirst('FRED');
+	     * // => 'fRED'
+	     */
+	    var lowerFirst = createCaseFirst('toLowerCase');
+
+	    /**
+	     * Pads `string` on the left and right sides if it's shorter than `length`.
+	     * Padding characters are truncated if they can't be evenly divided by `length`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to pad.
+	     * @param {number} [length=0] The padding length.
+	     * @param {string} [chars=' '] The string used as padding.
+	     * @returns {string} Returns the padded string.
+	     * @example
+	     *
+	     * _.pad('abc', 8);
+	     * // => '  abc   '
+	     *
+	     * _.pad('abc', 8, '_-');
+	     * // => '_-abc_-_'
+	     *
+	     * _.pad('abc', 3);
+	     * // => 'abc'
+	     */
+	    function pad(string, length, chars) {
+	      string = toString(string);
+	      length = toInteger(length);
+
+	      var strLength = length ? stringSize(string) : 0;
+	      if (!length || strLength >= length) {
+	        return string;
+	      }
+	      var mid = (length - strLength) / 2;
+	      return (
+	        createPadding(nativeFloor(mid), chars) +
+	        string +
+	        createPadding(nativeCeil(mid), chars)
+	      );
+	    }
+
+	    /**
+	     * Pads `string` on the right side if it's shorter than `length`. Padding
+	     * characters are truncated if they exceed `length`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to pad.
+	     * @param {number} [length=0] The padding length.
+	     * @param {string} [chars=' '] The string used as padding.
+	     * @returns {string} Returns the padded string.
+	     * @example
+	     *
+	     * _.padEnd('abc', 6);
+	     * // => 'abc   '
+	     *
+	     * _.padEnd('abc', 6, '_-');
+	     * // => 'abc_-_'
+	     *
+	     * _.padEnd('abc', 3);
+	     * // => 'abc'
+	     */
+	    function padEnd(string, length, chars) {
+	      string = toString(string);
+	      length = toInteger(length);
+
+	      var strLength = length ? stringSize(string) : 0;
+	      return (length && strLength < length)
+	        ? (string + createPadding(length - strLength, chars))
+	        : string;
+	    }
+
+	    /**
+	     * Pads `string` on the left side if it's shorter than `length`. Padding
+	     * characters are truncated if they exceed `length`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to pad.
+	     * @param {number} [length=0] The padding length.
+	     * @param {string} [chars=' '] The string used as padding.
+	     * @returns {string} Returns the padded string.
+	     * @example
+	     *
+	     * _.padStart('abc', 6);
+	     * // => '   abc'
+	     *
+	     * _.padStart('abc', 6, '_-');
+	     * // => '_-_abc'
+	     *
+	     * _.padStart('abc', 3);
+	     * // => 'abc'
+	     */
+	    function padStart(string, length, chars) {
+	      string = toString(string);
+	      length = toInteger(length);
+
+	      var strLength = length ? stringSize(string) : 0;
+	      return (length && strLength < length)
+	        ? (createPadding(length - strLength, chars) + string)
+	        : string;
+	    }
+
+	    /**
+	     * Converts `string` to an integer of the specified radix. If `radix` is
+	     * `undefined` or `0`, a `radix` of `10` is used unless `value` is a
+	     * hexadecimal, in which case a `radix` of `16` is used.
+	     *
+	     * **Note:** This method aligns with the
+	     * [ES5 implementation](https://es5.github.io/#x15.1.2.2) of `parseInt`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 1.1.0
+	     * @category String
+	     * @param {string} string The string to convert.
+	     * @param {number} [radix=10] The radix to interpret `value` by.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {number} Returns the converted integer.
+	     * @example
+	     *
+	     * _.parseInt('08');
+	     * // => 8
+	     *
+	     * _.map(['6', '08', '10'], _.parseInt);
+	     * // => [6, 8, 10]
+	     */
+	    function parseInt(string, radix, guard) {
+	      if (guard || radix == null) {
+	        radix = 0;
+	      } else if (radix) {
+	        radix = +radix;
+	      }
+	      return nativeParseInt(toString(string).replace(reTrimStart, ''), radix || 0);
+	    }
+
+	    /**
+	     * Repeats the given string `n` times.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to repeat.
+	     * @param {number} [n=1] The number of times to repeat the string.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {string} Returns the repeated string.
+	     * @example
+	     *
+	     * _.repeat('*', 3);
+	     * // => '***'
+	     *
+	     * _.repeat('abc', 2);
+	     * // => 'abcabc'
+	     *
+	     * _.repeat('abc', 0);
+	     * // => ''
+	     */
+	    function repeat(string, n, guard) {
+	      if ((guard ? isIterateeCall(string, n, guard) : n === undefined)) {
+	        n = 1;
+	      } else {
+	        n = toInteger(n);
+	      }
+	      return baseRepeat(toString(string), n);
+	    }
+
+	    /**
+	     * Replaces matches for `pattern` in `string` with `replacement`.
+	     *
+	     * **Note:** This method is based on
+	     * [`String#replace`](https://mdn.io/String/replace).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to modify.
+	     * @param {RegExp|string} pattern The pattern to replace.
+	     * @param {Function|string} replacement The match replacement.
+	     * @returns {string} Returns the modified string.
+	     * @example
+	     *
+	     * _.replace('Hi Fred', 'Fred', 'Barney');
+	     * // => 'Hi Barney'
+	     */
+	    function replace() {
+	      var args = arguments,
+	          string = toString(args[0]);
+
+	      return args.length < 3 ? string : string.replace(args[1], args[2]);
+	    }
+
+	    /**
+	     * Converts `string` to
+	     * [snake case](https://en.wikipedia.org/wiki/Snake_case).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the snake cased string.
+	     * @example
+	     *
+	     * _.snakeCase('Foo Bar');
+	     * // => 'foo_bar'
+	     *
+	     * _.snakeCase('fooBar');
+	     * // => 'foo_bar'
+	     *
+	     * _.snakeCase('--FOO-BAR--');
+	     * // => 'foo_bar'
+	     */
+	    var snakeCase = createCompounder(function(result, word, index) {
+	      return result + (index ? '_' : '') + word.toLowerCase();
+	    });
+
+	    /**
+	     * Splits `string` by `separator`.
+	     *
+	     * **Note:** This method is based on
+	     * [`String#split`](https://mdn.io/String/split).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to split.
+	     * @param {RegExp|string} separator The separator pattern to split by.
+	     * @param {number} [limit] The length to truncate results to.
+	     * @returns {Array} Returns the string segments.
+	     * @example
+	     *
+	     * _.split('a-b-c', '-', 2);
+	     * // => ['a', 'b']
+	     */
+	    function split(string, separator, limit) {
+	      if (limit && typeof limit != 'number' && isIterateeCall(string, separator, limit)) {
+	        separator = limit = undefined;
+	      }
+	      limit = limit === undefined ? MAX_ARRAY_LENGTH : limit >>> 0;
+	      if (!limit) {
+	        return [];
+	      }
+	      string = toString(string);
+	      if (string && (
+	            typeof separator == 'string' ||
+	            (separator != null && !isRegExp(separator))
+	          )) {
+	        separator = baseToString(separator);
+	        if (!separator && hasUnicode(string)) {
+	          return castSlice(stringToArray(string), 0, limit);
+	        }
+	      }
+	      return string.split(separator, limit);
+	    }
+
+	    /**
+	     * Converts `string` to
+	     * [start case](https://en.wikipedia.org/wiki/Letter_case#Stylistic_or_specialised_usage).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.1.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the start cased string.
+	     * @example
+	     *
+	     * _.startCase('--foo-bar--');
+	     * // => 'Foo Bar'
+	     *
+	     * _.startCase('fooBar');
+	     * // => 'Foo Bar'
+	     *
+	     * _.startCase('__FOO_BAR__');
+	     * // => 'FOO BAR'
+	     */
+	    var startCase = createCompounder(function(result, word, index) {
+	      return result + (index ? ' ' : '') + upperFirst(word);
+	    });
+
+	    /**
+	     * Checks if `string` starts with the given target string.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to inspect.
+	     * @param {string} [target] The string to search for.
+	     * @param {number} [position=0] The position to search from.
+	     * @returns {boolean} Returns `true` if `string` starts with `target`,
+	     *  else `false`.
+	     * @example
+	     *
+	     * _.startsWith('abc', 'a');
+	     * // => true
+	     *
+	     * _.startsWith('abc', 'b');
+	     * // => false
+	     *
+	     * _.startsWith('abc', 'b', 1);
+	     * // => true
+	     */
+	    function startsWith(string, target, position) {
+	      string = toString(string);
+	      position = position == null
+	        ? 0
+	        : baseClamp(toInteger(position), 0, string.length);
+
+	      target = baseToString(target);
+	      return string.slice(position, position + target.length) == target;
+	    }
+
+	    /**
+	     * Creates a compiled template function that can interpolate data properties
+	     * in "interpolate" delimiters, HTML-escape interpolated data properties in
+	     * "escape" delimiters, and execute JavaScript in "evaluate" delimiters. Data
+	     * properties may be accessed as free variables in the template. If a setting
+	     * object is given, it takes precedence over `_.templateSettings` values.
+	     *
+	     * **Note:** In the development build `_.template` utilizes
+	     * [sourceURLs](http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl)
+	     * for easier debugging.
+	     *
+	     * For more information on precompiling templates see
+	     * [lodash's custom builds documentation](https://lodash.com/custom-builds).
+	     *
+	     * For more information on Chrome extension sandboxes see
+	     * [Chrome's extensions documentation](https://developer.chrome.com/extensions/sandboxingEval).
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category String
+	     * @param {string} [string=''] The template string.
+	     * @param {Object} [options={}] The options object.
+	     * @param {RegExp} [options.escape=_.templateSettings.escape]
+	     *  The HTML "escape" delimiter.
+	     * @param {RegExp} [options.evaluate=_.templateSettings.evaluate]
+	     *  The "evaluate" delimiter.
+	     * @param {Object} [options.imports=_.templateSettings.imports]
+	     *  An object to import into the template as free variables.
+	     * @param {RegExp} [options.interpolate=_.templateSettings.interpolate]
+	     *  The "interpolate" delimiter.
+	     * @param {string} [options.sourceURL='lodash.templateSources[n]']
+	     *  The sourceURL of the compiled template.
+	     * @param {string} [options.variable='obj']
+	     *  The data object variable name.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Function} Returns the compiled template function.
+	     * @example
+	     *
+	     * // Use the "interpolate" delimiter to create a compiled template.
+	     * var compiled = _.template('hello <%= user %>!');
+	     * compiled({ 'user': 'fred' });
+	     * // => 'hello fred!'
+	     *
+	     * // Use the HTML "escape" delimiter to escape data property values.
+	     * var compiled = _.template('<b><%- value %></b>');
+	     * compiled({ 'value': '<script>' });
+	     * // => '<b>&lt;script&gt;</b>'
+	     *
+	     * // Use the "evaluate" delimiter to execute JavaScript and generate HTML.
+	     * var compiled = _.template('<% _.forEach(users, function(user) { %><li><%- user %></li><% }); %>');
+	     * compiled({ 'users': ['fred', 'barney'] });
+	     * // => '<li>fred</li><li>barney</li>'
+	     *
+	     * // Use the internal `print` function in "evaluate" delimiters.
+	     * var compiled = _.template('<% print("hello " + user); %>!');
+	     * compiled({ 'user': 'barney' });
+	     * // => 'hello barney!'
+	     *
+	     * // Use the ES template literal delimiter as an "interpolate" delimiter.
+	     * // Disable support by replacing the "interpolate" delimiter.
+	     * var compiled = _.template('hello ${ user }!');
+	     * compiled({ 'user': 'pebbles' });
+	     * // => 'hello pebbles!'
+	     *
+	     * // Use backslashes to treat delimiters as plain text.
+	     * var compiled = _.template('<%= "\\<%- value %\\>" %>');
+	     * compiled({ 'value': 'ignored' });
+	     * // => '<%- value %>'
+	     *
+	     * // Use the `imports` option to import `jQuery` as `jq`.
+	     * var text = '<% jq.each(users, function(user) { %><li><%- user %></li><% }); %>';
+	     * var compiled = _.template(text, { 'imports': { 'jq': jQuery } });
+	     * compiled({ 'users': ['fred', 'barney'] });
+	     * // => '<li>fred</li><li>barney</li>'
+	     *
+	     * // Use the `sourceURL` option to specify a custom sourceURL for the template.
+	     * var compiled = _.template('hello <%= user %>!', { 'sourceURL': '/basic/greeting.jst' });
+	     * compiled(data);
+	     * // => Find the source of "greeting.jst" under the Sources tab or Resources panel of the web inspector.
+	     *
+	     * // Use the `variable` option to ensure a with-statement isn't used in the compiled template.
+	     * var compiled = _.template('hi <%= data.user %>!', { 'variable': 'data' });
+	     * compiled.source;
+	     * // => function(data) {
+	     * //   var __t, __p = '';
+	     * //   __p += 'hi ' + ((__t = ( data.user )) == null ? '' : __t) + '!';
+	     * //   return __p;
+	     * // }
+	     *
+	     * // Use custom template delimiters.
+	     * _.templateSettings.interpolate = /{{([\s\S]+?)}}/g;
+	     * var compiled = _.template('hello {{ user }}!');
+	     * compiled({ 'user': 'mustache' });
+	     * // => 'hello mustache!'
+	     *
+	     * // Use the `source` property to inline compiled templates for meaningful
+	     * // line numbers in error messages and stack traces.
+	     * fs.writeFileSync(path.join(process.cwd(), 'jst.js'), '\
+	     *   var JST = {\
+	     *     "main": ' + _.template(mainText).source + '\
+	     *   };\
+	     * ');
+	     */
+	    function template(string, options, guard) {
+	      // Based on John Resig's `tmpl` implementation
+	      // (http://ejohn.org/blog/javascript-micro-templating/)
+	      // and Laura Doktorova's doT.js (https://github.com/olado/doT).
+	      var settings = lodash.templateSettings;
+
+	      if (guard && isIterateeCall(string, options, guard)) {
+	        options = undefined;
+	      }
+	      string = toString(string);
+	      options = assignInWith({}, options, settings, customDefaultsAssignIn);
+
+	      var imports = assignInWith({}, options.imports, settings.imports, customDefaultsAssignIn),
+	          importsKeys = keys(imports),
+	          importsValues = baseValues(imports, importsKeys);
+
+	      var isEscaping,
+	          isEvaluating,
+	          index = 0,
+	          interpolate = options.interpolate || reNoMatch,
+	          source = "__p += '";
+
+	      // Compile the regexp to match each delimiter.
+	      var reDelimiters = RegExp(
+	        (options.escape || reNoMatch).source + '|' +
+	        interpolate.source + '|' +
+	        (interpolate === reInterpolate ? reEsTemplate : reNoMatch).source + '|' +
+	        (options.evaluate || reNoMatch).source + '|$'
+	      , 'g');
+
+	      // Use a sourceURL for easier debugging.
+	      var sourceURL = '//# sourceURL=' +
+	        ('sourceURL' in options
+	          ? options.sourceURL
+	          : ('lodash.templateSources[' + (++templateCounter) + ']')
+	        ) + '\n';
+
+	      string.replace(reDelimiters, function(match, escapeValue, interpolateValue, esTemplateValue, evaluateValue, offset) {
+	        interpolateValue || (interpolateValue = esTemplateValue);
+
+	        // Escape characters that can't be included in string literals.
+	        source += string.slice(index, offset).replace(reUnescapedString, escapeStringChar);
+
+	        // Replace delimiters with snippets.
+	        if (escapeValue) {
+	          isEscaping = true;
+	          source += "' +\n__e(" + escapeValue + ") +\n'";
+	        }
+	        if (evaluateValue) {
+	          isEvaluating = true;
+	          source += "';\n" + evaluateValue + ";\n__p += '";
+	        }
+	        if (interpolateValue) {
+	          source += "' +\n((__t = (" + interpolateValue + ")) == null ? '' : __t) +\n'";
+	        }
+	        index = offset + match.length;
+
+	        // The JS engine embedded in Adobe products needs `match` returned in
+	        // order to produce the correct `offset` value.
+	        return match;
+	      });
+
+	      source += "';\n";
+
+	      // If `variable` is not specified wrap a with-statement around the generated
+	      // code to add the data object to the top of the scope chain.
+	      var variable = options.variable;
+	      if (!variable) {
+	        source = 'with (obj) {\n' + source + '\n}\n';
+	      }
+	      // Cleanup code by stripping empty strings.
+	      source = (isEvaluating ? source.replace(reEmptyStringLeading, '') : source)
+	        .replace(reEmptyStringMiddle, '$1')
+	        .replace(reEmptyStringTrailing, '$1;');
+
+	      // Frame code as the function body.
+	      source = 'function(' + (variable || 'obj') + ') {\n' +
+	        (variable
+	          ? ''
+	          : 'obj || (obj = {});\n'
+	        ) +
+	        "var __t, __p = ''" +
+	        (isEscaping
+	           ? ', __e = _.escape'
+	           : ''
+	        ) +
+	        (isEvaluating
+	          ? ', __j = Array.prototype.join;\n' +
+	            "function print() { __p += __j.call(arguments, '') }\n"
+	          : ';\n'
+	        ) +
+	        source +
+	        'return __p\n}';
+
+	      var result = attempt(function() {
+	        return Function(importsKeys, sourceURL + 'return ' + source)
+	          .apply(undefined, importsValues);
+	      });
+
+	      // Provide the compiled function's source by its `toString` method or
+	      // the `source` property as a convenience for inlining compiled templates.
+	      result.source = source;
+	      if (isError(result)) {
+	        throw result;
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Converts `string`, as a whole, to lower case just like
+	     * [String#toLowerCase](https://mdn.io/toLowerCase).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the lower cased string.
+	     * @example
+	     *
+	     * _.toLower('--Foo-Bar--');
+	     * // => '--foo-bar--'
+	     *
+	     * _.toLower('fooBar');
+	     * // => 'foobar'
+	     *
+	     * _.toLower('__FOO_BAR__');
+	     * // => '__foo_bar__'
+	     */
+	    function toLower(value) {
+	      return toString(value).toLowerCase();
+	    }
+
+	    /**
+	     * Converts `string`, as a whole, to upper case just like
+	     * [String#toUpperCase](https://mdn.io/toUpperCase).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the upper cased string.
+	     * @example
+	     *
+	     * _.toUpper('--foo-bar--');
+	     * // => '--FOO-BAR--'
+	     *
+	     * _.toUpper('fooBar');
+	     * // => 'FOOBAR'
+	     *
+	     * _.toUpper('__foo_bar__');
+	     * // => '__FOO_BAR__'
+	     */
+	    function toUpper(value) {
+	      return toString(value).toUpperCase();
+	    }
+
+	    /**
+	     * Removes leading and trailing whitespace or specified characters from `string`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to trim.
+	     * @param {string} [chars=whitespace] The characters to trim.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {string} Returns the trimmed string.
+	     * @example
+	     *
+	     * _.trim('  abc  ');
+	     * // => 'abc'
+	     *
+	     * _.trim('-_-abc-_-', '_-');
+	     * // => 'abc'
+	     *
+	     * _.map(['  foo  ', '  bar  '], _.trim);
+	     * // => ['foo', 'bar']
+	     */
+	    function trim(string, chars, guard) {
+	      string = toString(string);
+	      if (string && (guard || chars === undefined)) {
+	        return string.replace(reTrim, '');
+	      }
+	      if (!string || !(chars = baseToString(chars))) {
+	        return string;
+	      }
+	      var strSymbols = stringToArray(string),
+	          chrSymbols = stringToArray(chars),
+	          start = charsStartIndex(strSymbols, chrSymbols),
+	          end = charsEndIndex(strSymbols, chrSymbols) + 1;
+
+	      return castSlice(strSymbols, start, end).join('');
+	    }
+
+	    /**
+	     * Removes trailing whitespace or specified characters from `string`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to trim.
+	     * @param {string} [chars=whitespace] The characters to trim.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {string} Returns the trimmed string.
+	     * @example
+	     *
+	     * _.trimEnd('  abc  ');
+	     * // => '  abc'
+	     *
+	     * _.trimEnd('-_-abc-_-', '_-');
+	     * // => '-_-abc'
+	     */
+	    function trimEnd(string, chars, guard) {
+	      string = toString(string);
+	      if (string && (guard || chars === undefined)) {
+	        return string.replace(reTrimEnd, '');
+	      }
+	      if (!string || !(chars = baseToString(chars))) {
+	        return string;
+	      }
+	      var strSymbols = stringToArray(string),
+	          end = charsEndIndex(strSymbols, stringToArray(chars)) + 1;
+
+	      return castSlice(strSymbols, 0, end).join('');
+	    }
+
+	    /**
+	     * Removes leading whitespace or specified characters from `string`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to trim.
+	     * @param {string} [chars=whitespace] The characters to trim.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {string} Returns the trimmed string.
+	     * @example
+	     *
+	     * _.trimStart('  abc  ');
+	     * // => 'abc  '
+	     *
+	     * _.trimStart('-_-abc-_-', '_-');
+	     * // => 'abc-_-'
+	     */
+	    function trimStart(string, chars, guard) {
+	      string = toString(string);
+	      if (string && (guard || chars === undefined)) {
+	        return string.replace(reTrimStart, '');
+	      }
+	      if (!string || !(chars = baseToString(chars))) {
+	        return string;
+	      }
+	      var strSymbols = stringToArray(string),
+	          start = charsStartIndex(strSymbols, stringToArray(chars));
+
+	      return castSlice(strSymbols, start).join('');
+	    }
+
+	    /**
+	     * Truncates `string` if it's longer than the given maximum string length.
+	     * The last characters of the truncated string are replaced with the omission
+	     * string which defaults to "...".
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to truncate.
+	     * @param {Object} [options={}] The options object.
+	     * @param {number} [options.length=30] The maximum string length.
+	     * @param {string} [options.omission='...'] The string to indicate text is omitted.
+	     * @param {RegExp|string} [options.separator] The separator pattern to truncate to.
+	     * @returns {string} Returns the truncated string.
+	     * @example
+	     *
+	     * _.truncate('hi-diddly-ho there, neighborino');
+	     * // => 'hi-diddly-ho there, neighbo...'
+	     *
+	     * _.truncate('hi-diddly-ho there, neighborino', {
+	     *   'length': 24,
+	     *   'separator': ' '
+	     * });
+	     * // => 'hi-diddly-ho there,...'
+	     *
+	     * _.truncate('hi-diddly-ho there, neighborino', {
+	     *   'length': 24,
+	     *   'separator': /,? +/
+	     * });
+	     * // => 'hi-diddly-ho there...'
+	     *
+	     * _.truncate('hi-diddly-ho there, neighborino', {
+	     *   'omission': ' [...]'
+	     * });
+	     * // => 'hi-diddly-ho there, neig [...]'
+	     */
+	    function truncate(string, options) {
+	      var length = DEFAULT_TRUNC_LENGTH,
+	          omission = DEFAULT_TRUNC_OMISSION;
+
+	      if (isObject(options)) {
+	        var separator = 'separator' in options ? options.separator : separator;
+	        length = 'length' in options ? toInteger(options.length) : length;
+	        omission = 'omission' in options ? baseToString(options.omission) : omission;
+	      }
+	      string = toString(string);
+
+	      var strLength = string.length;
+	      if (hasUnicode(string)) {
+	        var strSymbols = stringToArray(string);
+	        strLength = strSymbols.length;
+	      }
+	      if (length >= strLength) {
+	        return string;
+	      }
+	      var end = length - stringSize(omission);
+	      if (end < 1) {
+	        return omission;
+	      }
+	      var result = strSymbols
+	        ? castSlice(strSymbols, 0, end).join('')
+	        : string.slice(0, end);
+
+	      if (separator === undefined) {
+	        return result + omission;
+	      }
+	      if (strSymbols) {
+	        end += (result.length - end);
+	      }
+	      if (isRegExp(separator)) {
+	        if (string.slice(end).search(separator)) {
+	          var match,
+	              substring = result;
+
+	          if (!separator.global) {
+	            separator = RegExp(separator.source, toString(reFlags.exec(separator)) + 'g');
+	          }
+	          separator.lastIndex = 0;
+	          while ((match = separator.exec(substring))) {
+	            var newEnd = match.index;
+	          }
+	          result = result.slice(0, newEnd === undefined ? end : newEnd);
+	        }
+	      } else if (string.indexOf(baseToString(separator), end) != end) {
+	        var index = result.lastIndexOf(separator);
+	        if (index > -1) {
+	          result = result.slice(0, index);
+	        }
+	      }
+	      return result + omission;
+	    }
+
+	    /**
+	     * The inverse of `_.escape`; this method converts the HTML entities
+	     * `&amp;`, `&lt;`, `&gt;`, `&quot;`, and `&#39;` in `string` to
+	     * their corresponding characters.
+	     *
+	     * **Note:** No other HTML entities are unescaped. To unescape additional
+	     * HTML entities use a third-party library like [_he_](https://mths.be/he).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 0.6.0
+	     * @category String
+	     * @param {string} [string=''] The string to unescape.
+	     * @returns {string} Returns the unescaped string.
+	     * @example
+	     *
+	     * _.unescape('fred, barney, &amp; pebbles');
+	     * // => 'fred, barney, & pebbles'
+	     */
+	    function unescape(string) {
+	      string = toString(string);
+	      return (string && reHasEscapedHtml.test(string))
+	        ? string.replace(reEscapedHtml, unescapeHtmlChar)
+	        : string;
+	    }
+
+	    /**
+	     * Converts `string`, as space separated words, to upper case.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the upper cased string.
+	     * @example
+	     *
+	     * _.upperCase('--foo-bar');
+	     * // => 'FOO BAR'
+	     *
+	     * _.upperCase('fooBar');
+	     * // => 'FOO BAR'
+	     *
+	     * _.upperCase('__foo_bar__');
+	     * // => 'FOO BAR'
+	     */
+	    var upperCase = createCompounder(function(result, word, index) {
+	      return result + (index ? ' ' : '') + word.toUpperCase();
+	    });
+
+	    /**
+	     * Converts the first character of `string` to upper case.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to convert.
+	     * @returns {string} Returns the converted string.
+	     * @example
+	     *
+	     * _.upperFirst('fred');
+	     * // => 'Fred'
+	     *
+	     * _.upperFirst('FRED');
+	     * // => 'FRED'
+	     */
+	    var upperFirst = createCaseFirst('toUpperCase');
+
+	    /**
+	     * Splits `string` into an array of its words.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category String
+	     * @param {string} [string=''] The string to inspect.
+	     * @param {RegExp|string} [pattern] The pattern to match words.
+	     * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+	     * @returns {Array} Returns the words of `string`.
+	     * @example
+	     *
+	     * _.words('fred, barney, & pebbles');
+	     * // => ['fred', 'barney', 'pebbles']
+	     *
+	     * _.words('fred, barney, & pebbles', /[^, ]+/g);
+	     * // => ['fred', 'barney', '&', 'pebbles']
+	     */
+	    function words(string, pattern, guard) {
+	      string = toString(string);
+	      pattern = guard ? undefined : pattern;
+
+	      if (pattern === undefined) {
+	        return hasUnicodeWord(string) ? unicodeWords(string) : asciiWords(string);
+	      }
+	      return string.match(pattern) || [];
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Attempts to invoke `func`, returning either the result or the caught error
+	     * object. Any additional arguments are provided to `func` when it's invoked.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Util
+	     * @param {Function} func The function to attempt.
+	     * @param {...*} [args] The arguments to invoke `func` with.
+	     * @returns {*} Returns the `func` result or error object.
+	     * @example
+	     *
+	     * // Avoid throwing errors for invalid selectors.
+	     * var elements = _.attempt(function(selector) {
+	     *   return document.querySelectorAll(selector);
+	     * }, '>_>');
+	     *
+	     * if (_.isError(elements)) {
+	     *   elements = [];
+	     * }
+	     */
+	    var attempt = baseRest(function(func, args) {
+	      try {
+	        return apply(func, undefined, args);
+	      } catch (e) {
+	        return isError(e) ? e : new Error(e);
+	      }
+	    });
+
+	    /**
+	     * Binds methods of an object to the object itself, overwriting the existing
+	     * method.
+	     *
+	     * **Note:** This method doesn't set the "length" property of bound functions.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {Object} object The object to bind and assign the bound methods to.
+	     * @param {...(string|string[])} methodNames The object method names to bind.
+	     * @returns {Object} Returns `object`.
+	     * @example
+	     *
+	     * var view = {
+	     *   'label': 'docs',
+	     *   'click': function() {
+	     *     console.log('clicked ' + this.label);
+	     *   }
+	     * };
+	     *
+	     * _.bindAll(view, ['click']);
+	     * jQuery(element).on('click', view.click);
+	     * // => Logs 'clicked docs' when clicked.
+	     */
+	    var bindAll = flatRest(function(object, methodNames) {
+	      arrayEach(methodNames, function(key) {
+	        key = toKey(key);
+	        baseAssignValue(object, key, bind(object[key], object));
+	      });
+	      return object;
+	    });
+
+	    /**
+	     * Creates a function that iterates over `pairs` and invokes the corresponding
+	     * function of the first predicate to return truthy. The predicate-function
+	     * pairs are invoked with the `this` binding and arguments of the created
+	     * function.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {Array} pairs The predicate-function pairs.
+	     * @returns {Function} Returns the new composite function.
+	     * @example
+	     *
+	     * var func = _.cond([
+	     *   [_.matches({ 'a': 1 }),           _.constant('matches A')],
+	     *   [_.conforms({ 'b': _.isNumber }), _.constant('matches B')],
+	     *   [_.stubTrue,                      _.constant('no match')]
+	     * ]);
+	     *
+	     * func({ 'a': 1, 'b': 2 });
+	     * // => 'matches A'
+	     *
+	     * func({ 'a': 0, 'b': 1 });
+	     * // => 'matches B'
+	     *
+	     * func({ 'a': '1', 'b': '2' });
+	     * // => 'no match'
+	     */
+	    function cond(pairs) {
+	      var length = pairs == null ? 0 : pairs.length,
+	          toIteratee = getIteratee();
+
+	      pairs = !length ? [] : arrayMap(pairs, function(pair) {
+	        if (typeof pair[1] != 'function') {
+	          throw new TypeError(FUNC_ERROR_TEXT);
+	        }
+	        return [toIteratee(pair[0]), pair[1]];
+	      });
+
+	      return baseRest(function(args) {
+	        var index = -1;
+	        while (++index < length) {
+	          var pair = pairs[index];
+	          if (apply(pair[0], this, args)) {
+	            return apply(pair[1], this, args);
+	          }
+	        }
+	      });
+	    }
+
+	    /**
+	     * Creates a function that invokes the predicate properties of `source` with
+	     * the corresponding property values of a given object, returning `true` if
+	     * all predicates return truthy, else `false`.
+	     *
+	     * **Note:** The created function is equivalent to `_.conformsTo` with
+	     * `source` partially applied.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {Object} source The object of property predicates to conform to.
+	     * @returns {Function} Returns the new spec function.
+	     * @example
+	     *
+	     * var objects = [
+	     *   { 'a': 2, 'b': 1 },
+	     *   { 'a': 1, 'b': 2 }
+	     * ];
+	     *
+	     * _.filter(objects, _.conforms({ 'b': function(n) { return n > 1; } }));
+	     * // => [{ 'a': 1, 'b': 2 }]
+	     */
+	    function conforms(source) {
+	      return baseConforms(baseClone(source, CLONE_DEEP_FLAG));
+	    }
+
+	    /**
+	     * Creates a function that returns `value`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.4.0
+	     * @category Util
+	     * @param {*} value The value to return from the new function.
+	     * @returns {Function} Returns the new constant function.
+	     * @example
+	     *
+	     * var objects = _.times(2, _.constant({ 'a': 1 }));
+	     *
+	     * console.log(objects);
+	     * // => [{ 'a': 1 }, { 'a': 1 }]
+	     *
+	     * console.log(objects[0] === objects[1]);
+	     * // => true
+	     */
+	    function constant(value) {
+	      return function() {
+	        return value;
+	      };
+	    }
+
+	    /**
+	     * Checks `value` to determine whether a default value should be returned in
+	     * its place. The `defaultValue` is returned if `value` is `NaN`, `null`,
+	     * or `undefined`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.14.0
+	     * @category Util
+	     * @param {*} value The value to check.
+	     * @param {*} defaultValue The default value.
+	     * @returns {*} Returns the resolved value.
+	     * @example
+	     *
+	     * _.defaultTo(1, 10);
+	     * // => 1
+	     *
+	     * _.defaultTo(undefined, 10);
+	     * // => 10
+	     */
+	    function defaultTo(value, defaultValue) {
+	      return (value == null || value !== value) ? defaultValue : value;
+	    }
+
+	    /**
+	     * Creates a function that returns the result of invoking the given functions
+	     * with the `this` binding of the created function, where each successive
+	     * invocation is supplied the return value of the previous.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Util
+	     * @param {...(Function|Function[])} [funcs] The functions to invoke.
+	     * @returns {Function} Returns the new composite function.
+	     * @see _.flowRight
+	     * @example
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * var addSquare = _.flow([_.add, square]);
+	     * addSquare(1, 2);
+	     * // => 9
+	     */
+	    var flow = createFlow();
+
+	    /**
+	     * This method is like `_.flow` except that it creates a function that
+	     * invokes the given functions from right to left.
+	     *
+	     * @static
+	     * @since 3.0.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {...(Function|Function[])} [funcs] The functions to invoke.
+	     * @returns {Function} Returns the new composite function.
+	     * @see _.flow
+	     * @example
+	     *
+	     * function square(n) {
+	     *   return n * n;
+	     * }
+	     *
+	     * var addSquare = _.flowRight([square, _.add]);
+	     * addSquare(1, 2);
+	     * // => 9
+	     */
+	    var flowRight = createFlow(true);
+
+	    /**
+	     * This method returns the first argument it receives.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {*} value Any value.
+	     * @returns {*} Returns `value`.
+	     * @example
+	     *
+	     * var object = { 'a': 1 };
+	     *
+	     * console.log(_.identity(object) === object);
+	     * // => true
+	     */
+	    function identity(value) {
+	      return value;
+	    }
+
+	    /**
+	     * Creates a function that invokes `func` with the arguments of the created
+	     * function. If `func` is a property name, the created function returns the
+	     * property value for a given element. If `func` is an array or object, the
+	     * created function returns `true` for elements that contain the equivalent
+	     * source properties, otherwise it returns `false`.
+	     *
+	     * @static
+	     * @since 4.0.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {*} [func=_.identity] The value to convert to a callback.
+	     * @returns {Function} Returns the callback.
+	     * @example
+	     *
+	     * var users = [
+	     *   { 'user': 'barney', 'age': 36, 'active': true },
+	     *   { 'user': 'fred',   'age': 40, 'active': false }
+	     * ];
+	     *
+	     * // The `_.matches` iteratee shorthand.
+	     * _.filter(users, _.iteratee({ 'user': 'barney', 'active': true }));
+	     * // => [{ 'user': 'barney', 'age': 36, 'active': true }]
+	     *
+	     * // The `_.matchesProperty` iteratee shorthand.
+	     * _.filter(users, _.iteratee(['user', 'fred']));
+	     * // => [{ 'user': 'fred', 'age': 40 }]
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.map(users, _.iteratee('user'));
+	     * // => ['barney', 'fred']
+	     *
+	     * // Create custom iteratee shorthands.
+	     * _.iteratee = _.wrap(_.iteratee, function(iteratee, func) {
+	     *   return !_.isRegExp(func) ? iteratee(func) : function(string) {
+	     *     return func.test(string);
+	     *   };
+	     * });
+	     *
+	     * _.filter(['abc', 'def'], /ef/);
+	     * // => ['def']
+	     */
+	    function iteratee(func) {
+	      return baseIteratee(typeof func == 'function' ? func : baseClone(func, CLONE_DEEP_FLAG));
+	    }
+
+	    /**
+	     * Creates a function that performs a partial deep comparison between a given
+	     * object and `source`, returning `true` if the given object has equivalent
+	     * property values, else `false`.
+	     *
+	     * **Note:** The created function is equivalent to `_.isMatch` with `source`
+	     * partially applied.
+	     *
+	     * Partial comparisons will match empty array and empty object `source`
+	     * values against any array or object value, respectively. See `_.isEqual`
+	     * for a list of supported value comparisons.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Util
+	     * @param {Object} source The object of property values to match.
+	     * @returns {Function} Returns the new spec function.
+	     * @example
+	     *
+	     * var objects = [
+	     *   { 'a': 1, 'b': 2, 'c': 3 },
+	     *   { 'a': 4, 'b': 5, 'c': 6 }
+	     * ];
+	     *
+	     * _.filter(objects, _.matches({ 'a': 4, 'c': 6 }));
+	     * // => [{ 'a': 4, 'b': 5, 'c': 6 }]
+	     */
+	    function matches(source) {
+	      return baseMatches(baseClone(source, CLONE_DEEP_FLAG));
+	    }
+
+	    /**
+	     * Creates a function that performs a partial deep comparison between the
+	     * value at `path` of a given object to `srcValue`, returning `true` if the
+	     * object value is equivalent, else `false`.
+	     *
+	     * **Note:** Partial comparisons will match empty array and empty object
+	     * `srcValue` values against any array or object value, respectively. See
+	     * `_.isEqual` for a list of supported value comparisons.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.2.0
+	     * @category Util
+	     * @param {Array|string} path The path of the property to get.
+	     * @param {*} srcValue The value to match.
+	     * @returns {Function} Returns the new spec function.
+	     * @example
+	     *
+	     * var objects = [
+	     *   { 'a': 1, 'b': 2, 'c': 3 },
+	     *   { 'a': 4, 'b': 5, 'c': 6 }
+	     * ];
+	     *
+	     * _.find(objects, _.matchesProperty('a', 4));
+	     * // => { 'a': 4, 'b': 5, 'c': 6 }
+	     */
+	    function matchesProperty(path, srcValue) {
+	      return baseMatchesProperty(path, baseClone(srcValue, CLONE_DEEP_FLAG));
+	    }
+
+	    /**
+	     * Creates a function that invokes the method at `path` of a given object.
+	     * Any additional arguments are provided to the invoked method.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.7.0
+	     * @category Util
+	     * @param {Array|string} path The path of the method to invoke.
+	     * @param {...*} [args] The arguments to invoke the method with.
+	     * @returns {Function} Returns the new invoker function.
+	     * @example
+	     *
+	     * var objects = [
+	     *   { 'a': { 'b': _.constant(2) } },
+	     *   { 'a': { 'b': _.constant(1) } }
+	     * ];
+	     *
+	     * _.map(objects, _.method('a.b'));
+	     * // => [2, 1]
+	     *
+	     * _.map(objects, _.method(['a', 'b']));
+	     * // => [2, 1]
+	     */
+	    var method = baseRest(function(path, args) {
+	      return function(object) {
+	        return baseInvoke(object, path, args);
+	      };
+	    });
+
+	    /**
+	     * The opposite of `_.method`; this method creates a function that invokes
+	     * the method at a given path of `object`. Any additional arguments are
+	     * provided to the invoked method.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.7.0
+	     * @category Util
+	     * @param {Object} object The object to query.
+	     * @param {...*} [args] The arguments to invoke the method with.
+	     * @returns {Function} Returns the new invoker function.
+	     * @example
+	     *
+	     * var array = _.times(3, _.constant),
+	     *     object = { 'a': array, 'b': array, 'c': array };
+	     *
+	     * _.map(['a[2]', 'c[0]'], _.methodOf(object));
+	     * // => [2, 0]
+	     *
+	     * _.map([['a', '2'], ['c', '0']], _.methodOf(object));
+	     * // => [2, 0]
+	     */
+	    var methodOf = baseRest(function(object, args) {
+	      return function(path) {
+	        return baseInvoke(object, path, args);
+	      };
+	    });
+
+	    /**
+	     * Adds all own enumerable string keyed function properties of a source
+	     * object to the destination object. If `object` is a function, then methods
+	     * are added to its prototype as well.
+	     *
+	     * **Note:** Use `_.runInContext` to create a pristine `lodash` function to
+	     * avoid conflicts caused by modifying the original.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {Function|Object} [object=lodash] The destination object.
+	     * @param {Object} source The object of functions to add.
+	     * @param {Object} [options={}] The options object.
+	     * @param {boolean} [options.chain=true] Specify whether mixins are chainable.
+	     * @returns {Function|Object} Returns `object`.
+	     * @example
+	     *
+	     * function vowels(string) {
+	     *   return _.filter(string, function(v) {
+	     *     return /[aeiou]/i.test(v);
+	     *   });
+	     * }
+	     *
+	     * _.mixin({ 'vowels': vowels });
+	     * _.vowels('fred');
+	     * // => ['e']
+	     *
+	     * _('fred').vowels().value();
+	     * // => ['e']
+	     *
+	     * _.mixin({ 'vowels': vowels }, { 'chain': false });
+	     * _('fred').vowels();
+	     * // => ['e']
+	     */
+	    function mixin(object, source, options) {
+	      var props = keys(source),
+	          methodNames = baseFunctions(source, props);
+
+	      if (options == null &&
+	          !(isObject(source) && (methodNames.length || !props.length))) {
+	        options = source;
+	        source = object;
+	        object = this;
+	        methodNames = baseFunctions(source, keys(source));
+	      }
+	      var chain = !(isObject(options) && 'chain' in options) || !!options.chain,
+	          isFunc = isFunction(object);
+
+	      arrayEach(methodNames, function(methodName) {
+	        var func = source[methodName];
+	        object[methodName] = func;
+	        if (isFunc) {
+	          object.prototype[methodName] = function() {
+	            var chainAll = this.__chain__;
+	            if (chain || chainAll) {
+	              var result = object(this.__wrapped__),
+	                  actions = result.__actions__ = copyArray(this.__actions__);
+
+	              actions.push({ 'func': func, 'args': arguments, 'thisArg': object });
+	              result.__chain__ = chainAll;
+	              return result;
+	            }
+	            return func.apply(object, arrayPush([this.value()], arguments));
+	          };
+	        }
+	      });
+
+	      return object;
+	    }
+
+	    /**
+	     * Reverts the `_` variable to its previous value and returns a reference to
+	     * the `lodash` function.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @returns {Function} Returns the `lodash` function.
+	     * @example
+	     *
+	     * var lodash = _.noConflict();
+	     */
+	    function noConflict() {
+	      if (root._ === this) {
+	        root._ = oldDash;
+	      }
+	      return this;
+	    }
+
+	    /**
+	     * This method returns `undefined`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.3.0
+	     * @category Util
+	     * @example
+	     *
+	     * _.times(2, _.noop);
+	     * // => [undefined, undefined]
+	     */
+	    function noop() {
+	      // No operation performed.
+	    }
+
+	    /**
+	     * Creates a function that gets the argument at index `n`. If `n` is negative,
+	     * the nth argument from the end is returned.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {number} [n=0] The index of the argument to return.
+	     * @returns {Function} Returns the new pass-thru function.
+	     * @example
+	     *
+	     * var func = _.nthArg(1);
+	     * func('a', 'b', 'c', 'd');
+	     * // => 'b'
+	     *
+	     * var func = _.nthArg(-2);
+	     * func('a', 'b', 'c', 'd');
+	     * // => 'c'
+	     */
+	    function nthArg(n) {
+	      n = toInteger(n);
+	      return baseRest(function(args) {
+	        return baseNth(args, n);
+	      });
+	    }
+
+	    /**
+	     * Creates a function that invokes `iteratees` with the arguments it receives
+	     * and returns their results.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {...(Function|Function[])} [iteratees=[_.identity]]
+	     *  The iteratees to invoke.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var func = _.over([Math.max, Math.min]);
+	     *
+	     * func(1, 2, 3, 4);
+	     * // => [4, 1]
+	     */
+	    var over = createOver(arrayMap);
+
+	    /**
+	     * Creates a function that checks if **all** of the `predicates` return
+	     * truthy when invoked with the arguments it receives.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {...(Function|Function[])} [predicates=[_.identity]]
+	     *  The predicates to check.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var func = _.overEvery([Boolean, isFinite]);
+	     *
+	     * func('1');
+	     * // => true
+	     *
+	     * func(null);
+	     * // => false
+	     *
+	     * func(NaN);
+	     * // => false
+	     */
+	    var overEvery = createOver(arrayEvery);
+
+	    /**
+	     * Creates a function that checks if **any** of the `predicates` return
+	     * truthy when invoked with the arguments it receives.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {...(Function|Function[])} [predicates=[_.identity]]
+	     *  The predicates to check.
+	     * @returns {Function} Returns the new function.
+	     * @example
+	     *
+	     * var func = _.overSome([Boolean, isFinite]);
+	     *
+	     * func('1');
+	     * // => true
+	     *
+	     * func(null);
+	     * // => true
+	     *
+	     * func(NaN);
+	     * // => false
+	     */
+	    var overSome = createOver(arraySome);
+
+	    /**
+	     * Creates a function that returns the value at `path` of a given object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 2.4.0
+	     * @category Util
+	     * @param {Array|string} path The path of the property to get.
+	     * @returns {Function} Returns the new accessor function.
+	     * @example
+	     *
+	     * var objects = [
+	     *   { 'a': { 'b': 2 } },
+	     *   { 'a': { 'b': 1 } }
+	     * ];
+	     *
+	     * _.map(objects, _.property('a.b'));
+	     * // => [2, 1]
+	     *
+	     * _.map(_.sortBy(objects, _.property(['a', 'b'])), 'a.b');
+	     * // => [1, 2]
+	     */
+	    function property(path) {
+	      return isKey(path) ? baseProperty(toKey(path)) : basePropertyDeep(path);
+	    }
+
+	    /**
+	     * The opposite of `_.property`; this method creates a function that returns
+	     * the value at a given path of `object`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.0.0
+	     * @category Util
+	     * @param {Object} object The object to query.
+	     * @returns {Function} Returns the new accessor function.
+	     * @example
+	     *
+	     * var array = [0, 1, 2],
+	     *     object = { 'a': array, 'b': array, 'c': array };
+	     *
+	     * _.map(['a[2]', 'c[0]'], _.propertyOf(object));
+	     * // => [2, 0]
+	     *
+	     * _.map([['a', '2'], ['c', '0']], _.propertyOf(object));
+	     * // => [2, 0]
+	     */
+	    function propertyOf(object) {
+	      return function(path) {
+	        return object == null ? undefined : baseGet(object, path);
+	      };
+	    }
+
+	    /**
+	     * Creates an array of numbers (positive and/or negative) progressing from
+	     * `start` up to, but not including, `end`. A step of `-1` is used if a negative
+	     * `start` is specified without an `end` or `step`. If `end` is not specified,
+	     * it's set to `start` with `start` then set to `0`.
+	     *
+	     * **Note:** JavaScript follows the IEEE-754 standard for resolving
+	     * floating-point values which can produce unexpected results.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {number} [start=0] The start of the range.
+	     * @param {number} end The end of the range.
+	     * @param {number} [step=1] The value to increment or decrement by.
+	     * @returns {Array} Returns the range of numbers.
+	     * @see _.inRange, _.rangeRight
+	     * @example
+	     *
+	     * _.range(4);
+	     * // => [0, 1, 2, 3]
+	     *
+	     * _.range(-4);
+	     * // => [0, -1, -2, -3]
+	     *
+	     * _.range(1, 5);
+	     * // => [1, 2, 3, 4]
+	     *
+	     * _.range(0, 20, 5);
+	     * // => [0, 5, 10, 15]
+	     *
+	     * _.range(0, -4, -1);
+	     * // => [0, -1, -2, -3]
+	     *
+	     * _.range(1, 4, 0);
+	     * // => [1, 1, 1]
+	     *
+	     * _.range(0);
+	     * // => []
+	     */
+	    var range = createRange();
+
+	    /**
+	     * This method is like `_.range` except that it populates values in
+	     * descending order.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {number} [start=0] The start of the range.
+	     * @param {number} end The end of the range.
+	     * @param {number} [step=1] The value to increment or decrement by.
+	     * @returns {Array} Returns the range of numbers.
+	     * @see _.inRange, _.range
+	     * @example
+	     *
+	     * _.rangeRight(4);
+	     * // => [3, 2, 1, 0]
+	     *
+	     * _.rangeRight(-4);
+	     * // => [-3, -2, -1, 0]
+	     *
+	     * _.rangeRight(1, 5);
+	     * // => [4, 3, 2, 1]
+	     *
+	     * _.rangeRight(0, 20, 5);
+	     * // => [15, 10, 5, 0]
+	     *
+	     * _.rangeRight(0, -4, -1);
+	     * // => [-3, -2, -1, 0]
+	     *
+	     * _.rangeRight(1, 4, 0);
+	     * // => [1, 1, 1]
+	     *
+	     * _.rangeRight(0);
+	     * // => []
+	     */
+	    var rangeRight = createRange(true);
+
+	    /**
+	     * This method returns a new empty array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.13.0
+	     * @category Util
+	     * @returns {Array} Returns the new empty array.
+	     * @example
+	     *
+	     * var arrays = _.times(2, _.stubArray);
+	     *
+	     * console.log(arrays);
+	     * // => [[], []]
+	     *
+	     * console.log(arrays[0] === arrays[1]);
+	     * // => false
+	     */
+	    function stubArray() {
+	      return [];
+	    }
+
+	    /**
+	     * This method returns `false`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.13.0
+	     * @category Util
+	     * @returns {boolean} Returns `false`.
+	     * @example
+	     *
+	     * _.times(2, _.stubFalse);
+	     * // => [false, false]
+	     */
+	    function stubFalse() {
+	      return false;
+	    }
+
+	    /**
+	     * This method returns a new empty object.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.13.0
+	     * @category Util
+	     * @returns {Object} Returns the new empty object.
+	     * @example
+	     *
+	     * var objects = _.times(2, _.stubObject);
+	     *
+	     * console.log(objects);
+	     * // => [{}, {}]
+	     *
+	     * console.log(objects[0] === objects[1]);
+	     * // => false
+	     */
+	    function stubObject() {
+	      return {};
+	    }
+
+	    /**
+	     * This method returns an empty string.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.13.0
+	     * @category Util
+	     * @returns {string} Returns the empty string.
+	     * @example
+	     *
+	     * _.times(2, _.stubString);
+	     * // => ['', '']
+	     */
+	    function stubString() {
+	      return '';
+	    }
+
+	    /**
+	     * This method returns `true`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.13.0
+	     * @category Util
+	     * @returns {boolean} Returns `true`.
+	     * @example
+	     *
+	     * _.times(2, _.stubTrue);
+	     * // => [true, true]
+	     */
+	    function stubTrue() {
+	      return true;
+	    }
+
+	    /**
+	     * Invokes the iteratee `n` times, returning an array of the results of
+	     * each invocation. The iteratee is invoked with one argument; (index).
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {number} n The number of times to invoke `iteratee`.
+	     * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+	     * @returns {Array} Returns the array of results.
+	     * @example
+	     *
+	     * _.times(3, String);
+	     * // => ['0', '1', '2']
+	     *
+	     *  _.times(4, _.constant(0));
+	     * // => [0, 0, 0, 0]
+	     */
+	    function times(n, iteratee) {
+	      n = toInteger(n);
+	      if (n < 1 || n > MAX_SAFE_INTEGER) {
+	        return [];
+	      }
+	      var index = MAX_ARRAY_LENGTH,
+	          length = nativeMin(n, MAX_ARRAY_LENGTH);
+
+	      iteratee = getIteratee(iteratee);
+	      n -= MAX_ARRAY_LENGTH;
+
+	      var result = baseTimes(length, iteratee);
+	      while (++index < n) {
+	        iteratee(index);
+	      }
+	      return result;
+	    }
+
+	    /**
+	     * Converts `value` to a property path array.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Util
+	     * @param {*} value The value to convert.
+	     * @returns {Array} Returns the new property path array.
+	     * @example
+	     *
+	     * _.toPath('a.b.c');
+	     * // => ['a', 'b', 'c']
+	     *
+	     * _.toPath('a[0].b.c');
+	     * // => ['a', '0', 'b', 'c']
+	     */
+	    function toPath(value) {
+	      if (isArray(value)) {
+	        return arrayMap(value, toKey);
+	      }
+	      return isSymbol(value) ? [value] : copyArray(stringToPath(toString(value)));
+	    }
+
+	    /**
+	     * Generates a unique ID. If `prefix` is given, the ID is appended to it.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Util
+	     * @param {string} [prefix=''] The value to prefix the ID with.
+	     * @returns {string} Returns the unique ID.
+	     * @example
+	     *
+	     * _.uniqueId('contact_');
+	     * // => 'contact_104'
+	     *
+	     * _.uniqueId();
+	     * // => '105'
+	     */
+	    function uniqueId(prefix) {
+	      var id = ++idCounter;
+	      return toString(prefix) + id;
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * Adds two numbers.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.4.0
+	     * @category Math
+	     * @param {number} augend The first number in an addition.
+	     * @param {number} addend The second number in an addition.
+	     * @returns {number} Returns the total.
+	     * @example
+	     *
+	     * _.add(6, 4);
+	     * // => 10
+	     */
+	    var add = createMathOperation(function(augend, addend) {
+	      return augend + addend;
+	    }, 0);
+
+	    /**
+	     * Computes `number` rounded up to `precision`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.10.0
+	     * @category Math
+	     * @param {number} number The number to round up.
+	     * @param {number} [precision=0] The precision to round up to.
+	     * @returns {number} Returns the rounded up number.
+	     * @example
+	     *
+	     * _.ceil(4.006);
+	     * // => 5
+	     *
+	     * _.ceil(6.004, 2);
+	     * // => 6.01
+	     *
+	     * _.ceil(6040, -2);
+	     * // => 6100
+	     */
+	    var ceil = createRound('ceil');
+
+	    /**
+	     * Divide two numbers.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.7.0
+	     * @category Math
+	     * @param {number} dividend The first number in a division.
+	     * @param {number} divisor The second number in a division.
+	     * @returns {number} Returns the quotient.
+	     * @example
+	     *
+	     * _.divide(6, 4);
+	     * // => 1.5
+	     */
+	    var divide = createMathOperation(function(dividend, divisor) {
+	      return dividend / divisor;
+	    }, 1);
+
+	    /**
+	     * Computes `number` rounded down to `precision`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.10.0
+	     * @category Math
+	     * @param {number} number The number to round down.
+	     * @param {number} [precision=0] The precision to round down to.
+	     * @returns {number} Returns the rounded down number.
+	     * @example
+	     *
+	     * _.floor(4.006);
+	     * // => 4
+	     *
+	     * _.floor(0.046, 2);
+	     * // => 0.04
+	     *
+	     * _.floor(4060, -2);
+	     * // => 4000
+	     */
+	    var floor = createRound('floor');
+
+	    /**
+	     * Computes the maximum value of `array`. If `array` is empty or falsey,
+	     * `undefined` is returned.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @returns {*} Returns the maximum value.
+	     * @example
+	     *
+	     * _.max([4, 2, 8, 6]);
+	     * // => 8
+	     *
+	     * _.max([]);
+	     * // => undefined
+	     */
+	    function max(array) {
+	      return (array && array.length)
+	        ? baseExtremum(array, identity, baseGt)
+	        : undefined;
+	    }
+
+	    /**
+	     * This method is like `_.max` except that it accepts `iteratee` which is
+	     * invoked for each element in `array` to generate the criterion by which
+	     * the value is ranked. The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {*} Returns the maximum value.
+	     * @example
+	     *
+	     * var objects = [{ 'n': 1 }, { 'n': 2 }];
+	     *
+	     * _.maxBy(objects, function(o) { return o.n; });
+	     * // => { 'n': 2 }
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.maxBy(objects, 'n');
+	     * // => { 'n': 2 }
+	     */
+	    function maxBy(array, iteratee) {
+	      return (array && array.length)
+	        ? baseExtremum(array, getIteratee(iteratee, 2), baseGt)
+	        : undefined;
+	    }
+
+	    /**
+	     * Computes the mean of the values in `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @returns {number} Returns the mean.
+	     * @example
+	     *
+	     * _.mean([4, 2, 8, 6]);
+	     * // => 5
+	     */
+	    function mean(array) {
+	      return baseMean(array, identity);
+	    }
+
+	    /**
+	     * This method is like `_.mean` except that it accepts `iteratee` which is
+	     * invoked for each element in `array` to generate the value to be averaged.
+	     * The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.7.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {number} Returns the mean.
+	     * @example
+	     *
+	     * var objects = [{ 'n': 4 }, { 'n': 2 }, { 'n': 8 }, { 'n': 6 }];
+	     *
+	     * _.meanBy(objects, function(o) { return o.n; });
+	     * // => 5
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.meanBy(objects, 'n');
+	     * // => 5
+	     */
+	    function meanBy(array, iteratee) {
+	      return baseMean(array, getIteratee(iteratee, 2));
+	    }
+
+	    /**
+	     * Computes the minimum value of `array`. If `array` is empty or falsey,
+	     * `undefined` is returned.
+	     *
+	     * @static
+	     * @since 0.1.0
+	     * @memberOf _
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @returns {*} Returns the minimum value.
+	     * @example
+	     *
+	     * _.min([4, 2, 8, 6]);
+	     * // => 2
+	     *
+	     * _.min([]);
+	     * // => undefined
+	     */
+	    function min(array) {
+	      return (array && array.length)
+	        ? baseExtremum(array, identity, baseLt)
+	        : undefined;
+	    }
+
+	    /**
+	     * This method is like `_.min` except that it accepts `iteratee` which is
+	     * invoked for each element in `array` to generate the criterion by which
+	     * the value is ranked. The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {*} Returns the minimum value.
+	     * @example
+	     *
+	     * var objects = [{ 'n': 1 }, { 'n': 2 }];
+	     *
+	     * _.minBy(objects, function(o) { return o.n; });
+	     * // => { 'n': 1 }
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.minBy(objects, 'n');
+	     * // => { 'n': 1 }
+	     */
+	    function minBy(array, iteratee) {
+	      return (array && array.length)
+	        ? baseExtremum(array, getIteratee(iteratee, 2), baseLt)
+	        : undefined;
+	    }
+
+	    /**
+	     * Multiply two numbers.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.7.0
+	     * @category Math
+	     * @param {number} multiplier The first number in a multiplication.
+	     * @param {number} multiplicand The second number in a multiplication.
+	     * @returns {number} Returns the product.
+	     * @example
+	     *
+	     * _.multiply(6, 4);
+	     * // => 24
+	     */
+	    var multiply = createMathOperation(function(multiplier, multiplicand) {
+	      return multiplier * multiplicand;
+	    }, 1);
+
+	    /**
+	     * Computes `number` rounded to `precision`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.10.0
+	     * @category Math
+	     * @param {number} number The number to round.
+	     * @param {number} [precision=0] The precision to round to.
+	     * @returns {number} Returns the rounded number.
+	     * @example
+	     *
+	     * _.round(4.006);
+	     * // => 4
+	     *
+	     * _.round(4.006, 2);
+	     * // => 4.01
+	     *
+	     * _.round(4060, -2);
+	     * // => 4100
+	     */
+	    var round = createRound('round');
+
+	    /**
+	     * Subtract two numbers.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Math
+	     * @param {number} minuend The first number in a subtraction.
+	     * @param {number} subtrahend The second number in a subtraction.
+	     * @returns {number} Returns the difference.
+	     * @example
+	     *
+	     * _.subtract(6, 4);
+	     * // => 2
+	     */
+	    var subtract = createMathOperation(function(minuend, subtrahend) {
+	      return minuend - subtrahend;
+	    }, 0);
+
+	    /**
+	     * Computes the sum of the values in `array`.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 3.4.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @returns {number} Returns the sum.
+	     * @example
+	     *
+	     * _.sum([4, 2, 8, 6]);
+	     * // => 20
+	     */
+	    function sum(array) {
+	      return (array && array.length)
+	        ? baseSum(array, identity)
+	        : 0;
+	    }
+
+	    /**
+	     * This method is like `_.sum` except that it accepts `iteratee` which is
+	     * invoked for each element in `array` to generate the value to be summed.
+	     * The iteratee is invoked with one argument: (value).
+	     *
+	     * @static
+	     * @memberOf _
+	     * @since 4.0.0
+	     * @category Math
+	     * @param {Array} array The array to iterate over.
+	     * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+	     * @returns {number} Returns the sum.
+	     * @example
+	     *
+	     * var objects = [{ 'n': 4 }, { 'n': 2 }, { 'n': 8 }, { 'n': 6 }];
+	     *
+	     * _.sumBy(objects, function(o) { return o.n; });
+	     * // => 20
+	     *
+	     * // The `_.property` iteratee shorthand.
+	     * _.sumBy(objects, 'n');
+	     * // => 20
+	     */
+	    function sumBy(array, iteratee) {
+	      return (array && array.length)
+	        ? baseSum(array, getIteratee(iteratee, 2))
+	        : 0;
+	    }
+
+	    /*------------------------------------------------------------------------*/
+
+	    // Add methods that return wrapped values in chain sequences.
+	    lodash.after = after;
+	    lodash.ary = ary;
+	    lodash.assign = assign;
+	    lodash.assignIn = assignIn;
+	    lodash.assignInWith = assignInWith;
+	    lodash.assignWith = assignWith;
+	    lodash.at = at;
+	    lodash.before = before;
+	    lodash.bind = bind;
+	    lodash.bindAll = bindAll;
+	    lodash.bindKey = bindKey;
+	    lodash.castArray = castArray;
+	    lodash.chain = chain;
+	    lodash.chunk = chunk;
+	    lodash.compact = compact;
+	    lodash.concat = concat;
+	    lodash.cond = cond;
+	    lodash.conforms = conforms;
+	    lodash.constant = constant;
+	    lodash.countBy = countBy;
+	    lodash.create = create;
+	    lodash.curry = curry;
+	    lodash.curryRight = curryRight;
+	    lodash.debounce = debounce;
+	    lodash.defaults = defaults;
+	    lodash.defaultsDeep = defaultsDeep;
+	    lodash.defer = defer;
+	    lodash.delay = delay;
+	    lodash.difference = difference;
+	    lodash.differenceBy = differenceBy;
+	    lodash.differenceWith = differenceWith;
+	    lodash.drop = drop;
+	    lodash.dropRight = dropRight;
+	    lodash.dropRightWhile = dropRightWhile;
+	    lodash.dropWhile = dropWhile;
+	    lodash.fill = fill;
+	    lodash.filter = filter;
+	    lodash.flatMap = flatMap;
+	    lodash.flatMapDeep = flatMapDeep;
+	    lodash.flatMapDepth = flatMapDepth;
+	    lodash.flatten = flatten;
+	    lodash.flattenDeep = flattenDeep;
+	    lodash.flattenDepth = flattenDepth;
+	    lodash.flip = flip;
+	    lodash.flow = flow;
+	    lodash.flowRight = flowRight;
+	    lodash.fromPairs = fromPairs;
+	    lodash.functions = functions;
+	    lodash.functionsIn = functionsIn;
+	    lodash.groupBy = groupBy;
+	    lodash.initial = initial;
+	    lodash.intersection = intersection;
+	    lodash.intersectionBy = intersectionBy;
+	    lodash.intersectionWith = intersectionWith;
+	    lodash.invert = invert;
+	    lodash.invertBy = invertBy;
+	    lodash.invokeMap = invokeMap;
+	    lodash.iteratee = iteratee;
+	    lodash.keyBy = keyBy;
+	    lodash.keys = keys;
+	    lodash.keysIn = keysIn;
+	    lodash.map = map;
+	    lodash.mapKeys = mapKeys;
+	    lodash.mapValues = mapValues;
+	    lodash.matches = matches;
+	    lodash.matchesProperty = matchesProperty;
+	    lodash.memoize = memoize;
+	    lodash.merge = merge;
+	    lodash.mergeWith = mergeWith;
+	    lodash.method = method;
+	    lodash.methodOf = methodOf;
+	    lodash.mixin = mixin;
+	    lodash.negate = negate;
+	    lodash.nthArg = nthArg;
+	    lodash.omit = omit;
+	    lodash.omitBy = omitBy;
+	    lodash.once = once;
+	    lodash.orderBy = orderBy;
+	    lodash.over = over;
+	    lodash.overArgs = overArgs;
+	    lodash.overEvery = overEvery;
+	    lodash.overSome = overSome;
+	    lodash.partial = partial;
+	    lodash.partialRight = partialRight;
+	    lodash.partition = partition;
+	    lodash.pick = pick;
+	    lodash.pickBy = pickBy;
+	    lodash.property = property;
+	    lodash.propertyOf = propertyOf;
+	    lodash.pull = pull;
+	    lodash.pullAll = pullAll;
+	    lodash.pullAllBy = pullAllBy;
+	    lodash.pullAllWith = pullAllWith;
+	    lodash.pullAt = pullAt;
+	    lodash.range = range;
+	    lodash.rangeRight = rangeRight;
+	    lodash.rearg = rearg;
+	    lodash.reject = reject;
+	    lodash.remove = remove;
+	    lodash.rest = rest;
+	    lodash.reverse = reverse;
+	    lodash.sampleSize = sampleSize;
+	    lodash.set = set;
+	    lodash.setWith = setWith;
+	    lodash.shuffle = shuffle;
+	    lodash.slice = slice;
+	    lodash.sortBy = sortBy;
+	    lodash.sortedUniq = sortedUniq;
+	    lodash.sortedUniqBy = sortedUniqBy;
+	    lodash.split = split;
+	    lodash.spread = spread;
+	    lodash.tail = tail;
+	    lodash.take = take;
+	    lodash.takeRight = takeRight;
+	    lodash.takeRightWhile = takeRightWhile;
+	    lodash.takeWhile = takeWhile;
+	    lodash.tap = tap;
+	    lodash.throttle = throttle;
+	    lodash.thru = thru;
+	    lodash.toArray = toArray;
+	    lodash.toPairs = toPairs;
+	    lodash.toPairsIn = toPairsIn;
+	    lodash.toPath = toPath;
+	    lodash.toPlainObject = toPlainObject;
+	    lodash.transform = transform;
+	    lodash.unary = unary;
+	    lodash.union = union;
+	    lodash.unionBy = unionBy;
+	    lodash.unionWith = unionWith;
+	    lodash.uniq = uniq;
+	    lodash.uniqBy = uniqBy;
+	    lodash.uniqWith = uniqWith;
+	    lodash.unset = unset;
+	    lodash.unzip = unzip;
+	    lodash.unzipWith = unzipWith;
+	    lodash.update = update;
+	    lodash.updateWith = updateWith;
+	    lodash.values = values;
+	    lodash.valuesIn = valuesIn;
+	    lodash.without = without;
+	    lodash.words = words;
+	    lodash.wrap = wrap;
+	    lodash.xor = xor;
+	    lodash.xorBy = xorBy;
+	    lodash.xorWith = xorWith;
+	    lodash.zip = zip;
+	    lodash.zipObject = zipObject;
+	    lodash.zipObjectDeep = zipObjectDeep;
+	    lodash.zipWith = zipWith;
+
+	    // Add aliases.
+	    lodash.entries = toPairs;
+	    lodash.entriesIn = toPairsIn;
+	    lodash.extend = assignIn;
+	    lodash.extendWith = assignInWith;
+
+	    // Add methods to `lodash.prototype`.
+	    mixin(lodash, lodash);
+
+	    /*------------------------------------------------------------------------*/
+
+	    // Add methods that return unwrapped values in chain sequences.
+	    lodash.add = add;
+	    lodash.attempt = attempt;
+	    lodash.camelCase = camelCase;
+	    lodash.capitalize = capitalize;
+	    lodash.ceil = ceil;
+	    lodash.clamp = clamp;
+	    lodash.clone = clone;
+	    lodash.cloneDeep = cloneDeep;
+	    lodash.cloneDeepWith = cloneDeepWith;
+	    lodash.cloneWith = cloneWith;
+	    lodash.conformsTo = conformsTo;
+	    lodash.deburr = deburr;
+	    lodash.defaultTo = defaultTo;
+	    lodash.divide = divide;
+	    lodash.endsWith = endsWith;
+	    lodash.eq = eq;
+	    lodash.escape = escape;
+	    lodash.escapeRegExp = escapeRegExp;
+	    lodash.every = every;
+	    lodash.find = find;
+	    lodash.findIndex = findIndex;
+	    lodash.findKey = findKey;
+	    lodash.findLast = findLast;
+	    lodash.findLastIndex = findLastIndex;
+	    lodash.findLastKey = findLastKey;
+	    lodash.floor = floor;
+	    lodash.forEach = forEach;
+	    lodash.forEachRight = forEachRight;
+	    lodash.forIn = forIn;
+	    lodash.forInRight = forInRight;
+	    lodash.forOwn = forOwn;
+	    lodash.forOwnRight = forOwnRight;
+	    lodash.get = get;
+	    lodash.gt = gt;
+	    lodash.gte = gte;
+	    lodash.has = has;
+	    lodash.hasIn = hasIn;
+	    lodash.head = head;
+	    lodash.identity = identity;
+	    lodash.includes = includes;
+	    lodash.indexOf = indexOf;
+	    lodash.inRange = inRange;
+	    lodash.invoke = invoke;
+	    lodash.isArguments = isArguments;
+	    lodash.isArray = isArray;
+	    lodash.isArrayBuffer = isArrayBuffer;
+	    lodash.isArrayLike = isArrayLike;
+	    lodash.isArrayLikeObject = isArrayLikeObject;
+	    lodash.isBoolean = isBoolean;
+	    lodash.isBuffer = isBuffer;
+	    lodash.isDate = isDate;
+	    lodash.isElement = isElement;
+	    lodash.isEmpty = isEmpty;
+	    lodash.isEqual = isEqual;
+	    lodash.isEqualWith = isEqualWith;
+	    lodash.isError = isError;
+	    lodash.isFinite = isFinite;
+	    lodash.isFunction = isFunction;
+	    lodash.isInteger = isInteger;
+	    lodash.isLength = isLength;
+	    lodash.isMap = isMap;
+	    lodash.isMatch = isMatch;
+	    lodash.isMatchWith = isMatchWith;
+	    lodash.isNaN = isNaN;
+	    lodash.isNative = isNative;
+	    lodash.isNil = isNil;
+	    lodash.isNull = isNull;
+	    lodash.isNumber = isNumber;
+	    lodash.isObject = isObject;
+	    lodash.isObjectLike = isObjectLike;
+	    lodash.isPlainObject = isPlainObject;
+	    lodash.isRegExp = isRegExp;
+	    lodash.isSafeInteger = isSafeInteger;
+	    lodash.isSet = isSet;
+	    lodash.isString = isString;
+	    lodash.isSymbol = isSymbol;
+	    lodash.isTypedArray = isTypedArray;
+	    lodash.isUndefined = isUndefined;
+	    lodash.isWeakMap = isWeakMap;
+	    lodash.isWeakSet = isWeakSet;
+	    lodash.join = join;
+	    lodash.kebabCase = kebabCase;
+	    lodash.last = last;
+	    lodash.lastIndexOf = lastIndexOf;
+	    lodash.lowerCase = lowerCase;
+	    lodash.lowerFirst = lowerFirst;
+	    lodash.lt = lt;
+	    lodash.lte = lte;
+	    lodash.max = max;
+	    lodash.maxBy = maxBy;
+	    lodash.mean = mean;
+	    lodash.meanBy = meanBy;
+	    lodash.min = min;
+	    lodash.minBy = minBy;
+	    lodash.stubArray = stubArray;
+	    lodash.stubFalse = stubFalse;
+	    lodash.stubObject = stubObject;
+	    lodash.stubString = stubString;
+	    lodash.stubTrue = stubTrue;
+	    lodash.multiply = multiply;
+	    lodash.nth = nth;
+	    lodash.noConflict = noConflict;
+	    lodash.noop = noop;
+	    lodash.now = now;
+	    lodash.pad = pad;
+	    lodash.padEnd = padEnd;
+	    lodash.padStart = padStart;
+	    lodash.parseInt = parseInt;
+	    lodash.random = random;
+	    lodash.reduce = reduce;
+	    lodash.reduceRight = reduceRight;
+	    lodash.repeat = repeat;
+	    lodash.replace = replace;
+	    lodash.result = result;
+	    lodash.round = round;
+	    lodash.runInContext = runInContext;
+	    lodash.sample = sample;
+	    lodash.size = size;
+	    lodash.snakeCase = snakeCase;
+	    lodash.some = some;
+	    lodash.sortedIndex = sortedIndex;
+	    lodash.sortedIndexBy = sortedIndexBy;
+	    lodash.sortedIndexOf = sortedIndexOf;
+	    lodash.sortedLastIndex = sortedLastIndex;
+	    lodash.sortedLastIndexBy = sortedLastIndexBy;
+	    lodash.sortedLastIndexOf = sortedLastIndexOf;
+	    lodash.startCase = startCase;
+	    lodash.startsWith = startsWith;
+	    lodash.subtract = subtract;
+	    lodash.sum = sum;
+	    lodash.sumBy = sumBy;
+	    lodash.template = template;
+	    lodash.times = times;
+	    lodash.toFinite = toFinite;
+	    lodash.toInteger = toInteger;
+	    lodash.toLength = toLength;
+	    lodash.toLower = toLower;
+	    lodash.toNumber = toNumber;
+	    lodash.toSafeInteger = toSafeInteger;
+	    lodash.toString = toString;
+	    lodash.toUpper = toUpper;
+	    lodash.trim = trim;
+	    lodash.trimEnd = trimEnd;
+	    lodash.trimStart = trimStart;
+	    lodash.truncate = truncate;
+	    lodash.unescape = unescape;
+	    lodash.uniqueId = uniqueId;
+	    lodash.upperCase = upperCase;
+	    lodash.upperFirst = upperFirst;
+
+	    // Add aliases.
+	    lodash.each = forEach;
+	    lodash.eachRight = forEachRight;
+	    lodash.first = head;
+
+	    mixin(lodash, (function() {
+	      var source = {};
+	      baseForOwn(lodash, function(func, methodName) {
+	        if (!hasOwnProperty.call(lodash.prototype, methodName)) {
+	          source[methodName] = func;
+	        }
+	      });
+	      return source;
+	    }()), { 'chain': false });
+
+	    /*------------------------------------------------------------------------*/
+
+	    /**
+	     * The semantic version number.
+	     *
+	     * @static
+	     * @memberOf _
+	     * @type {string}
+	     */
+	    lodash.VERSION = VERSION;
+
+	    // Assign default placeholders.
+	    arrayEach(['bind', 'bindKey', 'curry', 'curryRight', 'partial', 'partialRight'], function(methodName) {
+	      lodash[methodName].placeholder = lodash;
+	    });
+
+	    // Add `LazyWrapper` methods for `_.drop` and `_.take` variants.
+	    arrayEach(['drop', 'take'], function(methodName, index) {
+	      LazyWrapper.prototype[methodName] = function(n) {
+	        n = n === undefined ? 1 : nativeMax(toInteger(n), 0);
+
+	        var result = (this.__filtered__ && !index)
+	          ? new LazyWrapper(this)
+	          : this.clone();
+
+	        if (result.__filtered__) {
+	          result.__takeCount__ = nativeMin(n, result.__takeCount__);
+	        } else {
+	          result.__views__.push({
+	            'size': nativeMin(n, MAX_ARRAY_LENGTH),
+	            'type': methodName + (result.__dir__ < 0 ? 'Right' : '')
+	          });
+	        }
+	        return result;
+	      };
+
+	      LazyWrapper.prototype[methodName + 'Right'] = function(n) {
+	        return this.reverse()[methodName](n).reverse();
+	      };
+	    });
+
+	    // Add `LazyWrapper` methods that accept an `iteratee` value.
+	    arrayEach(['filter', 'map', 'takeWhile'], function(methodName, index) {
+	      var type = index + 1,
+	          isFilter = type == LAZY_FILTER_FLAG || type == LAZY_WHILE_FLAG;
+
+	      LazyWrapper.prototype[methodName] = function(iteratee) {
+	        var result = this.clone();
+	        result.__iteratees__.push({
+	          'iteratee': getIteratee(iteratee, 3),
+	          'type': type
+	        });
+	        result.__filtered__ = result.__filtered__ || isFilter;
+	        return result;
+	      };
+	    });
+
+	    // Add `LazyWrapper` methods for `_.head` and `_.last`.
+	    arrayEach(['head', 'last'], function(methodName, index) {
+	      var takeName = 'take' + (index ? 'Right' : '');
+
+	      LazyWrapper.prototype[methodName] = function() {
+	        return this[takeName](1).value()[0];
+	      };
+	    });
+
+	    // Add `LazyWrapper` methods for `_.initial` and `_.tail`.
+	    arrayEach(['initial', 'tail'], function(methodName, index) {
+	      var dropName = 'drop' + (index ? '' : 'Right');
+
+	      LazyWrapper.prototype[methodName] = function() {
+	        return this.__filtered__ ? new LazyWrapper(this) : this[dropName](1);
+	      };
+	    });
+
+	    LazyWrapper.prototype.compact = function() {
+	      return this.filter(identity);
+	    };
+
+	    LazyWrapper.prototype.find = function(predicate) {
+	      return this.filter(predicate).head();
+	    };
+
+	    LazyWrapper.prototype.findLast = function(predicate) {
+	      return this.reverse().find(predicate);
+	    };
+
+	    LazyWrapper.prototype.invokeMap = baseRest(function(path, args) {
+	      if (typeof path == 'function') {
+	        return new LazyWrapper(this);
+	      }
+	      return this.map(function(value) {
+	        return baseInvoke(value, path, args);
+	      });
+	    });
+
+	    LazyWrapper.prototype.reject = function(predicate) {
+	      return this.filter(negate(getIteratee(predicate)));
+	    };
+
+	    LazyWrapper.prototype.slice = function(start, end) {
+	      start = toInteger(start);
+
+	      var result = this;
+	      if (result.__filtered__ && (start > 0 || end < 0)) {
+	        return new LazyWrapper(result);
+	      }
+	      if (start < 0) {
+	        result = result.takeRight(-start);
+	      } else if (start) {
+	        result = result.drop(start);
+	      }
+	      if (end !== undefined) {
+	        end = toInteger(end);
+	        result = end < 0 ? result.dropRight(-end) : result.take(end - start);
+	      }
+	      return result;
+	    };
+
+	    LazyWrapper.prototype.takeRightWhile = function(predicate) {
+	      return this.reverse().takeWhile(predicate).reverse();
+	    };
+
+	    LazyWrapper.prototype.toArray = function() {
+	      return this.take(MAX_ARRAY_LENGTH);
+	    };
+
+	    // Add `LazyWrapper` methods to `lodash.prototype`.
+	    baseForOwn(LazyWrapper.prototype, function(func, methodName) {
+	      var checkIteratee = /^(?:filter|find|map|reject)|While$/.test(methodName),
+	          isTaker = /^(?:head|last)$/.test(methodName),
+	          lodashFunc = lodash[isTaker ? ('take' + (methodName == 'last' ? 'Right' : '')) : methodName],
+	          retUnwrapped = isTaker || /^find/.test(methodName);
+
+	      if (!lodashFunc) {
+	        return;
+	      }
+	      lodash.prototype[methodName] = function() {
+	        var value = this.__wrapped__,
+	            args = isTaker ? [1] : arguments,
+	            isLazy = value instanceof LazyWrapper,
+	            iteratee = args[0],
+	            useLazy = isLazy || isArray(value);
+
+	        var interceptor = function(value) {
+	          var result = lodashFunc.apply(lodash, arrayPush([value], args));
+	          return (isTaker && chainAll) ? result[0] : result;
+	        };
+
+	        if (useLazy && checkIteratee && typeof iteratee == 'function' && iteratee.length != 1) {
+	          // Avoid lazy use if the iteratee has a "length" value other than `1`.
+	          isLazy = useLazy = false;
+	        }
+	        var chainAll = this.__chain__,
+	            isHybrid = !!this.__actions__.length,
+	            isUnwrapped = retUnwrapped && !chainAll,
+	            onlyLazy = isLazy && !isHybrid;
+
+	        if (!retUnwrapped && useLazy) {
+	          value = onlyLazy ? value : new LazyWrapper(this);
+	          var result = func.apply(value, args);
+	          result.__actions__.push({ 'func': thru, 'args': [interceptor], 'thisArg': undefined });
+	          return new LodashWrapper(result, chainAll);
+	        }
+	        if (isUnwrapped && onlyLazy) {
+	          return func.apply(this, args);
+	        }
+	        result = this.thru(interceptor);
+	        return isUnwrapped ? (isTaker ? result.value()[0] : result.value()) : result;
+	      };
+	    });
+
+	    // Add `Array` methods to `lodash.prototype`.
+	    arrayEach(['pop', 'push', 'shift', 'sort', 'splice', 'unshift'], function(methodName) {
+	      var func = arrayProto[methodName],
+	          chainName = /^(?:push|sort|unshift)$/.test(methodName) ? 'tap' : 'thru',
+	          retUnwrapped = /^(?:pop|shift)$/.test(methodName);
+
+	      lodash.prototype[methodName] = function() {
+	        var args = arguments;
+	        if (retUnwrapped && !this.__chain__) {
+	          var value = this.value();
+	          return func.apply(isArray(value) ? value : [], args);
+	        }
+	        return this[chainName](function(value) {
+	          return func.apply(isArray(value) ? value : [], args);
+	        });
+	      };
+	    });
+
+	    // Map minified method names to their real names.
+	    baseForOwn(LazyWrapper.prototype, function(func, methodName) {
+	      var lodashFunc = lodash[methodName];
+	      if (lodashFunc) {
+	        var key = (lodashFunc.name + ''),
+	            names = realNames[key] || (realNames[key] = []);
+
+	        names.push({ 'name': methodName, 'func': lodashFunc });
+	      }
+	    });
+
+	    realNames[createHybrid(undefined, WRAP_BIND_KEY_FLAG).name] = [{
+	      'name': 'wrapper',
+	      'func': undefined
+	    }];
+
+	    // Add methods to `LazyWrapper`.
+	    LazyWrapper.prototype.clone = lazyClone;
+	    LazyWrapper.prototype.reverse = lazyReverse;
+	    LazyWrapper.prototype.value = lazyValue;
+
+	    // Add chain sequence methods to the `lodash` wrapper.
+	    lodash.prototype.at = wrapperAt;
+	    lodash.prototype.chain = wrapperChain;
+	    lodash.prototype.commit = wrapperCommit;
+	    lodash.prototype.next = wrapperNext;
+	    lodash.prototype.plant = wrapperPlant;
+	    lodash.prototype.reverse = wrapperReverse;
+	    lodash.prototype.toJSON = lodash.prototype.valueOf = lodash.prototype.value = wrapperValue;
+
+	    // Add lazy aliases.
+	    lodash.prototype.first = lodash.prototype.head;
+
+	    if (symIterator) {
+	      lodash.prototype[symIterator] = wrapperToIterator;
+	    }
+	    return lodash;
+	  });
+
+	  /*--------------------------------------------------------------------------*/
+
+	  // Export lodash.
+	  var _ = runInContext();
+
+	  // Some AMD build optimizers, like r.js, check for condition patterns like:
+	  if (true) {
+	    // Expose Lodash on the global object to prevent errors when Lodash is
+	    // loaded by a script tag in the presence of an AMD loader.
+	    // See http://requirejs.org/docs/errors.html#mismatch for more details.
+	    // Use `_.noConflict` to remove Lodash from the global object.
+	    root._ = _;
+
+	    // Define as an anonymous module so, through path mapping, it can be
+	    // referenced as the "underscore" module.
+	    !(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+	      return _;
+	    }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	  }
+	  // Check for `exports` after `define` in case a build optimizer adds it.
+	  else if (freeModule) {
+	    // Export for Node.js.
+	    (freeModule.exports = _)._ = _;
+	    // Export for CommonJS support.
+	    freeExports._ = _;
+	  }
+	  else {
+	    // Export to the global object.
+	    root._ = _;
+	  }
+	}.call(this));
+
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(226)(module)))
+
+/***/ }),
 /* 381 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = undefined;
+
+	var _CircularProgress = __webpack_require__(382);
+
+	var _CircularProgress2 = _interopRequireDefault(_CircularProgress);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = _CircularProgress2.default;
+
+/***/ }),
+/* 382 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _simpleAssign = __webpack_require__(318);
+
+	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _autoPrefix = __webpack_require__(330);
+
+	var _autoPrefix2 = _interopRequireDefault(_autoPrefix);
+
+	var _transitions = __webpack_require__(321);
+
+	var _transitions2 = _interopRequireDefault(_transitions);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	function getRelativeValue(value, min, max) {
+	  var clampedValue = Math.min(Math.max(min, value), max);
+	  var rangeValue = max - min;
+	  var relValue = Math.round(clampedValue / rangeValue * 10000) / 10000;
+	  return relValue * 100;
+	}
+
+	function getStyles(props, context) {
+	  var max = props.max;
+	  var min = props.min;
+	  var size = props.size;
+	  var value = props.value;
+	  var palette = context.muiTheme.baseTheme.palette;
+
+	  var zoom = size * 1.4;
+	  var baseSize = 50;
+	  var margin = Math.round((50 * zoom - 50) / 2);
+
+	  if (margin < 0) margin = 0;
+
+	  var styles = {
+	    root: {
+	      position: 'relative',
+	      margin: margin,
+	      display: 'inline-block',
+	      width: baseSize,
+	      height: baseSize
+	    },
+	    wrapper: {
+	      width: baseSize,
+	      height: baseSize,
+	      display: 'inline-block',
+	      transition: _transitions2.default.create('transform', '20s', null, 'linear'),
+	      transitionTimingFunction: 'linear'
+	    },
+	    svg: {
+	      height: baseSize,
+	      position: 'relative',
+	      transform: 'scale(' + zoom + ')',
+	      width: baseSize
+	    },
+	    path: {
+	      strokeDasharray: '89, 200',
+	      strokeDashoffset: 0,
+	      stroke: props.color || palette.primary1Color,
+	      strokeLinecap: 'round',
+	      transition: _transitions2.default.create('all', '1.5s', null, 'ease-in-out')
+	    }
+	  };
+
+	  if (props.mode === 'determinate') {
+	    var relVal = getRelativeValue(value, min, max);
+	    styles.path.transition = _transitions2.default.create('all', '0.3s', null, 'linear');
+	    styles.path.strokeDasharray = Math.round(relVal * 1.25) + ', 200';
+	  }
+
+	  return styles;
+	}
+
+	var CircularProgress = function (_Component) {
+	  _inherits(CircularProgress, _Component);
+
+	  function CircularProgress() {
+	    _classCallCheck(this, CircularProgress);
+
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(CircularProgress).apply(this, arguments));
+	  }
+
+	  _createClass(CircularProgress, [{
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      this.scalePath(this.refs.path);
+	      this.rotateWrapper(this.refs.wrapper);
+	    }
+	  }, {
+	    key: 'componentWillUnmount',
+	    value: function componentWillUnmount() {
+	      clearTimeout(this.scalePathTimer);
+	      clearTimeout(this.rotateWrapperTimer);
+	    }
+	  }, {
+	    key: 'scalePath',
+	    value: function scalePath(path, step) {
+	      var _this2 = this;
+
+	      if (this.props.mode !== 'indeterminate') return;
+
+	      step = step || 0;
+	      step %= 3;
+
+	      if (step === 0) {
+	        path.style.strokeDasharray = '1, 200';
+	        path.style.strokeDashoffset = 0;
+	        path.style.transitionDuration = '0ms';
+	      } else if (step === 1) {
+	        path.style.strokeDasharray = '89, 200';
+	        path.style.strokeDashoffset = -35;
+	        path.style.transitionDuration = '750ms';
+	      } else {
+	        path.style.strokeDasharray = '89, 200';
+	        path.style.strokeDashoffset = -124;
+	        path.style.transitionDuration = '850ms';
+	      }
+
+	      this.scalePathTimer = setTimeout(function () {
+	        return _this2.scalePath(path, step + 1);
+	      }, step ? 750 : 250);
+	    }
+	  }, {
+	    key: 'rotateWrapper',
+	    value: function rotateWrapper(wrapper) {
+	      var _this3 = this;
+
+	      if (this.props.mode !== 'indeterminate') return;
+
+	      _autoPrefix2.default.set(wrapper.style, 'transform', 'rotate(0deg)');
+	      _autoPrefix2.default.set(wrapper.style, 'transitionDuration', '0ms');
+
+	      setTimeout(function () {
+	        _autoPrefix2.default.set(wrapper.style, 'transform', 'rotate(1800deg)');
+	        _autoPrefix2.default.set(wrapper.style, 'transitionDuration', '10s');
+	        _autoPrefix2.default.set(wrapper.style, 'transitionTimingFunction', 'linear');
+	      }, 50);
+
+	      this.rotateWrapperTimer = setTimeout(function () {
+	        return _this3.rotateWrapper(wrapper);
+	      }, 10050);
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      var _props = this.props;
+	      var style = _props.style;
+	      var innerStyle = _props.innerStyle;
+	      var size = _props.size;
+
+	      var other = _objectWithoutProperties(_props, ['style', 'innerStyle', 'size']);
+
+	      var prepareStyles = this.context.muiTheme.prepareStyles;
+
+	      var styles = getStyles(this.props, this.context);
+
+	      return _react2.default.createElement(
+	        'div',
+	        _extends({}, other, { style: prepareStyles((0, _simpleAssign2.default)(styles.root, style)) }),
+	        _react2.default.createElement(
+	          'div',
+	          { ref: 'wrapper', style: prepareStyles((0, _simpleAssign2.default)(styles.wrapper, innerStyle)) },
+	          _react2.default.createElement(
+	            'svg',
+	            { style: prepareStyles(styles.svg) },
+	            _react2.default.createElement('circle', {
+	              ref: 'path',
+	              style: prepareStyles(styles.path),
+	              cx: '25',
+	              cy: '25',
+	              r: '20',
+	              fill: 'none',
+	              strokeWidth: '2.5',
+	              strokeMiterlimit: '20'
+	            })
+	          )
+	        )
+	      );
+	    }
+	  }]);
+
+	  return CircularProgress;
+	}(_react.Component);
+
+	CircularProgress.propTypes = {
+	  /**
+	   * Override the progress's color.
+	   */
+	  color: _react.PropTypes.string,
+	  /**
+	   * Style for inner wrapper div.
+	   */
+	  innerStyle: _react.PropTypes.object,
+	  /**
+	   * The max value of progress, only works in determinate mode.
+	   */
+	  max: _react.PropTypes.number,
+	  /**
+	   * The min value of progress, only works in determinate mode.
+	   */
+	  min: _react.PropTypes.number,
+	  /**
+	   * The mode of show your progress, indeterminate
+	   * for when there is no value for progress.
+	   */
+	  mode: _react.PropTypes.oneOf(['determinate', 'indeterminate']),
+	  /**
+	   * The size of the progress.
+	   */
+	  size: _react.PropTypes.number,
+	  /**
+	   * Override the inline-styles of the root element.
+	   */
+	  style: _react.PropTypes.object,
+	  /**
+	   * The value of progress, only works in determinate mode.
+	   */
+	  value: _react.PropTypes.number
+	};
+	CircularProgress.defaultProps = {
+	  mode: 'indeterminate',
+	  value: 0,
+	  min: 0,
+	  max: 100,
+	  size: 1
+	};
+	CircularProgress.contextTypes = {
+	  muiTheme: _react.PropTypes.object.isRequired
+	};
+	exports.default = CircularProgress;
+
+/***/ }),
+/* 383 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35708,23 +52793,21 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _trails = __webpack_require__(382);
+	var _trails = __webpack_require__(384);
 
 	var _trails2 = _interopRequireDefault(_trails);
 
-	var _distanceFromLatLon = __webpack_require__(383);
+	var _distanceFromLatLon = __webpack_require__(385);
 
 	var _distanceFromLatLon2 = _interopRequireDefault(_distanceFromLatLon);
 
-	var _trailListItem = __webpack_require__(386);
+	var _trailListItem = __webpack_require__(388);
 
 	var _trailListItem2 = _interopRequireDefault(_trailListItem);
 
-	var _trailList = __webpack_require__(390);
-
-	var _trailList2 = _interopRequireDefault(_trailList);
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var trailsList = [].concat(_trails2.default.items);
 
 	var skills = {
 	  'Easy': 1,
@@ -35734,35 +52817,38 @@
 
 	module.exports = function (minMiles, maxMiles, skill, origin, orderBy) {
 	  var filtered = [];
-
-	  var trails = (0, _trailList2.default)();
 	  var _iteratorNormalCompletion = true;
 	  var _didIteratorError = false;
 	  var _iteratorError = undefined;
 
 	  try {
-	    for (var _iterator = trails[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	      var trail = _step.value;
+	    for (var _iterator = trailsList[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	      var trailJson = _step.value;
 
-
-	      if (trail.measures.difficulty) {
-	        trail.difficulty = trail.measures.difficulty || "";
-	        if (skill && trail.measures.difficulty && skill !== skills[trail.measures.difficulty]) {
+	      if (trailJson.measures.difficulty) {
+	        if (skill && trailJson.measures.difficulty && skill !== skills[trailJson.measures.difficulty]) {
 	          continue;
 	        }
 	      }
 
-	      var miles = trail.measures.distance ? parseFloat(trail.measures.distance.value || 0) : 0;
-	      trail.milesVal = miles || 0;
+	      var miles = trailJson.measures.distance ? parseFloat(trailJson.measures.distance.value || 0) : 0;
 
 	      if (miles) {
-	        trail.miles = miles + " " + trail.measures.distance.measure || "miles";
 	        if (miles && maxMiles && miles > maxMiles) {
 	          continue;
 	        }
 	        if (miles && minMiles && miles < minMiles) {
 	          continue;
 	        }
+	      }
+
+	      var trail = Object.assign({}, {
+	        difficulty: trailJson.measures.difficulty || "",
+	        milesVal: miles || 0
+	      }, trailJson);
+
+	      if (miles) {
+	        trail.miles = miles + " " + trail.measures.distance.measure || "miles";
 	      }
 
 	      trail.distMiles = 0;
@@ -35801,27 +52887,27 @@
 	  });
 
 	  return filtered.map(function (trail, i) {
-	    return _react2.default.createElement(_trailListItem2.default, { trail: trail, index: i });
+	    return _react2.default.createElement(_trailListItem2.default, { key: trail.id, trail: trail, index: i });
 	  });
 	};
 
 /***/ }),
-/* 382 */
+/* 384 */
 /***/ (function(module, exports) {
 
 	module.exports = {"items":[{"id":"b8c09fe4-00f7-489d-9132-041a774a897a","name":"Ainsworth Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ainsworth_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ainsworth_Loop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ainsworth_Loop_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":0.4,"measure":"miles"},"elevationGain":{"value":150,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.890Z","locations":{"trailStart":{"latitude":45.59232,"longitude":-122.0584}}},{"id":"e4a11224-081e-4dfd-9988-45a0ab9527d0","name":"Albany Riverfront Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Albany_Riverfront_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Monteith_Riverpark_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Simpson_Park_Trail_End"},"measures":{"difficulty":"Moderate","distance":{"value":6.8,"measure":"miles"},"elevationGain":{"value":60,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.930Z","locations":{"trailStart":{"latitude":44.6374,"longitude":-123.111}}},{"id":"3affce1e-11a5-4db2-9ed0-c497a3d0651d","name":"Alder Ridge Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Alder_Ridge_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Homan_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Alder_Ridge_Elk_Meadow"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":380,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.940Z","locations":{"trailStart":{"latitude":45.48313,"longitude":-122.30071}}},{"id":"77f04806-815b-44ba-9a6f-c9278199835d","name":"Aldrich Butte Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Aldrich_Butte_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Dick_Thomas_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Aldrich_Butte"},"measures":{"difficulty":"Moderate","distance":{"value":3.2,"measure":"miles"},"elevationGain":{"value":1070,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.948Z","locations":{"trailStart":{"latitude":45.65527,"longitude":-121.96059}}},{"id":"e8f15de8-d06b-4a94-a75f-024afb572d3d","name":"Aldrich Butte-Cedar Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Aldrich_Butte-Cedar_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Dick_Thomas_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hamilton_Creek_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":1770,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.952Z","locations":{"trailStart":{"latitude":45.65527,"longitude":-121.96059}}},{"id":"7615e71b-2412-44d0-a26e-4dc84ecc9a11","name":"Alsea and Green Peak Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Alsea_and_Green_Peak_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Alsea_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Green_Peak_Falls"},"measures":{"difficulty":"Easy","distance":{"value":4.2,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.957Z","locations":{"trailStart":{"latitude":44.3241,"longitude":-123.49186}}},{"id":"b968c44a-5454-4a7c-9f09-6a9259afe937","name":"Amanda's Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Amanda%27s_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Yachats_Ocean_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Perpetua_Stone_Shelter"},"measures":{"difficulty":"Moderate","distance":{"value":7.4,"measure":"miles"},"elevationGain":{"value":1170,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.959Z","locations":{"trailStart":{"latitude":44.3041,"longitude":-124.1078}}},{"id":"12bf5628-24a9-4850-b9c9-34839db609c7","name":"Angel's Rest Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Angel%27s_Rest_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Angel%27s_Rest_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Angel%27s_Rest"},"measures":{"difficulty":"Moderate","distance":{"value":4.8,"measure":"miles"},"elevationGain":{"value":1450,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.962Z","locations":{"trailStart":{"latitude":45.56081,"longitude":-122.17184}}},{"id":"6ca042a9-1218-4048-8355-5bcef24727fd","name":"Angel's Rest-Devil's Rest Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Angel%27s_Rest-Devil%27s_Rest_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Angel%27s_Rest_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Devil%27s_Rest"},"measures":{"difficulty":"Moderate","distance":{"value":10.9,"measure":"miles"},"elevationGain":{"value":2770,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.963Z","locations":{"trailStart":{"latitude":45.56081,"longitude":-122.17184}}},{"id":"08cdfdef-b3c2-460c-b3fe-63bcf2919684","name":"Arch Cape to Short Sand Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Arch_Cape_to_Short_Sand_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Shingle_Mill_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Short_Sand_Beach"},"measures":{"difficulty":"Difficult","distance":{"value":15.9,"measure":"miles"},"elevationGain":{"value":2750,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.966Z","locations":{"trailStart":{"latitude":45.80317,"longitude":-123.95806}}},{"id":"d4d5d505-c380-4c3c-93a8-1bf5ad57da16","name":"Astoria Riverwalk Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Astoria_Riverwalk_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Smith_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Alderbrook_Lagoon"},"measures":{"difficulty":"Easy","distance":{"value":12.8,"measure":"miles"},"elevationGain":{"value":0,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.969Z","locations":{"trailStart":{"latitude":46.18455,"longitude":-123.86291}}},{"id":"b83e1a20-0ce8-4ea0-8ae6-60c680c30e9e","name":"Audubon Sanctuaries Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Audubon_Sanctuaries_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Audubon_Sanctuary_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Audubon_Ancient_Forest_Grove"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":740,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.971Z","locations":{"trailStart":{"latitude":45.52676,"longitude":-122.73013}}},{"id":"15daf652-a20a-44e0-bff6-b21d69c4bbd6","name":"Avery Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Avery_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Avery_Park_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1.3,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.974Z","locations":{"trailStart":{"latitude":44.5554,"longitude":-123.2729}}},{"id":"02772bfc-f085-41e4-ab41-38db1f698f8b","name":"BPA Road-Newton Road Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/BPA_Road-Newton_Road_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/BPA_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Kielhorn_Meadow"},"measures":{"difficulty":"Moderate","distance":{"value":8.1,"measure":"miles"},"elevationGain":{"value":2600,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.976Z","locations":{"trailStart":{"latitude":45.61162,"longitude":-122.79745}}},{"id":"6ea149b1-4a15-4396-a253-fe5c6dc63a1c","name":"Bagby Hot Springs Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bagby_Hot_Springs_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bagby_Hot_Springs_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bagby_Hot_Springs"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.979Z","locations":{"trailStart":{"latitude":44.95418,"longitude":-122.16807}}},{"id":"7e5f9847-9990-41ae-8261-a666ca6ad5aa","name":"Balfour-Klickitat Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Balfour-Klickitat_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Balfour-Klickitat_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Balfour-Klickitat_Picnic_Area"},"measures":{"difficulty":"Easy","distance":{"value":0.7,"measure":"miles"},"elevationGain":{"value":115,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.982Z","locations":{"trailStart":{"latitude":45.69931,"longitude":-121.29345}}},{"id":"3f27291d-316c-4072-8657-956e32435ee9","name":"Banks-Vernonia Traverse Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Banks-Vernonia_Traverse_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Beaver_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Vernonia_Trailhead"},"measures":{"difficulty":"EasyModerate","distance":{"value":20.7,"measure":"miles"},"elevationGain":{"value":820,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.984Z","locations":{"trailStart":{"latitude":45.81067,"longitude":-123.23117}}},{"id":"65e1a543-c5e3-418e-bd16-157fcbf60149","name":"Barlow Wayside Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Barlow_Wayside_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Barlow_Wayside_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Northern_Loop_Footbridge"},"measures":{"difficulty":"Easy","distance":{"value":2.7,"measure":"miles"},"elevationGain":{"value":185,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.986Z","locations":{"trailStart":{"latitude":45.3825,"longitude":-122.0374}}},{"id":"f7d3dbc7-a035-4a71-bf11-450e95b8065c","name":"Baskett Slough Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Baskett_Slough_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Baskett_Butte_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Baskett_Butte"},"measures":{"difficulty":"Easy","distance":{"value":1,"measure":"miles"},"elevationGain":{"value":200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.988Z","locations":{"trailStart":{"latitude":44.96167,"longitude":-123.25729}}},{"id":"56ed98dd-351e-4bcc-88d7-a105b3b1b7eb","name":"Battle Ground Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Battle_Ground_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Battle_Ground_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Battle_Ground_Lake"},"measures":{"difficulty":"Easy","distance":{"value":0.9,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.991Z","locations":{"trailStart":{"latitude":45.80335,"longitude":-122.49215}}},{"id":"5e5d2b4d-0057-468e-a897-eb777c59bafc","name":"Bayocean Spit Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bayocean_Spit_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bayocean_Spit_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Kincheloe_Point"},"measures":{"difficulty":"Moderate","distance":{"value":7.6,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.997Z","locations":{"trailStart":{"latitude":45.51958,"longitude":-123.94758}}},{"id":"3be8d6c8-22fa-4a9a-93e4-aa408fcb0c3e","name":"Beaver Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Beaver_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Beaver_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Beaver_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.7,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:38.999Z","locations":{"trailStart":{"latitude":46.10387,"longitude":-123.12982}}},{"id":"c2868fca-ca15-4cb7-bae1-ae250fb6bab9","name":"Beazell Memorial Forest Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Beazell_Memorial_Forest_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Beazell_Forest_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/South_Meadow"},"measures":{"difficulty":"Easy","distance":{"value":3.9,"measure":"miles"},"elevationGain":{"value":885,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.001Z","locations":{"trailStart":{"latitude":44.65204,"longitude":-123.42527}}},{"id":"bacbfec8-cc6e-4c0e-bd61-c013f34df0d6","name":"Bells Mountain Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bells_Mountain_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Moulton_Falls_Upper_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cedar_Creek_Bridge"},"measures":{"difficulty":"Difficult","distance":{"value":15.6,"measure":"miles"},"elevationGain":{"value":3040,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.003Z","locations":{"trailStart":{"latitude":45.83317,"longitude":-122.38374}}},{"id":"2eec7c27-9e2f-46c0-b639-dbe3bc5df820","name":"Beverly Beach-Moolack Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Beverly_Beach-Moolack_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Devil%27s_Punchbowl_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Starfish_Cove"},"measures":{"difficulty":"Moderate","distance":{"value":10.3,"measure":"miles"},"elevationGain":{"value":80,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.005Z","locations":{"trailStart":{"latitude":44.74753,"longitude":-124.06214}}},{"id":"2aa0038e-6789-44c9-9d15-34b4409cf507","name":"Big Creek-Forest Park Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Big_Creek-Forest_Park_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Agate_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Fogarty_Street_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":560,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.008Z","locations":{"trailStart":{"latitude":44.65927,"longitude":-124.05532}}},{"id":"2d74afb8-6353-4f2e-8e53-0b63549a8dad","name":"Black Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Black_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Black_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Black_Lake-Josh%27s_Trail_Junction"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":150,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.010Z","locations":{"trailStart":{"latitude":46.31401,"longitude":-124.04256}}},{"id":"17dfc6d8-9a64-4024-aabf-2cb5c8bcacc0","name":"Bloom Lake Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bloom_Lake_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bloom_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bloom_Lake"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":675,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.012Z","locations":{"trailStart":{"latitude":45.838,"longitude":-123.5136}}},{"id":"41e86f80-945d-470f-ade4-fc3eea686fb8","name":"Blue Lake Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Blue_Lake_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Blue_Lake_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Nich%C3%A1qwli_Monument"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.014Z","locations":{"trailStart":{"latitude":45.55566,"longitude":-122.44746}}},{"id":"ce2b499c-722b-4949-a191-a2dd1f027e56","name":"Boomscooter-Bumping Knots Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Boomscooter-Bumping_Knots_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hilltop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bumping_Knots_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":9.1,"measure":"miles"},"elevationGain":{"value":1630,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.016Z","locations":{"trailStart":{"latitude":45.7417,"longitude":-123.1861}}},{"id":"6d02eadc-2615-4d92-9daf-2d1f3fc5b44e","name":"Bridal Veil Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.6,"measure":"miles"},"elevationGain":{"value":70,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.018Z","locations":{"trailStart":{"latitude":45.55362,"longitude":-122.18265}}},{"id":"2314756c-38e9-4662-a7b7-b2e2e7a19788","name":"Bridal Veil Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bridal_Veil_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":0.5,"measure":"miles"},"elevationGain":{"value":0,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.020Z","locations":{"trailStart":{"latitude":45.55362,"longitude":-122.18265}}},{"id":"bd012400-fc22-4e89-8327-113df1bc20bd","name":"Browns Ferry Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Browns_Ferry_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Nyberg_Lane_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Browns_Ferry_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.1,"measure":"miles"},"elevationGain":{"value":25,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.021Z","locations":{"trailStart":{"latitude":45.3833,"longitude":-122.7407}}},{"id":"d767fe0d-c582-483f-ae95-08d6c0a335db","name":"Bryant Woods-Canal Acres Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Bryant_Woods-Canal_Acres_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bryant_Woods_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Oswego_Canal_Headgate"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.025Z","locations":{"trailStart":{"latitude":45.38646,"longitude":-122.72092}}},{"id":"b99873ba-434f-437a-a52f-2a1445fb4fd8","name":"Buck Creek Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Buck_Creek_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lower_Buck_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Buck_Creek_Falls"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":770,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.027Z","locations":{"trailStart":{"latitude":45.80295,"longitude":-121.53549}}},{"id":"09d3a9aa-e8da-4a14-baa9-26a7a90f7966","name":"Buck Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Buck_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Eagle_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Buck_Point"},"measures":{"difficulty":"Moderate","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":570,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.028Z","locations":{"trailStart":{"latitude":45.63653,"longitude":-121.91947}}},{"id":"7956b8fd-9021-45ff-b7ec-35d3084f1699","name":"Burnside Park-Maddax Woods Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Burnside_Park-Maddax_Woods_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Edgewater_Court_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Maddax_Woods_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":115,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.030Z","locations":{"trailStart":{"latitude":45.3733,"longitude":-122.6203}}},{"id":"001390ac-9e8b-4c53-b7dd-70605be8b163","name":"Burnt Bridge Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Burnt_Bridge_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Devine_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Meadowbrook_Marsh_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.037Z","locations":{"trailStart":{"latitude":45.63312,"longitude":-122.61403}}},{"id":"c3ab32f7-9893-44eb-aeab-0b96abe01610","name":"Calloway Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Calloway_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Peavy_Arboretum_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cronemiller_Lake"},"measures":{"difficulty":"Easy","distance":{"value":4.1,"measure":"miles"},"elevationGain":{"value":330,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.039Z","locations":{"trailStart":{"latitude":44.6567,"longitude":-123.2323}}},{"id":"e4cc0f0e-a263-4166-a0ab-96ba071dc960","name":"Camassia Natural Area Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Camassia_Natural_Area_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Camassia_Natural_Area_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/West_Linn_High_School"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":160,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.042Z","locations":{"trailStart":{"latitude":45.35922,"longitude":-122.61824}}},{"id":"333b7800-fe9d-4d00-836e-2b1fa7ad4293","name":"Canemah Bluff Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Canemah_Bluff_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Canemah_Children%27s_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Canemah_Pioneer_Cemetery"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":190,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.043Z","locations":{"trailStart":{"latitude":45.34487,"longitude":-122.62571}}},{"id":"e03a50e1-fda4-410e-9d53-8b66c61aadd3","name":"Cannery Hill Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cannery_Hill_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cannery_Hill_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cannery_Hill_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.045Z","locations":{"trailStart":{"latitude":45.16652,"longitude":-123.95305}}},{"id":"81836709-7e42-43dc-bc38-7d45fcc67c53","name":"Cannon Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cannon_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cannon_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hug_Point"},"measures":{"difficulty":"Moderate","distance":{"value":10.2,"measure":"miles"},"elevationGain":{"value":25,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.047Z","locations":{"trailStart":{"latitude":45.89748,"longitude":-123.96002}}},{"id":"f18c0671-42e7-411d-a217-155dbf63cfbb","name":"Cape Disappointment Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Disappointment_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Waikiki_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Disappointment_Lighthouse"},"measures":{"difficulty":"Easy","distance":{"value":2.9,"measure":"miles"},"elevationGain":{"value":385,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.048Z","locations":{"trailStart":{"latitude":46.28259,"longitude":-124.05878}}},{"id":"0f70714d-c191-46fb-95c1-341a37aa6ef5","name":"Cape Flattery Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Flattery_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Flattery_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Flattery"},"measures":{"difficulty":"Easy","distance":{"value":1.5,"measure":"miles"},"elevationGain":{"value":270,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.050Z","locations":{"trailStart":{"latitude":48.3849,"longitude":-124.7157}}},{"id":"c74c3fe7-3ee5-4a9e-959a-94f1d7432680","name":"Cape Kiwanda Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Kiwanda_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Pacific_Avenue_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Great_Dune"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.052Z","locations":{"trailStart":{"latitude":45.20239,"longitude":-123.96697}}},{"id":"4ce9ad51-ed81-4366-aa1b-d9e6d65697bd","name":"Cape Lookout Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Lookout_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Lookout_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Lookout"},"measures":{"difficulty":"Moderate","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":930,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.054Z","locations":{"trailStart":{"latitude":45.34132,"longitude":-123.97445}}},{"id":"bb7a683a-eba7-4f25-8e35-19c8b7bf8483","name":"Cape Lookout North Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Lookout_North_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Lookout_Day_Use_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Lookout"},"measures":{"difficulty":"Moderate","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":2340,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.057Z","locations":{"trailStart":{"latitude":45.35999,"longitude":-123.97003}}},{"id":"68b1d560-d89d-4a45-ac9d-3056884e55c2","name":"Cape Lookout South Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Lookout_South_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Lookout_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/South_Beach_(Cape_Lookout)"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":840,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.058Z","locations":{"trailStart":{"latitude":45.34132,"longitude":-123.97445}}},{"id":"2ed7e5c8-d8c6-422a-9752-f255f1a5c44c","name":"Cape Meares Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Meares_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Meares_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Meares_Lighthouse"},"measures":{"difficulty":"Moderate","distance":{"value":5.4,"measure":"miles"},"elevationGain":{"value":885,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.060Z","locations":{"trailStart":{"latitude":45.50185,"longitude":-123.95927}}},{"id":"17244b2d-479b-4e9b-8dc0-852fd9e577f7","name":"Cape Perpetua Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cape_Perpetua_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Perpetua_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cape_Perpetua_Stone_Shelter"},"measures":{"difficulty":"Moderate","distance":{"value":6.5,"measure":"miles"},"elevationGain":{"value":1100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.062Z","locations":{"trailStart":{"latitude":44.2805,"longitude":-124.1078}}},{"id":"8ecdfd88-4c31-40f4-ab05-50847f6989e5","name":"Cardwell Hill-Fitton Green Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cardwell_Hill-Fitton_Green_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cardwell_Hill_East_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Fitton_Green_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":7.8,"measure":"miles"},"elevationGain":{"value":1075,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.064Z","locations":{"trailStart":{"latitude":44.58982,"longitude":-123.35639}}},{"id":"df96e69a-7d96-4151-ba31-a8c819111d16","name":"Cascade Head Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cascade_Head_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cascade_Head_Lower_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cascade_Head_Upper_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":6.8,"measure":"miles"},"elevationGain":{"value":1310,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.065Z","locations":{"trailStart":{"latitude":45.04225,"longitude":-123.99187}}},{"id":"8cf6c963-730a-403d-b311-9ea252cfea7d","name":"Cascade Streamwatch Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cascade_Streamwatch_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wildwood_Recreation_Area_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Old_Mill_Ruins"},"measures":{"difficulty":"Easy","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.067Z","locations":{"trailStart":{"latitude":45.3501,"longitude":-121.9924}}},{"id":"955e4956-a9b7-4868-acb6-de99ac8ef861","name":"Castle Canyon Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Castle_Canyon_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Castle_Canyon_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Pinnacles_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":840,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.075Z","locations":{"trailStart":{"latitude":45.336,"longitude":-121.9142}}},{"id":"761f46d3-7070-4bd6-9189-99569d174b84","name":"Cathedral Tree-Coxcomb Hill Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cathedral_Tree-Coxcomb_Hill_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Irving_Avenue_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Astoria_Column"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":565,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.080Z","locations":{"trailStart":{"latitude":46.18689,"longitude":-123.81071}}},{"id":"6690e821-45cc-4c05-91ed-7bdfcb8ce086","name":"Cedar Mill-North Johnson Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cedar_Mill-North_Johnson_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cedar_Mill_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Merritt_Woods_Natural_Area"},"measures":{"difficulty":"Easy","distance":{"value":5.1,"measure":"miles"},"elevationGain":{"value":350,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.082Z","locations":{"trailStart":{"latitude":45.52631,"longitude":-122.80084}}},{"id":"1fbaa92d-ae4a-4d2c-8859-1ead8ad4214e","name":"Cedar Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cedar_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Dick_Thomas_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cedar_Mountain"},"measures":{"difficulty":"Difficult","distance":{"value":7.6,"measure":"miles"},"elevationGain":{"value":2815,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.086Z","locations":{"trailStart":{"latitude":45.65527,"longitude":-121.96059}}},{"id":"34e79d47-ca51-452c-957a-fc73e7f43f53","name":"Cedar Wetlands Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cedar_Wetlands_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Island_Street_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rockaway_Cedar"},"measures":{"difficulty":"Easy","distance":{"value":0.4,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.088Z","locations":{"trailStart":{"latitude":45.60109,"longitude":-123.93747}}},{"id":"c5d8f419-761b-4636-be04-9b5ad4d99d34","name":"Champoeg Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Champoeg_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Champoeg_Visitor_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Provisional_Government_Monument"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":120,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.090Z","locations":{"trailStart":{"latitude":45.2489,"longitude":-122.8925}}},{"id":"47b9a80c-11d3-4a01-b7f2-2687325c6bfb","name":"Champoeg to Butteville Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Champoeg_to_Butteville_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Champoeg_Visitor_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Butteville_Store"},"measures":{"difficulty":"Easy","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":300,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.093Z","locations":{"trailStart":{"latitude":45.2489,"longitude":-122.8925}}},{"id":"b2341010-87a3-41fb-a419-f45e652cb058","name":"Clackamas River Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Clackamas_River_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Fish_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Indian_Henry_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":7.8,"measure":"miles"},"elevationGain":{"value":450,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.096Z","locations":{"trailStart":{"latitude":45.1578,"longitude":-122.1511}}},{"id":"8e0169e3-0167-4dd2-abed-a6072a7fa739","name":"Clackamette Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Clackamette_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Clackamette_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Washington_Street_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":4.3,"measure":"miles"},"elevationGain":{"value":90,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.099Z","locations":{"trailStart":{"latitude":45.3717,"longitude":-122.6026}}},{"id":"a7f45580-10cd-46a7-8163-560afa2be09a","name":"Clatsop Spit Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Clatsop_Spit_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Clatsop_Spit_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/South_Jetty_(Columbia_River)"},"measures":{"difficulty":"Easy","distance":{"value":4.6,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.101Z","locations":{"trailStart":{"latitude":46.226373,"longitude":-123.99053}}},{"id":"9e400dae-a003-4e70-92c1-297eaa2e02d0","name":"Coastal Forest Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Coastal_Forest_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Coastal_Forest_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Baker_Bay_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":1.5,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.103Z","locations":{"trailStart":{"latitude":46.28433,"longitude":-124.05436}}},{"id":"802a57d8-ffdd-45e8-b91f-678ea94c57f6","name":"Coffenbury Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Coffenbury_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Coffenbury_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Coffenbury_Lake"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":35,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.105Z","locations":{"trailStart":{"latitude":46.17853,"longitude":-123.96584}}},{"id":"c5988187-759a-43d8-bf9b-6a1a0b133513","name":"Columbia Children's Arboretum Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Columbia_Children%27s_Arboretum_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Columbia_Children%27s_Arboretum_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1,"measure":"miles"},"elevationGain":{"value":5,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.113Z","locations":{"trailStart":{"latitude":45.5961,"longitude":-122.6618}}},{"id":"36947d44-53a2-4c90-8a8d-bc1c25898486","name":"Columbia River Dike Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Columbia_River_Dike_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Steamboat_Landing_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gate_6_(Steigerwald_Refuge_Boundary)"},"measures":{"difficulty":"Easy","distance":{"value":6.4,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.115Z","locations":{"trailStart":{"latitude":45.57617,"longitude":-122.35556}}},{"id":"cb3b2e14-4acd-46bb-a941-f032c52fc82d","name":"Columbia Springs Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Columbia_Springs_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Columbia_Springs_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/East_Biddle_Lake"},"measures":{"difficulty":"Easy","distance":{"value":3.1,"measure":"miles"},"elevationGain":{"value":165,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.117Z","locations":{"trailStart":{"latitude":45.59969,"longitude":-122.54708}}},{"id":"8fa811f9-ddc8-495c-8cc0-4a5c25ff425f","name":"Commonwealth Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Commonwealth_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Butner_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Foothills_Park"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":75,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.119Z","locations":{"trailStart":{"latitude":45.513411,"longitude":-122.805997}}},{"id":"9a163a51-78b5-4f7f-89c9-09ed0d30618b","name":"Cook Hill Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cook_Hill_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cook_Hill_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cook_Hill"},"measures":{"difficulty":"Moderate","distance":{"value":8.8,"measure":"miles"},"elevationGain":{"value":2930,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.121Z","locations":{"trailStart":{"latitude":45.712,"longitude":-121.6535}}},{"id":"cedb8aec-b70e-4313-b1d2-9cf3ae635e32","name":"Cook and Durham City Parks Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cook_and_Durham_City_Parks_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cook_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Durham_City_Park_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5.7,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.123Z","locations":{"trailStart":{"latitude":45.39715,"longitude":-122.77316}}},{"id":"798bbfed-ec67-4a78-a999-8b4ce4d6b87b","name":"Cooper Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cooper_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Kemmer_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cooper_Mountain_Quarry_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.9,"measure":"miles"},"elevationGain":{"value":300,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.125Z","locations":{"trailStart":{"latitude":45.45265,"longitude":-122.870767}}},{"id":"d3562940-ca87-4853-aaac-65e84be85e9f","name":"Cooper Ridge-South Beach Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cooper_Ridge-South_Beach_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/South_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/South_Jetty_(Yaquina_Bay)"},"measures":{"difficulty":"Easy","distance":{"value":3.3,"measure":"miles"},"elevationGain":{"value":70,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.127Z","locations":{"trailStart":{"latitude":44.60116,"longitude":-124.06495}}},{"id":"4dbf534f-4e71-46c5-a90c-78e526e27b86","name":"Cottonwood Canyon Pinnacles Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cottonwood_Canyon_Pinnacles_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Murtha_Ranch_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Pinnacles_Trail_End"},"measures":{"difficulty":"Moderate","distance":{"value":8.6,"measure":"miles"},"elevationGain":{"value":65,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.129Z","locations":{"trailStart":{"latitude":45.4807,"longitude":-120.464}}},{"id":"8f6e50d4-6444-49f0-be3f-99bb45a0e9af","name":"Cougar Rock via Elevator Shaft Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cougar_Rock_via_Elevator_Shaft_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Multnomah_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cougar_Rock"},"measures":{"difficulty":"Difficult","distance":{"value":6.7,"measure":"miles"},"elevationGain":{"value":1860,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.131Z","locations":{"trailStart":{"latitude":45.57758,"longitude":-122.117}}},{"id":"2d30a757-5239-4ce6-becc-170a933724b1","name":"Council Crest Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Council_Crest_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Marquam_Nature_Park_Shelter_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Council_Crest"},"measures":{"difficulty":"Moderate","distance":{"value":3.3,"measure":"miles"},"elevationGain":{"value":820,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.133Z","locations":{"trailStart":{"latitude":45.50287,"longitude":-122.69169}}},{"id":"278fb9f9-6fa9-4596-8b87-a72220122f24","name":"Cox Creek to Talking Waters Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cox_Creek_to_Talking_Waters_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Waverly_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Talking_Water_Gardens"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.135Z","locations":{"trailStart":{"latitude":44.6415,"longitude":-123.0671}}},{"id":"302caf9e-b6d1-43cb-98c5-1c944ddf9280","name":"Coyote Wall hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Coyote_Wall_hike","trailStart":"http://www.oregonhikers.org/field_guide/Coyote_Wall_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Coyote_Wall_Upper_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":7.8,"measure":"miles"},"elevationGain":{"value":1775,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.137Z","locations":{"trailStart":{"latitude":45.7005,"longitude":-121.4024}}},{"id":"e135e031-08de-4b8e-a914-5429668dffed","name":"Coyote wall hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Coyote_wall_hike","trailStart":"http://www.oregonhikers.org/field_guide/Coyote_Wall_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Coyote_Wall_Upper_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":7.8,"measure":"miles"},"elevationGain":{"value":1775,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.139Z","locations":{"trailStart":{"latitude":45.7005,"longitude":-121.4024}}},{"id":"59b0a36a-bfb6-42a3-8cae-b5151c39eed3","name":"Crescent Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Crescent_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ecola_State_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Chapman_Point"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":310,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.141Z","locations":{"trailStart":{"latitude":45.9195,"longitude":-123.9735}}},{"id":"db3274dd-9295-4cb0-be97-28e7dadbf701","name":"Crown Zellerbach Traverse Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Crown_Zellerbach_Traverse_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Elk_Creek_(Columbia_County)_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Vernonia_Lake_Trailhead"},"measures":{"difficulty":"ModerateEasy","distance":{"value":23.8,"measure":"miles"},"elevationGain":{"value":1805,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.144Z","locations":{"trailStart":{"latitude":45.86933,"longitude":-123.12375}}},{"id":"a7b33e99-c189-4c34-8286-5225d1b6055e","name":"Crystal Springs-Reed Canyon Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Crystal_Springs-Reed_Canyon_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Crystal_Springs_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Crystal_Springs"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":145,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.146Z","locations":{"trailStart":{"latitude":45.48013,"longitude":-122.63543}}},{"id":"8ef1f1b4-f05f-4162-a911-fee6691db922","name":"Cullaby Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cullaby_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cullaby_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cullaby_Lake_South_Picnic_Area"},"measures":{"difficulty":"Easy","distance":{"value":1.5,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.149Z","locations":{"trailStart":{"latitude":46.0856,"longitude":-123.9084}}},{"id":"ee9b410d-8928-44f1-9d0e-c1c13a7c0bfe","name":"Cutler City Wetlands Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Cutler_City_Wetlands_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cutler_City_Wetlands_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":0.8,"measure":"miles"},"elevationGain":{"value":5,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.151Z","locations":{"trailStart":{"latitude":44.9184,"longitude":-124.0131}}},{"id":"beb7812a-c1d5-4ebb-ba15-934dc44d1055","name":"Dan's Trail Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Dan%27s_Trail_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Chip_Ross_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Dimple_Hill"},"measures":{"difficulty":"Moderate","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":1865,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.153Z","locations":{"trailStart":{"latitude":44.6062,"longitude":-123.2793}}},{"id":"274e5522-ce32-46ec-842c-90e2d138b97f","name":"Deschutes River Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Deschutes_River_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lower_Deschutes_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Deschutes_Water_Tower"},"measures":{"difficulty":"Moderate","distance":{"value":22.6,"measure":"miles"},"elevationGain":{"value":400,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.155Z","locations":{"trailStart":{"latitude":45.6304,"longitude":-120.9077}}},{"id":"c762eaaf-13c8-4908-aff5-efdd96e09620","name":"Deschutes River from Macks Canyon Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Deschutes_River_from_Macks_Canyon_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Macks_Canyon_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Deschutes_Water_Tower"},"measures":{"difficulty":"Difficult","distance":{"value":23.6,"measure":"miles"},"elevationGain":{"value":350,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.159Z","locations":{"trailStart":{"latitude":45.3867,"longitude":-120.8732}}},{"id":"a75f6ff0-9396-4a53-8403-612eb5aad26b","name":"Devil's Punchbowl Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Devil%27s_Punchbowl_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Devil%27s_Punchbowl_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Devil%27s_Punchbowl"},"measures":{"difficulty":"Easy","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.162Z","locations":{"trailStart":{"latitude":44.74753,"longitude":-124.06214}}},{"id":"2a2b0b8b-c3c3-4ad4-85af-99794004c5a9","name":"Devil's Rest via Wahkeena Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Devil%27s_Rest_via_Wahkeena_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wahkeena_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Devil%27s_Rest"},"measures":{"difficulty":"Moderate","distance":{"value":7.5,"measure":"miles"},"elevationGain":{"value":2550,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.164Z","locations":{"trailStart":{"latitude":45.57528,"longitude":-122.12801}}},{"id":"d3a9093b-6119-4053-a469-3433a77c3e26","name":"Devils Hole Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Devils_Hole_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Doug%27s_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ortley_Lava_Pillars"},"measures":{"difficulty":"Moderate","distance":{"value":2.7,"measure":"miles"},"elevationGain":{"value":800,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.166Z","locations":{"trailStart":{"latitude":45.67786,"longitude":-121.23437}}},{"id":"a3de17e8-3fb8-4d2a-8c00-fc4ae7b72d7d","name":"Discovery Trail Traverse Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Discovery_Trail_Traverse_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ilwaco_Waterfront_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Clark%27s_Tree"},"measures":{"difficulty":"Moderate","distance":{"value":8.2,"measure":"miles"},"elevationGain":{"value":280,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.168Z","locations":{"trailStart":{"latitude":46.30634,"longitude":-124.0392}}},{"id":"e68982bc-6c1f-470a-9b0d-0bb2b4b446f7","name":"Dogwood-Wild Cherry Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Dogwood-Wild_Cherry_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Northwest_53rd_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Leif_Erikson_Drive-Wild_Cherry_Trail_Junction"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":500,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.170Z","locations":{"trailStart":{"latitude":45.53838,"longitude":-122.73407}}},{"id":"2811c0c2-7cb6-4d48-9613-f1b7108e6095","name":"Drift Creek Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Drift_Creek_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Drift_Creek_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Drift_Creek_Falls"},"measures":{"difficulty":"Moderate","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":490,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.172Z","locations":{"trailStart":{"latitude":44.93342,"longitude":-123.86273}}},{"id":"9b580e57-e1a5-4e62-b1c8-513a8dcc767f","name":"Dry Creek Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Dry_Creek_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/PCT_Winter_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Dry_Creek_Falls"},"measures":{"difficulty":"Easy","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":710,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.174Z","locations":{"trailStart":{"latitude":45.6618,"longitude":-121.89456}}},{"id":"f0fc43c9-0217-45df-9ce6-efae86291069","name":"Eagle Creek to High Bridge Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Eagle_Creek_to_High_Bridge_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Eagle_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/High_Bridge"},"measures":{"difficulty":"Easy","distance":{"value":6.4,"measure":"miles"},"elevationGain":{"value":840,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.189Z","locations":{"trailStart":{"latitude":45.63653,"longitude":-121.91947}}},{"id":"25703af0-ee18-45c9-a87b-eab24f8a4f9d","name":"Eagle Creek to Punchbowl Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Eagle_Creek_to_Punchbowl_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Eagle_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Punchbowl_Falls"},"measures":{"difficulty":"","distance":{"measure":"miles"},"elevationGain":{"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.193Z","locations":{"trailStart":{"latitude":45.63653,"longitude":-121.91947}}},{"id":"64e82886-eee2-44c1-93a9-acaa723f94c1","name":"Eagle Creek to Punchbowl Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Eagle_Creek_to_Punchbowl_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Eagle_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Punchbowl_Falls"},"measures":{"difficulty":"","distance":{"measure":"miles"},"elevationGain":{"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.196Z","locations":{"trailStart":{"latitude":45.63653,"longitude":-121.91947}}},{"id":"6633848a-d5b5-4d87-9901-2228d8dcf0e2","name":"Echo Meadows Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Echo_Meadows_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Echo_Meadows_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":70,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.199Z","locations":{"trailStart":{"latitude":45.72004,"longitude":-119.30938}}},{"id":"020ed555-2bfb-4786-b198-0a9cd654ca20","name":"Ecola Creek Forest Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ecola_Creek_Forest_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ecola_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ecola_Creek_Ancient_Cedars"},"measures":{"difficulty":"Easy","distance":{"value":3.1,"measure":"miles"},"elevationGain":{"value":445,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.202Z","locations":{"trailStart":{"latitude":45.8874,"longitude":-123.9499}}},{"id":"1318a8fd-6214-4a82-a2be-478ac6e3bd99","name":"Elk Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Elk_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Elk_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Elk_Mountain-King%27s_Mountain_Trail_Junction"},"measures":{"difficulty":"Difficult","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":2100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.204Z","locations":{"trailStart":{"latitude":45.6103,"longitude":-123.4666}}},{"id":"e68866c4-db07-4de2-b397-f736eab17c5e","name":"Elk Mountain Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Elk_Mountain_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Elk_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Elk_Mountain"},"measures":{"difficulty":"Moderate","distance":{"value":3.2,"measure":"miles"},"elevationGain":{"value":2080,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.206Z","locations":{"trailStart":{"latitude":45.6103,"longitude":-123.4666}}},{"id":"a69cffc8-a3ec-4ac8-9482-acf762e0b3f9","name":"Elk Mountain-King's Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Elk_Mountain-King%27s_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Elk_Creek_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Very Difficult","distance":{"value":10.8,"measure":"miles"},"elevationGain":{"value":3700,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.208Z","locations":{"trailStart":{"latitude":45.6103,"longitude":-123.4666}}},{"id":"3e7a74cc-9a4d-4eaf-8b41-535cbd9d2f0e","name":"Elk Rock Island Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Elk_Rock_Island_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Spring_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Elk_Rock_Island"},"measures":{"difficulty":"Easy","distance":{"value":1.3,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.212Z","locations":{"trailStart":{"latitude":45.4345,"longitude":-122.644}}},{"id":"b9966506-7b47-4612-a444-ea85a35efa91","name":"Ellen Davis Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ellen_Davis_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Leverich_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/St._James_Road_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":420,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.214Z","locations":{"trailStart":{"latitude":45.65069,"longitude":-122.65771}}},{"id":"85fb6f78-6e91-41f8-b4c7-2638a6b5fcea","name":"Elowah Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Elowah_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/John_B_Yeon_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Elowah_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":280,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.216Z","locations":{"trailStart":{"latitude":45.6124,"longitude":-122.00428}}},{"id":"f6563c6e-96a8-4329-ae32-4dfc186c0f41","name":"Erratic Rock Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Erratic_Rock_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Erratic_Rock_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Erratic_Rock"},"measures":{"difficulty":"Easy","distance":{"value":0.5,"measure":"miles"},"elevationGain":{"value":110,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.219Z","locations":{"trailStart":{"latitude":45.1376,"longitude":-123.2908}}},{"id":"8e882d07-c21b-431a-92e7-da2e0cacb629","name":"Fairy Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fairy_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wahkeena_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Fairy_Falls"},"measures":{"difficulty":"Moderate","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":800,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.221Z","locations":{"trailStart":{"latitude":45.57528,"longitude":-122.12801}}},{"id":"a2b2e556-b006-44ce-85b0-47073527af55","name":"Fanno Creek Beaverton Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fanno_Creek_Beaverton_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Denney_Road_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":8.5,"measure":"miles"},"elevationGain":{"value":125,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.223Z","locations":{"trailStart":{"latitude":45.469149,"longitude":-122.790032}}},{"id":"10d6773d-fbff-49b6-b343-4d35c925507f","name":"Fanno Creek Tigard Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fanno_Creek_Tigard_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tigard_Library_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":8,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.226Z","locations":{"trailStart":{"latitude":45.422029,"longitude":-122.764766}}},{"id":"05004b85-fcd7-4017-ba8b-02a6cdacf2ff","name":"Ferry Springs Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ferry_Springs_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lower_Deschutes_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ferry_Springs"},"measures":{"difficulty":"Moderate","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":560,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.229Z","locations":{"trailStart":{"latitude":45.6304,"longitude":-120.9077}}},{"id":"63eaad9e-4a76-4029-a5d9-a3c053235850","name":"Fields Bridge Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fields_Bridge_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Fields_Bridge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tualatin_Open_Space_East_End"},"measures":{"difficulty":"Easy","distance":{"value":1.5,"measure":"miles"},"elevationGain":{"value":195,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.231Z","locations":{"trailStart":{"latitude":45.34655,"longitude":-122.67174}}},{"id":"9b44d1f9-3443-4ca6-9ff9-8205072f966c","name":"Firelane 15 Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Firelane_15_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Firelane_15_Gate_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":4.2,"measure":"miles"},"elevationGain":{"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.233Z","locations":{"trailStart":{"latitude":45.59581,"longitude":-122.82419}}},{"id":"0e07f64d-fa56-4d71-a334-a585969d3bed","name":"Firelane 7-Springville Road Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Firelane_7-Springville_Road_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Springville_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wildwood-Hardesty_Trail_Junction"},"measures":{"difficulty":"Easy","distance":{"value":4.9,"measure":"miles"},"elevationGain":{"value":1120,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.235Z","locations":{"trailStart":{"latitude":45.5745,"longitude":-122.7892}}},{"id":"e941524b-9199-40ab-8bc9-50d5d19c387e","name":"Fort Hoskins Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fort_Hoskins_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Fort_Hoskins_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Dunn_Ridge_Meadow"},"measures":{"difficulty":"Easy","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":430,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.237Z","locations":{"trailStart":{"latitude":44.67593,"longitude":-123.4633}}},{"id":"a2d55cb2-dea0-4069-ad17-5e89da262c37","name":"Fort Stevens Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fort_Stevens_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Military_Museum_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Coffenbury_Lake"},"measures":{"difficulty":"Moderate","distance":{"value":10,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.239Z","locations":{"trailStart":{"latitude":46.20619,"longitude":-123.96542}}},{"id":"b482051b-c057-4473-a221-e878c507a273","name":"Fort Stevens Military Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fort_Stevens_Military_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Military_Museum_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Battery_Clark"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.242Z","locations":{"trailStart":{"latitude":46.20619,"longitude":-123.96542}}},{"id":"e8c6257b-7468-4aa2-8024-b6f75abfe74d","name":"Fort Yamhill Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Fort_Yamhill_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Fort_Yamhill_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":0.5,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.255Z","locations":{"trailStart":{"latitude":45.0696,"longitude":-123.5695}}},{"id":"358d4c52-7436-4de1-9c1f-9432a8974ae2","name":"Four County Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Four_County_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Four_County_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Four_County_Point"},"measures":{"difficulty":"Easy","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":135,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.256Z","locations":{"trailStart":{"latitude":45.7805,"longitude":-123.3517}}},{"id":"6e7bc312-b39d-44d7-b44f-9845defe97e1","name":"Friends of the Wildwoods Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Friends_of_the_Wildwoods_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Friends_of_the_Wildwoods_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.258Z","locations":{"trailStart":{"latitude":44.98366,"longitude":-123.99754}}},{"id":"25b8f83f-c105-43a0-a8a2-677df69a783f","name":"Gales Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gales_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Gales_Creek_Winter_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bell_Camp_Road_Trailhead"},"measures":{"difficulty":"Difficult","distance":{"value":13.6,"measure":"miles"},"elevationGain":{"value":2040,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.260Z","locations":{"trailStart":{"latitude":45.64527,"longitude":-123.34723}}},{"id":"af9f3923-5b6d-4ac1-86bb-2b0cebf78b06","name":"Gearhart Ridge Path Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gearhart_Ridge_Path_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Gearhart_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Necanicum_Estuary"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.262Z","locations":{"trailStart":{"latitude":46.02424,"longitude":-123.91972}}},{"id":"03373949-9050-4ab3-b127-4e0ca1c348b2","name":"Gee Creek Bottomland Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gee_Creek_Bottomland_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ridgefield_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gee_Creek_Scabland_Lakes"},"measures":{"difficulty":"Easy","distance":{"value":3.8,"measure":"miles"},"elevationGain":{"value":85,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.263Z","locations":{"trailStart":{"latitude":45.83128,"longitude":-122.74806}}},{"id":"2468c81f-3913-4ec3-b9cf-f56d752fe74a","name":"George Rogers Park Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/George_Rogers_Park_Hike","trailStart":"http://www.oregonhikers.org/field_guide/George_Rogers_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hog_Island_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":150,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.265Z","locations":{"trailStart":{"latitude":45.4106,"longitude":-122.6608}}},{"id":"babbc8bf-cc00-4858-be60-f83c141eb71a","name":"Gillette Lake Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gillette_Lake_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bonneville_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gillette_Lake"},"measures":{"difficulty":"Easy","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":648,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.267Z","locations":{"trailStart":{"latitude":45.65036,"longitude":-121.93281}}},{"id":"0d94e711-f35e-465f-823b-cd4ec37070b3","name":"Gnat Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gnat_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Gnat_Creek_Hatchery_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bigfoot_Creek"},"measures":{"difficulty":"Moderate","distance":{"value":8.1,"measure":"miles"},"elevationGain":{"value":710,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.269Z","locations":{"trailStart":{"latitude":46.16918,"longitude":-123.48801}}},{"id":"7c0ba25d-d89d-4426-9d20-d1907577bf72","name":"Graham Oaks Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Graham_Oaks_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Graham_Oaks_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Elder_Oak_Plaza"},"measures":{"difficulty":"Easy","distance":{"value":3.1,"measure":"miles"},"elevationGain":{"value":60,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.271Z","locations":{"trailStart":{"latitude":45.2973,"longitude":-122.7987}}},{"id":"b1ad51a3-27f7-4672-88fc-565b994ef439","name":"Gresham Butte-Butler Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gresham_Butte-Butler_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Gresham_Butte_East_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Springwater_Corridor-Butler_Creek_Greenway_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":7,"measure":"miles"},"elevationGain":{"value":935,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.274Z","locations":{"trailStart":{"latitude":45.48309,"longitude":-122.4272}}},{"id":"9021bdee-db2f-4c48-8c8a-4fd6ac683603","name":"Gresham-Fairview Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gresham-Fairview_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Halsey_and_201st_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Linneman_Station_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":6.7,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.275Z","locations":{"trailStart":{"latitude":45.53335,"longitude":-122.45668}}},{"id":"75050d01-6e75-409f-a849-6a6ef011cb24","name":"Gwynn Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Gwynn_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Perpetua_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cooks_Ridge-Gwynn_Creek_Trail_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":6.3,"measure":"miles"},"elevationGain":{"value":1200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.277Z","locations":{"trailStart":{"latitude":44.2805,"longitude":-124.1078}}},{"id":"399b4f4f-419a-4300-bc67-cd3d784133d4","name":"Hagg Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hagg_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Elks_Picnic_Area_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Scoggins_Creek"},"measures":{"difficulty":"Moderate","distance":{"value":13.5,"measure":"miles"},"elevationGain":{"value":520,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.279Z","locations":{"trailStart":{"latitude":45.47,"longitude":-123.2052}}},{"id":"528e5e6c-6cae-4b87-aac2-6a70d933d09a","name":"Hamilton Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hamilton_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hamilton_Mountain_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hamilton_Mountain"},"measures":{"difficulty":"Moderate","distance":{"value":7.5,"measure":"miles"},"elevationGain":{"value":2100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.283Z","locations":{"trailStart":{"latitude":45.63279,"longitude":-122.01973}}},{"id":"d0aeb8cc-db4e-46e7-b0a5-22cb6b6f707f","name":"Hayden Bay Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hayden_Bay_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Jantzen_Street_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lotus_Isle_Park"},"measures":{"difficulty":"Easy","distance":{"value":2.5,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.287Z","locations":{"trailStart":{"latitude":45.6117,"longitude":-122.6762}}},{"id":"04d2f004-c110-4a6b-84d6-7de4a2ccaa08","name":"Heritage Landing Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Heritage_Landing_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Heritage_Landing_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rattlesnake_Bend"},"measures":{"difficulty":"Easy","distance":{"value":3.8,"measure":"miles"},"elevationGain":{"value":55,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.289Z","locations":{"trailStart":{"latitude":45.6297,"longitude":-120.9118}}},{"id":"e1d9c0f1-b3da-430a-adaa-c623c5d33d23","name":"Herman Creek-Wyeth Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Herman_Creek-Wyeth_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Herman_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wyeth_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":10.8,"measure":"miles"},"elevationGain":{"value":2175,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.291Z","locations":{"trailStart":{"latitude":45.6817,"longitude":-121.84543}}},{"id":"8811ec4b-4152-4a24-bff5-a32d6967e801","name":"Horsetail Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Horsetail_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Horsetail_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Horsetail_Falls_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":610,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.293Z","locations":{"trailStart":{"latitude":45.59044,"longitude":-122.06857}}},{"id":"64250569-5fbf-47a3-a4dc-adc6ffa04151","name":"Horsethief Butte Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Horsethief_Butte_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Horsethief_Butte_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Horsethief_Butte_Summit"},"measures":{"difficulty":"Easy","distance":{"value":2.1,"measure":"miles"},"elevationGain":{"value":250,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.294Z","locations":{"trailStart":{"latitude":45.65075,"longitude":-121.09856}}},{"id":"65b938fc-26ab-4d92-8840-ef26d0d741c2","name":"Hoyt Arboretum Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hoyt_Arboretum_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wildwood_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hoyt_Arboretum_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":4.7,"measure":"miles"},"elevationGain":{"value":425,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.296Z","locations":{"trailStart":{"latitude":45.51275,"longitude":-122.71661}}},{"id":"503617e3-5766-493b-9a3b-d483bcbabdd7","name":"Hug Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hug_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hug_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hug_Point"},"measures":{"difficulty":"Easy","distance":{"value":0.5,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.298Z","locations":{"trailStart":{"latitude":45.82866,"longitude":-123.96084}}},{"id":"aa1d6dbd-0671-457f-bcef-5fa40a88cfe4","name":"Hyland Woods Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Hyland_Woods_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sexton_Mountain_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hyland_Woods_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.299Z","locations":{"trailStart":{"latitude":45.46016,"longitude":-122.82746}}},{"id":"9125510e-e7a4-4db9-b6bf-ada7abce210a","name":"Illinois River Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Illinois_River_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Oak_Flat_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Illinois_Southeast_Trailhead"},"measures":{"difficulty":"Difficult","distance":{"value":30,"measure":"miles"},"elevationGain":{"value":4000,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.301Z","locations":{"trailStart":{"latitude":42.5191,"longitude":-124.04212}}},{"id":"6dabf66f-cc21-4778-b6ff-85926f251fc3","name":"Indian Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Indian_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hazel_Avenue_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Columbia_Gorge_Community_College_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":3.2,"measure":"miles"},"elevationGain":{"value":250,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.303Z","locations":{"trailStart":{"latitude":45.70533,"longitude":-121.50802}}},{"id":"d7d2969a-5a42-4bf1-9b46-0330150ee417","name":"Indian Point Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Indian_Point_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Herman_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Indian_Point"},"measures":{"difficulty":"Difficult","distance":{"value":7.6,"measure":"miles"},"elevationGain":{"value":2800,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.304Z","locations":{"trailStart":{"latitude":45.6817,"longitude":-121.84543}}},{"id":"bbb03f5d-a419-4f00-a855-495f43b6b89e","name":"Jackson Bottom Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Jackson_Bottom_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Jackson_Bottom_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Oak_Viewing_Area_at_Jackson_Bottom"},"measures":{"difficulty":"Easy","distance":{"value":2.9,"measure":"miles"},"elevationGain":{"value":35,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.307Z","locations":{"trailStart":{"latitude":45.5006,"longitude":-122.99063}}},{"id":"be17f26f-a8f4-4615-ab33-b91a02cf3cf3","name":"Jenne Butte Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Jenne_Butte_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Linneman_Station_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Jenne_Butte_Water_Tank"},"measures":{"difficulty":"Easy","distance":{"value":3.3,"measure":"miles"},"elevationGain":{"value":690,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.308Z","locations":{"trailStart":{"latitude":45.48853,"longitude":-122.47011}}},{"id":"a0adb63e-f768-4bae-bd90-2b947b729249","name":"Jordan Woods Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Jordan_Woods_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Jackie_Husen_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cedar_Mill_Creek_Overlook"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.310Z","locations":{"trailStart":{"latitude":45.52843,"longitude":-122.78933}}},{"id":"277832fa-0409-4c85-8dbe-3585a9756071","name":"Kelley Point Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Kelley_Point_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Kelley_Point_South_Lot_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Kelley_Point"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.313Z","locations":{"trailStart":{"latitude":45.64358,"longitude":-122.76527}}},{"id":"9562a61f-e8da-4c25-8080-cdc064b33366","name":"Kelly Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Kelly_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Woodland_Drive_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.314Z","locations":{"trailStart":{"latitude":45.48752,"longitude":-122.38252}}},{"id":"3e84cbe8-d341-44f2-8016-0af45c27a6d6","name":"Kentucky Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Kentucky_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Kentucky_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lower_Kentucky_Falls"},"measures":{"difficulty":"Easy","distance":{"value":4,"measure":"miles"},"elevationGain":{"value":650,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.316Z","locations":{"trailStart":{"latitude":43.9282,"longitude":-123.7937}}},{"id":"54633670-41e6-46c9-93a5-2fb4f096e641","name":"Kilchis Point Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Kilchis_Point_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Kilchis_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Kilchis_Flat"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.318Z","locations":{"trailStart":{"latitude":45.51263,"longitude":-123.88161}}},{"id":"7daf75b7-6e71-4b4e-9b14-af16312b1538","name":"Klickitat Trail: Klickitat Mineral Springs Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Klickitat_Trail:_Klickitat_Mineral_Springs_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wahkiacus_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Klickitat_River_Railroad_Bridge"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.320Z","locations":{"trailStart":{"latitude":45.8233,"longitude":-121.09857}}},{"id":"b6c57943-ef2a-49b0-9878-56e386bc017c","name":"Klickitat Trail: Lyle to Klickitat Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Klickitat_Trail:_Lyle_to_Klickitat_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Pitt_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Klickitat_Trailhead"},"measures":{"difficulty":"ModerateEasy","distance":{"value":13,"measure":"miles"},"elevationGain":{"value":340,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.321Z","locations":{"trailStart":{"latitude":45.79449,"longitude":-121.19787}}},{"id":"a2d6e7fb-fc4a-4efe-8878-74a4302f16b5","name":"La Center Bottoms Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/La_Center_Bottoms_Hike","trailStart":"http://www.oregonhikers.org/field_guide/La_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/La_Center_Bottoms_Trail_End"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.323Z","locations":{"trailStart":{"latitude":45.8623,"longitude":-122.6701}}},{"id":"a4b2ea19-11ab-4cd7-9bc6-89ab1e44d0c1","name":"Lacamas Heritage Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lacamas_Heritage_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Camas_Heritage_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Goodwin_Road_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":7,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.324Z","locations":{"trailStart":{"latitude":45.6049,"longitude":-122.41157}}},{"id":"03790f9a-b065-4b26-8c44-e01a8700a4d9","name":"Lake Sacajawea Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lake_Sacajawea_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Nichols_Boulevard_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Japanese_Garden_Island"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":35,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.326Z","locations":{"trailStart":{"latitude":46.12755,"longitude":-122.94369}}},{"id":"96492685-4b82-43d8-9e0f-5c465a735524","name":"Latourell Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Latourell_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Latourell_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Upper_Latourell_Falls"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":520,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.327Z","locations":{"trailStart":{"latitude":45.5388,"longitude":-122.21757}}},{"id":"f8627723-f086-467f-9cd6-b3403b58671a","name":"Latourell Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Latourell_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Latourell_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Upper_Latourell_Falls"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":520,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.329Z","locations":{"trailStart":{"latitude":45.5388,"longitude":-122.21757}}},{"id":"a405c451-7eca-4f05-a14c-9029ea737b4a","name":"Lee Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lee_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lee_Falls_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lee_Falls"},"measures":{"difficulty":"Moderate","distance":{"value":6.6,"measure":"miles"},"elevationGain":{"value":355,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.330Z","locations":{"trailStart":{"latitude":45.4522,"longitude":-123.2574}}},{"id":"dcd6057c-c463-4ba7-aa18-38c97a959825","name":"Lewis and Clark Park Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lewis_and_Clark_Park_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lewis_and_Clark_Park_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.332Z","locations":{"trailStart":{"latitude":45.54151,"longitude":-122.37992}}},{"id":"fd46cf02-e81d-488b-b2af-abdeb713144f","name":"Lewisburg Saddle Old Growth Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lewisburg_Saddle_Old_Growth_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lewisburg_Saddle_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Old_Growth_Trail-Davies_Road_Junction"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":240,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.342Z","locations":{"trailStart":{"latitude":44.63676,"longitude":-123.29578}}},{"id":"a4667ab9-bfcf-4589-a542-046c079008f8","name":"Lewisville Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lewisville_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lewisville_Park_Entrance_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lewisville_Park_Swimming_Hole"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":140,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.344Z","locations":{"trailStart":{"latitude":45.8126,"longitude":-122.5469}}},{"id":"a5292883-02bf-4338-8bb0-2ac95bc7b6e9","name":"Liahona Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Liahona_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Liahona_Loop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Moss_Bridge_over_Oak_Ranch_Creek"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":730,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.346Z","locations":{"trailStart":{"latitude":45.92732,"longitude":-123.04884}}},{"id":"8dfcc6f4-9e95-4607-8e72-2251bb8dc5b0","name":"Linnton Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Linnton_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Linnton_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Leif_Erikson_Drive_North_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":930,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.347Z","locations":{"trailStart":{"latitude":45.59628,"longitude":-122.78428}}},{"id":"5ac305ce-71bf-473e-97b7-3af4d3f71267","name":"Lost Corral Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lost_Corral_Hike","trailStart":"http://www.oregonhikers.org/field_guide/J.S._Burres_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lost_Corral"},"measures":{"difficulty":"Moderate","distance":{"value":10.1,"measure":"miles"},"elevationGain":{"value":75,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.349Z","locations":{"trailStart":{"latitude":45.4768,"longitude":-120.4681}}},{"id":"3b4c4c1f-54a2-43e0-be31-cf08d53f6ebb","name":"Low Divide Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Low_Divide_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Summit_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gales_Creek_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":4.2,"measure":"miles"},"elevationGain":{"value":705,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.350Z","locations":{"trailStart":{"latitude":45.62394,"longitude":-123.3755}}},{"id":"649e6706-a34b-44c1-8bb8-0e1a0a01de00","name":"Lowami Hart Woods Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lowami_Hart_Woods_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hart_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Barcelona_Way_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":140,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.352Z","locations":{"trailStart":{"latitude":45.4658,"longitude":-122.8307}}},{"id":"2088231a-0a98-4986-b67f-eb72de32fe8f","name":"Lower Salmonberry River Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lower_Salmonberry_River_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Salmonberry_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Enright"},"measures":{"difficulty":"Moderate","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":275,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.354Z","locations":{"trailStart":{"latitude":45.75001,"longitude":-123.65223}}},{"id":"aa501a5e-ea29-4811-a72a-df8ba11ccac7","name":"Lower Salmonberry river Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lower_Salmonberry_river_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Salmonberry_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Enright"},"measures":{"difficulty":"Moderate","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":275,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.355Z","locations":{"trailStart":{"latitude":45.75001,"longitude":-123.65223}}},{"id":"fed64d91-00d2-42f1-a750-f869b8cf3a1a","name":"Lucia Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Lucia_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lucia_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lucia_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.357Z","locations":{"trailStart":{"latitude":45.84044,"longitude":-122.44848}}},{"id":"0d5e99ed-438a-42d0-afce-74e6ecd9af29","name":"Luckiamute Landing Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Luckiamute_Landing_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Luckiamute_Landing_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Luckiamute_Landing_Campsite"},"measures":{"difficulty":"Easy","distance":{"value":4,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.358Z","locations":{"trailStart":{"latitude":44.73205,"longitude":-123.15249}}},{"id":"bf8a772d-5df0-469b-b08e-b594dc162dc6","name":"Luckiamute Wetland Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Luckiamute_Wetland_Hike","trailStart":"http://www.oregonhikers.org/field_guide/South_Luckiamute_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/West_Luckiamute_Pond"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.360Z","locations":{"trailStart":{"latitude":44.71572,"longitude":-123.16297}}},{"id":"05fcb316-5e23-4fd0-9e95-d6973f1d490b","name":"Luscher Farm-Cooks Butte Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Luscher_Farm-Cooks_Butte_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hazelia_Field_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cooks_Butte"},"measures":{"difficulty":"Easy","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":315,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.362Z","locations":{"trailStart":{"latitude":45.39622,"longitude":-122.68729}}},{"id":"6bd572d5-3a5f-40ba-b033-838eed052f4d","name":"Magness Tree Farm Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Magness_Tree_Farm_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Magness_Memorial_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Heater_Grove"},"measures":{"difficulty":"Easy","distance":{"value":4.5,"measure":"miles"},"elevationGain":{"value":775,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.363Z","locations":{"trailStart":{"latitude":45.295,"longitude":-122.8526}}},{"id":"55333b5c-f0bd-4dba-acba-7dba9583ec85","name":"Manhattan Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Manhattan_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Rockaway_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/McMillan_Creek"},"measures":{"difficulty":"Moderate","distance":{"value":7.5,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.365Z","locations":{"trailStart":{"latitude":45.613,"longitude":-123.9447}}},{"id":"0b1e95f1-c319-43d7-8af1-f39543dd14ab","name":"Maple-Wildwood Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Maple-Wildwood_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lower_Salzman_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Munger_Creek_Big_Trees"},"measures":{"difficulty":"Moderate","distance":{"value":8.4,"measure":"miles"},"elevationGain":{"value":1080,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.367Z","locations":{"trailStart":{"latitude":45.56633,"longitude":-122.75342}}},{"id":"d5cf02ea-f7e2-43ff-934f-428593cfb068","name":"Marquam Nature Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Marquam_Nature_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Marquam_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Marquam-Flicker_Trail_Lower_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":6.3,"measure":"miles"},"elevationGain":{"value":1075,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.368Z","locations":{"trailStart":{"latitude":45.49107,"longitude":-122.68712}}},{"id":"174a702b-68f1-4f70-832e-a7a51be3338b","name":"Marquam Trail to Council Crest Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Marquam_Trail_to_Council_Crest_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Marquam_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Council_Crest"},"measures":{"difficulty":"Moderate","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":1100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.370Z","locations":{"trailStart":{"latitude":45.49107,"longitude":-122.68712}}},{"id":"847d9635-750d-4989-ab12-3e8c447c9762","name":"Marshall Park Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Marshall_Park_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Marshall_Park_Trailhead_(on_12th)","trailEnd":"http://www.oregonhikers.org/w/index.php?title=Tryon_Creek_Log_Bridge&action=edit&redlink=1"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":80,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.372Z","locations":{"trailStart":{"latitude":45.45521,"longitude":-122.693}}},{"id":"885427b6-2d89-4a94-9a6a-95f72d027a91","name":"Mary S. Young State Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mary_S._Young_State_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mary_S._Young_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cedar_Island"},"measures":{"difficulty":"Easy","distance":{"value":3.7,"measure":"miles"},"elevationGain":{"value":300,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.373Z","locations":{"trailStart":{"latitude":45.38053,"longitude":-122.62804}}},{"id":"55752bc8-989e-4f70-8b44-4153c8ada585","name":"Maryhill Loops Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Maryhill_Loops_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Maryhill_Loops_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Davies_Pass"},"measures":{"difficulty":"Moderate","distance":{"value":5.9,"measure":"miles"},"elevationGain":{"value":820,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.375Z","locations":{"trailStart":{"latitude":45.7121,"longitude":-120.7951}}},{"id":"4c80b062-36c0-40ba-9338-c89a31170be3","name":"Marys Peak North Ridge Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Marys_Peak_North_Ridge_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Marys_Peak_North_Ridge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Marys_Peak_Summit_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":9,"measure":"miles"},"elevationGain":{"value":1900,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.376Z","locations":{"trailStart":{"latitude":44.5306,"longitude":-123.54484}}},{"id":"6be91e64-51b0-4200-a25b-435a65e7f459","name":"McDonald Homestead Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/McDonald_Homestead_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wright_Creek_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":995,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.378Z","locations":{"trailStart":{"latitude":43.3195,"longitude":-122.8092}}},{"id":"a2142304-41da-4d5b-996c-ec5e24b97d31","name":"McDowell Creek Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/McDowell_Creek_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Royal_Terrace_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Majestic_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.380Z","locations":{"trailStart":{"latitude":44.4643,"longitude":-122.6827}}},{"id":"3848dce2-9980-4aa3-8b3d-c3aa3bf92c27","name":"McLoughlin Promenade Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/McLoughlin_Promenade_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Municipal_Elevator_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Old_Canemah_Park_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.3,"measure":"miles"},"elevationGain":{"value":275,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.381Z","locations":{"trailStart":{"latitude":45.35709,"longitude":-122.60811}}},{"id":"c6789f46-aca6-4bf4-9386-cd7efd5dd9e6","name":"Memorial Park to Boones Ferry Landing Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Memorial_Park_to_Boones_Ferry_Landing_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Memorial_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Boones_Ferry_Landing"},"measures":{"difficulty":"Easy","distance":{"value":4.1,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.383Z","locations":{"trailStart":{"latitude":45.301,"longitude":-122.7594}}},{"id":"c495edcc-ccf5-431b-a642-3f3962313b56","name":"Mike Miller Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mike_Miller_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mike_Miller_Educational_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":115,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.384Z","locations":{"trailStart":{"latitude":44.6018,"longitude":-124.05204}}},{"id":"381c90b0-da1c-47a6-bf2e-1751871a2289","name":"Mill Hill Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mill_Hill_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mill_Hill_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":110,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.386Z","locations":{"trailStart":{"latitude":44.41007,"longitude":-123.33502}}},{"id":"7270fed2-8d6d-47bd-b5d5-62bbb16103a4","name":"Millersylvania Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Millersylvania_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Millersylvania_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Spruce_Creek_Bridge"},"measures":{"difficulty":"Easy","distance":{"value":3.9,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.388Z","locations":{"trailStart":{"latitude":46.9097,"longitude":-122.9069}}},{"id":"29047e8b-c5bc-4ca2-8332-5e030d3c985d","name":"Mima Mounds Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mima_Mounds_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mima_Mounds_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mima_Mounds_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":3.2,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.389Z","locations":{"trailStart":{"latitude":46.9054,"longitude":-123.0475}}},{"id":"566f0328-db45-4893-ab64-0f895e0e6618","name":"Minto-Brown Island Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Minto-Brown_Island_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Minto-Brown_Lot_3_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Eola_Bend_Picnic_Area"},"measures":{"difficulty":"Easy","distance":{"value":9.3,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.391Z","locations":{"trailStart":{"latitude":44.92451,"longitude":-123.07304}}},{"id":"4c795b89-73b7-44e8-a182-20fe0e416214","name":"Minto-Brown Island loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Minto-Brown_Island_loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Minto-Brown_Lot_3_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Eola_Bend_Picnic_Area"},"measures":{"difficulty":"Easy","distance":{"value":9.3,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.393Z","locations":{"trailStart":{"latitude":44.92451,"longitude":-123.07304}}},{"id":"84d194a9-379e-48d9-b8a9-e00aa8506862","name":"Mirror Lake Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mirror_Lake_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mirror_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mirror_Lake"},"measures":{"difficulty":"Easy","distance":{"value":2.9,"measure":"miles"},"elevationGain":{"value":780,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.395Z","locations":{"trailStart":{"latitude":45.30623,"longitude":-121.79188}}},{"id":"badf7230-430f-4611-b807-1f3679bf8c1b","name":"Mitchell Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mitchell_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mitchell_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mitchell_Point"},"measures":{"difficulty":"Moderate","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":1270,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.396Z","locations":{"trailStart":{"latitude":45.70312,"longitude":-121.61859}}},{"id":"0d018185-76f0-49a9-afc4-3e27ab1c2d0b","name":"Moon Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Moon_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Moon_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Moon_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":250,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.398Z","locations":{"trailStart":{"latitude":43.734546,"longitude":-122.620661}}},{"id":"43203577-dc25-43a5-bdf0-7ab54b28bb05","name":"Mosier Twin Tunnels Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mosier_Twin_Tunnels_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mark_Hatfield_West_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mark_Hatfield_East_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":8.5,"measure":"miles"},"elevationGain":{"value":1000,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.400Z","locations":{"trailStart":{"latitude":45.70376,"longitude":-121.48678}}},{"id":"ae1e2f29-a6a6-4c72-9625-f590807fbc6d","name":"Moulton Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Moulton_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hantwick_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yacolt_Falls"},"measures":{"difficulty":"Easy","distance":{"value":5.9,"measure":"miles"},"elevationGain":{"value":260,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.401Z","locations":{"trailStart":{"latitude":45.8376,"longitude":-122.4344}}},{"id":"fea35f4d-b8fc-4c43-a12b-4273bf9a4222","name":"Mount Sylvania Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mount_Sylvania_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/McNary_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mount_Sylvania"},"measures":{"difficulty":"Easy","distance":{"value":4.6,"measure":"miles"},"elevationGain":{"value":775,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.403Z","locations":{"trailStart":{"latitude":45.4364,"longitude":-122.7198}}},{"id":"8246a327-d066-4d15-8b1a-313b521c5c36","name":"Mount Tabor Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mount_Tabor_Hike","trailStart":"http://www.oregonhikers.org/w/index.php?title=60th_Ave_Trailhead&action=edit&redlink=1","trailEnd":"http://www.oregonhikers.org/field_guide/Mount_Tabor_Summit"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":350,"measure":"feet"}},"updatedAt":"2016-11-24T07:14:39.732Z"},{"id":"4626517c-0ae7-4c05-b859-1456aa8cbe94","name":"Mount Talbert Summit Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mount_Talbert_Summit_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mather_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mount_Talbert_Summit"},"measures":{"difficulty":"Easy","distance":{"value":1.9,"measure":"miles"},"elevationGain":{"value":490,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.411Z","locations":{"trailStart":{"latitude":45.42029,"longitude":-122.55234}}},{"id":"30c7dd2b-c94f-4f49-8765-63699a242203","name":"Mount Talbert West Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mount_Talbert_West_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mather_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Park_Loop-West_Ridge_North_Trail_Junction"},"measures":{"difficulty":"Easy","distance":{"value":1.9,"measure":"miles"},"elevationGain":{"value":410,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.413Z","locations":{"trailStart":{"latitude":45.42029,"longitude":-122.55234}}},{"id":"bfa40434-eb13-4247-af7b-667d5b45bba7","name":"Mount Talbert from Sunnyside Road Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Mount_Talbert_from_Sunnyside_Road_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sunnyside_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Mount_Talbert_Summit"},"measures":{"difficulty":"Moderate","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":450,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.415Z","locations":{"trailStart":{"latitude":45.43151,"longitude":-122.5444}}},{"id":"0245ba48-c484-4308-90d9-e956613ec20f","name":"Multnomah Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Multnomah_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Multnomah_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Multnomah_Falls_Upper_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":700,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.426Z","locations":{"trailStart":{"latitude":45.57758,"longitude":-122.117}}},{"id":"22085455-32de-48ac-8631-8b19ff1fd4b8","name":"Multnomah-Wahkeena Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Multnomah-Wahkeena_Loop_Hike","trailEnd":"http://www.oregonhikers.org/field_guide/Wahkeena_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":4.9,"measure":"miles"},"elevationGain":{"value":1600,"measure":"feet"}},"updatedAt":"2016-11-24T07:14:39.766Z"},{"id":"b60f773a-3746-413a-8f16-ac458efd39fc","name":"Munson Creek Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Munson_Creek_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Munson_Creek_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Munson_Creek_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.6,"measure":"miles"},"elevationGain":{"value":95,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.428Z","locations":{"trailStart":{"latitude":45.36564,"longitude":-123.77353}}},{"id":"a145d418-1691-4e26-bb62-ce96ec3029e3","name":"Murtha Ranch Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Murtha_Ranch_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Murtha_Ranch_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Murtha_Ranch"},"measures":{"difficulty":"Easy","distance":{"value":1.9,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.429Z","locations":{"trailStart":{"latitude":45.4807,"longitude":-120.464}}},{"id":"f7e65b08-9ba9-43e7-83de-a6691e289b40","name":"Neahkahnie Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Short_Sand_South_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":8,"measure":"miles"},"elevationGain":{"value":2300,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.431Z","locations":{"trailStart":{"latitude":45.7596,"longitude":-123.9591}}},{"id":"abc6d598-6a21-47dd-896f-cd04c92e3ef4","name":"Neahkahnie Mountain from North Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_from_North_Hike","trailStart":"http://www.oregonhikers.org/field_guide/North_Neahkahnie_Mountain_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":1450,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.432Z","locations":{"trailStart":{"latitude":45.7484,"longitude":-123.9625}}},{"id":"af519619-3608-41f5-961f-7b2fe5e0af3d","name":"Neahkahnie Mountain from South Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_from_South_Hike","trailStart":"http://www.oregonhikers.org/field_guide/South_Neahkahnie_Mountain_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Neahkahnie_Mountain_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":840,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.434Z","locations":{"trailStart":{"latitude":45.74081,"longitude":-123.93458}}},{"id":"e99e7100-803a-4f5a-b045-96c492eed16f","name":"Nehalem Spit Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Nehalem_Spit_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Nehalem_Spit_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Nehalem_Bay_Mouth"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":25,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.436Z","locations":{"trailStart":{"latitude":45.68876,"longitude":-123.9369}}},{"id":"97468158-e7ab-4397-bca5-778752e982b6","name":"Neskowin Beach to Porter Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Neskowin_Beach_to_Porter_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Neskowin_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Porter_Point"},"measures":{"difficulty":"Moderate","distance":{"value":9.6,"measure":"miles"},"elevationGain":{"value":15,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.437Z","locations":{"trailStart":{"latitude":45.10326,"longitude":-123.98202}}},{"id":"1158138f-ecf7-4664-8da4-6975948c8832","name":"Nestucca Spit Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Nestucca_Spit_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bob_Straub_State_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Nestucca_Bay_Mouth"},"measures":{"difficulty":"Moderate","distance":{"value":7.5,"measure":"miles"},"elevationGain":{"value":60,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.439Z","locations":{"trailStart":{"latitude":45.19277,"longitude":-123.96727}}},{"id":"d76e096d-c330-4aad-aa4e-5c9d9c490b8a","name":"Netarts Spit Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Netarts_Spit_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cape_Lookout_Day_Use_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Netarts_Bay_Mouth"},"measures":{"difficulty":"Moderate","distance":{"value":11.2,"measure":"miles"},"elevationGain":{"value":60,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.440Z","locations":{"trailStart":{"latitude":45.35999,"longitude":-123.97003}}},{"id":"8ddb7384-4b13-47b7-8ca8-94b376b7c32f","name":"Newport Bayfront Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Newport_Bayfront_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bay_Boulevard_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yaquina_Bay_Lighthouse"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":140,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.442Z","locations":{"trailStart":{"latitude":44.6319,"longitude":-124.049}}},{"id":"3515b9a8-153c-4240-bb4c-a9a92062c254","name":"Newport Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Newport_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lucky_Gap_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yaquina_Bay_Lighthouse"},"measures":{"difficulty":"Moderate","distance":{"value":8.2,"measure":"miles"},"elevationGain":{"value":195,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.444Z","locations":{"trailStart":{"latitude":44.6743,"longitude":-124.0602}}},{"id":"57aae760-30a6-4be3-9e18-55697cf96b15","name":"Newton Road to Newberry Road Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Newton_Road_to_Newberry_Road_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Newton_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Newberry_Road_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":9.4,"measure":"miles"},"elevationGain":{"value":2190,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.446Z","locations":{"trailStart":{"latitude":45.59156,"longitude":-122.80218}}},{"id":"216ab9bb-a041-42eb-be43-8efe4b260ba7","name":"Noble Woods Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Noble_Woods_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Baseline_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Borwick_Road_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":65,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.447Z","locations":{"trailStart":{"latitude":45.51967,"longitude":-122.91855}}},{"id":"4341fadf-0fdc-4bee-8c24-f1b422b1828e","name":"North Fork Smith-Kentucky Falls Bike and Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/North_Fork_Smith-Kentucky_Falls_Bike_and_Hike","trailStart":"http://www.oregonhikers.org/field_guide/North_Fork_Smith_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/North_Fork_Smith_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":17,"measure":"miles"},"elevationGain":{"value":3200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.449Z","locations":{"trailStart":{"latitude":43.875,"longitude":-123.8279}}},{"id":"331f0a5c-9813-4b72-8144-a6b2da8375fb","name":"North Gales Creek Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/North_Gales_Creek_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Reehers_Camp_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bell_Camp_Road_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":6.8,"measure":"miles"},"elevationGain":{"value":1465,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.450Z","locations":{"trailStart":{"latitude":45.70696,"longitude":-123.33793}}},{"id":"79d64863-0db7-44d4-9ce1-b61cbb5b62a7","name":"North Molalla River Trails Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/North_Molalla_River_Trails_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Amanda%27s_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hardy_Creek_Bridge_(Molalla_River_Corridor)"},"measures":{"difficulty":"Moderate","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":1140,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.452Z","locations":{"trailStart":{"latitude":45.06675,"longitude":-122.48973}}},{"id":"be11773b-294c-46b3-95fd-8f709a9b347f","name":"North Oxbow Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/North_Oxbow_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Oxbow_Bluff_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gordon_Creek_Road_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":5.4,"measure":"miles"},"elevationGain":{"value":350,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.453Z","locations":{"trailStart":{"latitude":45.49856,"longitude":-122.29589}}},{"id":"e9d63caf-5795-4c01-ae67-0d74decb8531","name":"North and McKenzie Heads Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/North_and_McKenzie_Heads_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Beards_Hollow_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/McKenzie_Head"},"measures":{"difficulty":"Moderate","distance":{"value":6.6,"measure":"miles"},"elevationGain":{"value":1175,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.455Z","locations":{"trailStart":{"latitude":46.30384,"longitude":-124.06314}}},{"id":"38afdaec-a3df-4988-bb4a-666305c8a824","name":"Oak Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Oak_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Oak_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Uproute-Extendo_Trail_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":5.4,"measure":"miles"},"elevationGain":{"value":750,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.457Z","locations":{"trailStart":{"latitude":44.60389,"longitude":-123.3326}}},{"id":"2512c77d-af25-49dc-a2b5-58f3df73a1c5","name":"Oaks Bottom Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Oaks_Bottom_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sellwood_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tadpole_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.3,"measure":"miles"},"elevationGain":{"value":125,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.458Z","locations":{"trailStart":{"latitude":45.46949,"longitude":-122.65931}}},{"id":"c0d05001-378d-4a8b-9505-ca85b4dacfc9","name":"Oaks bottom Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Oaks_bottom_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sellwood_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tadpole_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.3,"measure":"miles"},"elevationGain":{"value":125,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.460Z","locations":{"trailStart":{"latitude":45.46949,"longitude":-122.65931}}},{"id":"c06b7ee9-4d4e-4e41-abbc-cd30a0992e2f","name":"Oceanside to Netarts Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Oceanside_to_Netarts_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Oceanside_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/O%27Hara_Creek"},"measures":{"difficulty":"Easy","distance":{"value":6.4,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.463Z","locations":{"trailStart":{"latitude":45.46109,"longitude":-123.97021}}},{"id":"79dfeebe-2c00-4037-a307-0592f4776719","name":"Old Salmon River Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Old_Salmon_River_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Old_Salmon_River_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Salmon_River_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.464Z","locations":{"trailStart":{"latitude":45.3088,"longitude":-121.94311}}},{"id":"eb1f5c99-0944-48fc-8d81-d7927d44bfc5","name":"Oxbow Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Oxbow_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Oxbow_North_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Buck_Creek_Bend"},"measures":{"difficulty":"Moderate","distance":{"value":7.9,"measure":"miles"},"elevationGain":{"value":600,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.465Z","locations":{"trailStart":{"latitude":45.50081,"longitude":-122.30501}}},{"id":"8007f5a1-b0cd-458f-8e16-be468613ebbc","name":"Ozette to Rialto Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ozette_to_Rialto_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ozette_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rialto_Beach_Trailhead"},"measures":{"difficulty":"Difficult","distance":{"value":20,"measure":"miles"},"elevationGain":{"value":200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.467Z","locations":{"trailStart":{"latitude":48.154372,"longitude":-124.6692}}},{"id":"b342310b-6eb0-4088-9865-59f4d0a76b13","name":"Palomino Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Palomino_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Palomino_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Three_Mountains_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":1.9,"measure":"miles"},"elevationGain":{"value":495,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.468Z","locations":{"trailStart":{"latitude":45.37673,"longitude":-122.64419}}},{"id":"2cb0acf7-b35d-4604-855d-5824a7d7e02e","name":"Paradise Point Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Paradise_Point_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Paradise_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Paradise_Park_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.8,"measure":"miles"},"elevationGain":{"value":240,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.470Z","locations":{"trailStart":{"latitude":45.87243,"longitude":-122.71004}}},{"id":"1fe1ae26-e29e-4d52-9644-74a7a24825d6","name":"Peninsula Crossing-Columbia Slough Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Peninsula_Crossing-Columbia_Slough_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Peninsula_Crossing_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Vancouver_Avenue_Bridge"},"measures":{"difficulty":"Moderate","distance":{"value":10.2,"measure":"miles"},"elevationGain":{"value":150,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.472Z","locations":{"trailStart":{"latitude":45.583,"longitude":-122.7387}}},{"id":"982feeab-c4ec-42b1-9243-ec533e6cab3f","name":"Pinard Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Pinard_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Pinard_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Pinard_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.474Z","locations":{"trailStart":{"latitude":43.713239,"longitude":-122.619696}}},{"id":"50162b86-0a76-4549-9006-a766e0608c59","name":"Pinard falls hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Pinard_falls_hike","trailStart":"http://www.oregonhikers.org/field_guide/Pinard_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Pinard_Falls"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":230,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.475Z","locations":{"trailStart":{"latitude":43.713239,"longitude":-122.619696}}},{"id":"6814206a-9c70-4b43-a578-436e180c97e7","name":"Pine Bench Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Pine_Bench_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bradley_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":5.8,"measure":"miles"},"elevationGain":{"value":1280,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.477Z","locations":{"trailStart":{"latitude":43.3035,"longitude":-122.4882}}},{"id":"a4bc1f3a-b19e-41af-95fa-aef3f3295a80","name":"Ponytail Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ponytail_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Horsetail_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ponytail_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.8,"measure":"miles"},"elevationGain":{"value":360,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.478Z","locations":{"trailStart":{"latitude":45.59044,"longitude":-122.06857}}},{"id":"ae3ce048-1c1b-4c52-9d75-c53f69def97e","name":"Rail Trail Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rail_Trail_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Rail_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Pintail_and_Egret_Marshes_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":3.9,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.480Z","locations":{"trailStart":{"latitude":44.77206,"longitude":-123.07775}}},{"id":"a9d5f422-8b96-4cf2-a6eb-0c756b71de05","name":"Ridgefield Wildlife Refuge Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Ridgefield_Wildlife_Refuge_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ridgefield_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Ridgefield_Camas_Rock"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.481Z","locations":{"trailStart":{"latitude":45.83128,"longitude":-122.74806}}},{"id":"354949ea-20b6-41fb-a458-97201ebf9747","name":"Roads End Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Roads_End_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Roads_End_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Roads_End_Point"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":15,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.483Z","locations":{"trailStart":{"latitude":45.00789,"longitude":-124.00877}}},{"id":"442c890d-7b66-44e6-b646-2c8ff3b207e1","name":"Rock Creek Greenway Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rock_Creek_Greenway_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Bethany_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Kaiser_Woods_Natural_Area"},"measures":{"difficulty":"Moderate","distance":{"value":8.1,"measure":"miles"},"elevationGain":{"value":560,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.485Z","locations":{"trailStart":{"latitude":45.5564,"longitude":-122.86792}}},{"id":"bd2c0acd-2f2b-49c5-b984-472fa8c1aceb","name":"Rock Creek-Orchard Park Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rock_Creek-Orchard_Park_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Orchard_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rock_Creek_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.487Z","locations":{"trailStart":{"latitude":45.53647,"longitude":-122.89201}}},{"id":"e87b367b-1bfe-4aaf-a294-0aed55419da1","name":"Rocky Butte Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rocky_Butte_Hike","trailStart":"http://www.oregonhikers.org/field_guide/The_Grotto_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rocky_Butte"},"measures":{"difficulty":"Easy","distance":{"value":3.2,"measure":"miles"},"elevationGain":{"value":480,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.488Z","locations":{"trailStart":{"latitude":45.55325,"longitude":-122.57468}}},{"id":"b753fb52-663c-4809-bb07-614aed2a823e","name":"Rogue River Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rogue_River_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Grave_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Big_Bend_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":39.5,"measure":"miles"},"elevationGain":{"value":2000,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.490Z","locations":{"trailStart":{"latitude":42.6482,"longitude":-123.5839}}},{"id":"bfebf1b0-f4c8-40c1-84e7-1db65fc8a165","name":"Rood Bridge Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rood_Bridge_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/River_House_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Woodland_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":80,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.492Z","locations":{"trailStart":{"latitude":45.49117,"longitude":-122.95167}}},{"id":"b9267c1f-24bb-4c70-ac11-5208d7e79b20","name":"Rooster Rock Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Rooster_Rock_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Rooster_Rock_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rooster_Rock_(Columbia_Gorge)"},"measures":{"difficulty":"Easy","distance":{"value":2.7,"measure":"miles"},"elevationGain":{"value":240,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.502Z","locations":{"trailStart":{"latitude":45.54731,"longitude":-122.2341}}},{"id":"f4d44efb-155b-4a19-8ed4-7d6e5e2d8422","name":"Salem Riverfront Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Salem_Riverfront_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Union_Street_Bridge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wallace_Park_Gravel_Pit"},"measures":{"difficulty":"Easy","distance":{"value":4.1,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.504Z","locations":{"trailStart":{"latitude":44.94822,"longitude":-123.04507}}},{"id":"c772fd29-e111-4b32-973d-bbfa6af85ad8","name":"Salish Ponds Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Salish_Ponds_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Salish_Ponds_Elementary_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Fairview_Community_Park_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.506Z","locations":{"trailStart":{"latitude":45.52937,"longitude":-122.45175}}},{"id":"9222d997-3e8e-4b15-8f3d-5563e39f14be","name":"Salishan Spit Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Salishan_Spit_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Gleneden_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Siletz_Bay_Mouth"},"measures":{"difficulty":"Moderate","distance":{"value":8,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.508Z","locations":{"trailStart":{"latitude":44.8757,"longitude":-124.0372}}},{"id":"13517fcd-b5f2-4cb2-81be-3a4d2cdee6a8","name":"Sams Walker Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sams_Walker_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sams_Walker_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sams_Walker_Viewpoint"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":15,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.510Z","locations":{"trailStart":{"latitude":45.6118,"longitude":-122.052}}},{"id":"dfe7255e-b60a-4de9-a95b-0f4ba95bf5bb","name":"Sand Lake-Cape Kiwanda Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sand_Lake-Cape_Kiwanda_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tierra_del_Mar_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sand_Lake_Point"},"measures":{"difficulty":"Moderate","distance":{"value":8.2,"measure":"miles"},"elevationGain":{"value":240,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.511Z","locations":{"trailStart":{"latitude":45.24571,"longitude":-123.96749}}},{"id":"f9438b59-3f6e-412f-a497-78d6c6bf4d53","name":"Sand Point Cape Alava Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sand_Point_Cape_Alava_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ozette_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sand_Point"},"measures":{"difficulty":"Moderate","distance":{"value":9,"measure":"miles"},"elevationGain":{"value":400,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.513Z","locations":{"trailStart":{"latitude":48.154372,"longitude":-124.6692}}},{"id":"050efaf8-fa87-4592-a52d-018a1c8d824d","name":"Sandy River Delta Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sandy_River_Delta_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sandy_River_Delta_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Maya_Lin_Bird_Blind"},"measures":{"difficulty":"Easy","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.515Z","locations":{"trailStart":{"latitude":45.5463,"longitude":-122.374}}},{"id":"d6202b90-319f-4822-b198-2d071d0b13f6","name":"Seaside Promenade Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Seaside_Promenade_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Seaside_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Necanicum_Estuary"},"measures":{"difficulty":"Easy","distance":{"value":6.2,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.517Z","locations":{"trailStart":{"latitude":45.9941,"longitude":-123.9268}}},{"id":"11203853-1d4a-4d0a-be1e-a79fcf2023ac","name":"Section 36-Powder House Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Section_36-Powder_House_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Forestry_Club_Cabin_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Cap_House"},"measures":{"difficulty":"Moderate","distance":{"value":4.8,"measure":"miles"},"elevationGain":{"value":880,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.518Z","locations":{"trailStart":{"latitude":44.65704,"longitude":-123.23517}}},{"id":"cca1c832-db2c-4214-9a16-6fba84bee34d","name":"Shepperd's Dell Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Shepperd%27s_Dell_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Shepperd%27s_Dell_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Shepperd%27s_Dell_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.2,"measure":"miles"},"elevationGain":{"value":50,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.520Z","locations":{"trailStart":{"latitude":45.54697,"longitude":-122.1976}}},{"id":"ba9d8853-f8e7-418b-98cc-00e9bf05d8fa","name":"Short Beach Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Short_Beach_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Short_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Short_Beach"},"measures":{"difficulty":"Easy","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":95,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.522Z","locations":{"trailStart":{"latitude":45.47282,"longitude":-123.96873}}},{"id":"8de9a875-00a8-4aa6-86e9-3067a5a7deed","name":"Smith Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Smith_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/214_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Howard_Creek_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":9,"measure":"miles"},"elevationGain":{"value":1420,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.523Z","locations":{"trailStart":{"latitude":44.8525,"longitude":-122.66}}},{"id":"4203b4a9-09b2-4a52-8a86-a51456d16e8c","name":"Smith Homestead Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Smith_Homestead_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Smith_Homestead_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Smith_Homestead_Meadow"},"measures":{"difficulty":"Easy","distance":{"value":0.8,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.525Z","locations":{"trailStart":{"latitude":45.5874,"longitude":-123.5521}}},{"id":"e727c1ce-551f-49f6-bfb5-b2153b810d30","name":"Smith and Bybee Lakes Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Smith_and_Bybee_Lakes_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Smith_and_Bybee_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bybee_Lake"},"measures":{"difficulty":"Easy","distance":{"value":2.1,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.526Z","locations":{"trailStart":{"latitude":45.61665,"longitude":-122.7188}}},{"id":"e38160b7-8ebe-4db1-b79a-4a347892dd75","name":"South Molalla River Trails Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/South_Molalla_River_Trails_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hardy_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Annie%27s_Cabin"},"measures":{"difficulty":"Moderate","distance":{"value":9.9,"measure":"miles"},"elevationGain":{"value":1375,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.528Z","locations":{"trailStart":{"latitude":45.03968,"longitude":-122.48929}}},{"id":"4bc1de34-ffc8-4b86-bdfd-fda8b3728d4f","name":"Spearfish Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spearfish_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Spearfish_Lake_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Spearfish_Lake"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":45,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.530Z","locations":{"trailStart":{"latitude":45.6253,"longitude":-121.1276}}},{"id":"2885c2e8-d3f5-4b5e-9450-9eb9759ff714","name":"Spencer Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spencer_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Beverly_Beach_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":30,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.532Z","locations":{"trailStart":{"latitude":44.72841,"longitude":-124.05691}}},{"id":"81c9d4fe-fb45-446e-8065-bde97807b032","name":"Spirit Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spirit_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Spirit_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Spirit_Falls"},"measures":{"difficulty":"Easy","distance":{"value":6,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.533Z","locations":{"trailStart":{"latitude":43.7315234,"longitude":-122.6396156}}},{"id":"cb78b058-2c57-4915-bc70-ccfce8e7121a","name":"Spring Lake to Devils Lake Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spring_Lake_to_Devils_Lake_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Port_Avenue_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Devils_Lake"},"measures":{"difficulty":"Easy","distance":{"value":2.4,"measure":"miles"},"elevationGain":{"value":295,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.535Z","locations":{"trailStart":{"latitude":44.9757,"longitude":-124.007}}},{"id":"56546de3-1155-4d63-adf6-d9e4c7551be6","name":"Spring Valley Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spring_Valley_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Spring_Valley_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Spring_Valley_Park_Entrance"},"measures":{"difficulty":"Easy","distance":{"value":3.9,"measure":"miles"},"elevationGain":{"value":135,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.536Z","locations":{"trailStart":{"latitude":45.0642,"longitude":-123.0684}}},{"id":"ed5427cf-5c34-4a80-a0d5-2d526bd84ccf","name":"Springbrook-Iron Mountain Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Springbrook-Iron_Mountain_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sundeleaf_Drive_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Iron_Mountain_Overlook"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":355,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.538Z","locations":{"trailStart":{"latitude":45.42285,"longitude":-122.70483}}},{"id":"14762343-2e0c-4b67-8888-5786d6ce66db","name":"Spruce Run Lake Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Spruce_Run_Lake_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Spruce_Run_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Spruce_Run_Lake"},"measures":{"difficulty":"Moderate","distance":{"value":6.8,"measure":"miles"},"elevationGain":{"value":1580,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.540Z","locations":{"trailStart":{"latitude":45.8116,"longitude":-123.6103}}},{"id":"644fb99d-ee71-4269-99f6-87da5252b9b7","name":"St. Cloud Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/St._Cloud_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/St._Cloud_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1,"measure":"miles"},"elevationGain":{"value":25,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.541Z","locations":{"trailStart":{"latitude":45.6004,"longitude":-122.1117}}},{"id":"0a147f41-ba05-46d4-a3fe-3c1cda2517b1","name":"St. Johns-Willamette Cove Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/St._Johns-Willamette_Cove_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cathedral_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Willamette_Cove"},"measures":{"difficulty":"Easy","distance":{"value":4.1,"measure":"miles"},"elevationGain":{"value":240,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.543Z","locations":{"trailStart":{"latitude":45.5881,"longitude":-122.7618}}},{"id":"daba3b7a-d4db-43f3-9116-73f8eb89e8ba","name":"Steam Donkey Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Steam_Donkey_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sunset_Rest_Area_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":0.8,"measure":"miles"},"elevationGain":{"value":140,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.545Z","locations":{"trailStart":{"latitude":45.7963,"longitude":-123.4589}}},{"id":"d16f384b-c5d9-4a90-bfa2-acd7ab07c151","name":"Steigerwald National Wildlife Refuge Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Steigerwald_National_Wildlife_Refuge_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Steigerwald_Lake_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.8,"measure":"miles"},"elevationGain":{"value":0,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.546Z","locations":{"trailStart":{"latitude":45.57024,"longitude":-122.314586}}},{"id":"57fd7844-a0b9-4401-a777-9f26906c5cb5","name":"Step Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Step_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Reehers_Camp_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Gales_Creek_Trail-Round_Top_Road_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":7.6,"measure":"miles"},"elevationGain":{"value":860,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.548Z","locations":{"trailStart":{"latitude":45.70696,"longitude":-123.33793}}},{"id":"2b4e7ffa-897f-443f-a189-5327b43189ba","name":"Storey Burn Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Storey_Burn_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Summit_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Storey_Burn_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":8.1,"measure":"miles"},"elevationGain":{"value":1645,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.549Z","locations":{"trailStart":{"latitude":45.62394,"longitude":-123.3755}}},{"id":"9499a711-5d4d-4cdb-a3f9-03af6c7b4b1b","name":"Stub Stewart Northern Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Stub_Stewart_Northern_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hilltop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Boomscooter_Pond"},"measures":{"difficulty":"Easy","distance":{"value":4.1,"measure":"miles"},"elevationGain":{"value":480,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.551Z","locations":{"trailStart":{"latitude":45.7417,"longitude":-123.1861}}},{"id":"b0599629-f22a-491c-a74b-b8ecd114f626","name":"Sulphur Springs via Alpha Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sulphur_Springs_via_Alpha_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Lewisburg_Saddle_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sulphur_Springs"},"measures":{"difficulty":"Moderate","distance":{"value":5.4,"measure":"miles"},"elevationGain":{"value":1055,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.553Z","locations":{"trailStart":{"latitude":44.63676,"longitude":-123.29578}}},{"id":"014441bc-d156-4605-a30e-a4d0f2cd4453","name":"Summerlake Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Summerlake_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Summerlake_Park_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.555Z","locations":{"trailStart":{"latitude":45.43653,"longitude":-122.81063}}},{"id":"d522b2af-4c22-48b4-be38-b7c1c21d0829","name":"Sundial Beach Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sundial_Beach_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Graham_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sundial_Beach"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.556Z","locations":{"trailStart":{"latitude":45.55033,"longitude":-122.38865}}},{"id":"096c1884-f4fc-4886-907a-37ed9a0e39c9","name":"Sunflower Hill-Indian Pits Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sunflower_Hill-Indian_Pits_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Catherine_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Rowland_Basin_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":4.9,"measure":"miles"},"elevationGain":{"value":1320,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.557Z","locations":{"trailStart":{"latitude":45.71047,"longitude":-121.36214}}},{"id":"867e3db2-9926-48df-b19f-70f832ea5202","name":"Sunset Beach to Necanicum Estuary Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sunset_Beach_to_Necanicum_Estuary_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sunset_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Necanicum_Estuary"},"measures":{"difficulty":"Moderate","distance":{"value":12.6,"measure":"miles"},"elevationGain":{"value":25,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.559Z","locations":{"trailStart":{"latitude":46.10001,"longitude":-123.93753}}},{"id":"a4ff04c8-860b-49bb-bc06-0332000279f8","name":"Susan Creek Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Susan_Creek_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Susan_Creek_Falls_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":1.6,"measure":"miles"},"elevationGain":{"value":105,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.562Z","locations":{"trailStart":{"latitude":43.29891,"longitude":-122.90571}}},{"id":"8cabdda9-a42f-41df-aa00-dd68c61f942a","name":"Sweet Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sweet_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sweet_Creek_Homestead_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sweet_Creek_Beaver_Creek_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":650,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.563Z","locations":{"trailStart":{"latitude":43.9579,"longitude":-123.9022}}},{"id":"92e3ae45-5820-4381-b225-fda1de813eee","name":"Sweet creek hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Sweet_creek_hike","trailStart":"http://www.oregonhikers.org/field_guide/Sweet_Creek_Homestead_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Sweet_Creek_Beaver_Creek_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":650,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.565Z","locations":{"trailStart":{"latitude":43.9579,"longitude":-123.9022}}},{"id":"3e53ddf8-2ddd-4681-a4e5-eaf0f3f9280e","name":"Takena Landing Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Takena_Landing_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Takena_Landing_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":65,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.566Z","locations":{"trailStart":{"latitude":44.6406,"longitude":-123.1074}}},{"id":"98779789-84b1-4574-b4c2-88b0634ff523","name":"Tamanawas Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tamanawas_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sherwood_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tamanawas_Falls"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":590,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.568Z","locations":{"trailStart":{"latitude":45.40098,"longitude":-121.57063}}},{"id":"484d1d72-ee71-40c4-b8fb-58b1e896e6db","name":"Teal Slough Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Teal_Slough_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Teal_Slough_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":0.6,"measure":"miles"},"elevationGain":{"value":310,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.569Z","locations":{"trailStart":{"latitude":46.42876,"longitude":-123.91703}}},{"id":"e53ce9cd-c87c-4054-b04b-e7e3282f4f01","name":"The Dalles Riverfront Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/The_Dalles_Riverfront_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Discovery_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Klindts_Cove_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":6.6,"measure":"miles"},"elevationGain":{"value":100,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.571Z","locations":{"trailStart":{"latitude":45.65277,"longitude":-121.20949}}},{"id":"a616145e-2263-4faa-b21a-558c6889491d","name":"Tillamook Bay Wetlands Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tillamook_Bay_Wetlands_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Goodspeed_Road_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wilson_River_Delta"},"measures":{"difficulty":"Easy","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.581Z","locations":{"trailStart":{"latitude":45.47413,"longitude":-123.86907}}},{"id":"937d513c-0ec6-4f25-b57b-03413c01a350","name":"Toleak Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Toleak_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Third_Beach_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Toleak_Point"},"measures":{"difficulty":"Difficult","distance":{"value":12,"measure":"miles"},"elevationGain":{"value":1200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.582Z","locations":{"trailStart":{"latitude":47.8888,"longitude":-124.5984}}},{"id":"5d8d0e59-c782-4442-9dba-5ea19bc4e59e","name":"Tolinda-Ridge Trail Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tolinda-Ridge_Trail_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Ridge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hardesty_Trail-Firelane_7_Junction"},"measures":{"difficulty":"Moderate","distance":{"value":5.9,"measure":"miles"},"elevationGain":{"value":1685,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.584Z","locations":{"trailStart":{"latitude":45.5808,"longitude":-122.7661}}},{"id":"b6371821-0e0d-4d68-9d2f-3b955090a84e","name":"Tracy Hill Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tracy_Hill_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tracy_Hill_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Bathtub_Spring"},"measures":{"difficulty":"Moderate","distance":{"value":6.1,"measure":"miles"},"elevationGain":{"value":1715,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.586Z","locations":{"trailStart":{"latitude":45.71214,"longitude":-121.3541}}},{"id":"d9fae2f3-8686-4cc3-9533-52fc6f126a43","name":"Triple C Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Triple_C_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Reehers_Camp_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":2.1,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.587Z","locations":{"trailStart":{"latitude":45.70696,"longitude":-123.33793}}},{"id":"6e13ae1e-fa07-4f35-b344-d7750b506834","name":"Tryon Creek Inner Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tryon_Creek_Inner_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tryon_Creek_State_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tryon_Creek_High_Bridge"},"measures":{"difficulty":"Easy","distance":{"value":1.9,"measure":"miles"},"elevationGain":{"value":125,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.589Z","locations":{"trailStart":{"latitude":45.44133,"longitude":-122.67559}}},{"id":"6124f521-cb83-4276-8034-9000905568ef","name":"Tryon Creek Outer Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tryon_Creek_Outer_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tryon_Creek_State_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tryon_Creek_High_Bridge"},"measures":{"difficulty":"Moderate","distance":{"value":5.7,"measure":"miles"},"elevationGain":{"value":630,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.591Z","locations":{"trailStart":{"latitude":45.44133,"longitude":-122.67559}}},{"id":"5c334c3d-122f-42bf-9468-3a5c68d4c28e","name":"Tualatin Hills Nature Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tualatin_Hills_Nature_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Millikan_Way_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lily_Pond"},"measures":{"difficulty":"Easy","distance":{"value":4.3,"measure":"miles"},"elevationGain":{"value":85,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.593Z","locations":{"trailStart":{"latitude":45.498286,"longitude":-122.839197}}},{"id":"6bf854b0-50cc-45c2-9415-257c6cd08f8e","name":"Tualatin Refuge Nature Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Tualatin_Refuge_Nature_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tualatin_River_National_Wildlife_Refuge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Tualatin_Refuge_Wetland_Observation_Deck"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"value":55,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.594Z","locations":{"trailStart":{"latitude":45.38214,"longitude":-122.83131}}},{"id":"a93c17fc-d131-41a8-9ba3-4c40fbc15855","name":"Two Chiefs Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Two_Chiefs_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Dick_Thomas_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Greenleaf_Creek_Crossing"},"measures":{"difficulty":"Moderate","distance":{"value":7.8,"measure":"miles"},"elevationGain":{"value":1600,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.597Z","locations":{"trailStart":{"latitude":45.65527,"longitude":-121.96059}}},{"id":"14869d2b-4967-48b5-84d3-59f44d750a76","name":"University Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/University_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/University_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/University_Falls"},"measures":{"difficulty":"Easy","distance":{"value":0.7,"measure":"miles"},"elevationGain":{"value":180,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.599Z","locations":{"trailStart":{"latitude":45.59841,"longitude":-123.39234}}},{"id":"4150dd1c-8bf2-482d-b0c4-6da0a76dd5b1","name":"University Falls Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/University_Falls_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Rogers_Camp_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/University_Falls"},"measures":{"difficulty":"Moderate","distance":{"value":8,"measure":"miles"},"elevationGain":{"value":1275,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.600Z","locations":{"trailStart":{"latitude":45.6226,"longitude":-123.3757}}},{"id":"5b42b53f-d410-4705-a242-c4976a11d0c7","name":"Upper McCord Creek Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Upper_McCord_Creek_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/John_B_Yeon_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Upper_McCord_Creek_Falls"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":400,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.602Z","locations":{"trailStart":{"latitude":45.6124,"longitude":-122.00428}}},{"id":"d88738a2-b59c-4035-98a7-b67b166ecc06","name":"Upper Rogue River Hikes","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Upper_Rogue_River_Hikes","trailStart":"http://www.oregonhikers.orgundefined","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Moderate","distance":{"value":47,"measure":"miles"},"elevationGain":{"value":1000,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.603Z"},{"id":"7e3d7a9a-8e5e-401c-9b4c-a8cf861a21a2","name":"Vancouver Discovery Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Vancouver_Discovery_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Vancouver_Quay_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Officers_Row"},"measures":{"difficulty":"Easy","distance":{"value":4.4,"measure":"miles"},"elevationGain":{"value":130,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.606Z","locations":{"trailStart":{"latitude":45.62298,"longitude":-122.67721}}},{"id":"4091243f-53f8-419f-8ac8-ac758cc27fae","name":"Vernonia Lake Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Vernonia_Lake_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Vernonia_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Vernonia_Lake_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.9,"measure":"miles"},"elevationGain":{"value":15,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.610Z","locations":{"trailStart":{"latitude":45.85681,"longitude":-123.19399}}},{"id":"ef111d2c-5d6b-46b7-bfce-f8897a6fb266","name":"Wahclella Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wahclella_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wahclella_Falls_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wahclella_Falls"},"measures":{"difficulty":"Easy","distance":{"value":2,"measure":"miles"},"elevationGain":{"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.612Z","locations":{"trailStart":{"latitude":45.6306,"longitude":-121.95382}}},{"id":"51187c74-82d4-45ad-85c2-f9cfcdd9319c","name":"Wahkeena Falls Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wahkeena_Falls_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wahkeena_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":1.4,"measure":"miles"},"elevationGain":{"value":850,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.613Z","locations":{"trailStart":{"latitude":45.57528,"longitude":-122.12801}}},{"id":"6d206f8e-eb0b-4dcd-876f-250bcf47bd43","name":"Wapato Greenway Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wapato_Greenway_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wapato_Access_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Virginia_Lake_North_Pond"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":40,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.615Z","locations":{"trailStart":{"latitude":45.66022,"longitude":-122.83859}}},{"id":"bd895f61-c7cb-4f37-9ccd-493a35dcb203","name":"Warrior Point Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Warrior_Point_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Warrior_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Warrior_Point"},"measures":{"difficulty":"Moderate","distance":{"value":7,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.617Z","locations":{"trailStart":{"latitude":45.80859,"longitude":-122.79833}}},{"id":"52017644-0e59-4c00-946a-10a4a371a34c","name":"Washington Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Washington_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Sacajawea_Statue_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Hoyt_Arboretum_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":3.9,"measure":"miles"},"elevationGain":{"value":585,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.618Z","locations":{"trailStart":{"latitude":45.52147,"longitude":-122.70228}}},{"id":"eaa3dc12-087e-4a1c-8445-db13192a211f","name":"Washougal River Greenway Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Washougal_River_Greenway_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Baz_Riverfront_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yale_and_2nd_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":70,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.620Z","locations":{"trailStart":{"latitude":45.58752,"longitude":-122.38787}}},{"id":"a11f4437-8fa2-4d72-982c-d274b25057a4","name":"Washougal River Greenway loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Washougal_River_Greenway_loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Baz_Riverfront_Park_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yale_and_2nd_Trailhead"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":70,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.622Z","locations":{"trailStart":{"latitude":45.58752,"longitude":-122.38787}}},{"id":"7171db4f-5cb1-46d5-9dbb-c9d47b76ea06","name":"Wauna Viewpoint from Eagle Creek Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wauna_Viewpoint_from_Eagle_Creek_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Eagle_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wauna_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":3.6,"measure":"miles"},"elevationGain":{"value":1050,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.624Z","locations":{"trailStart":{"latitude":45.63653,"longitude":-121.91947}}},{"id":"d84490ac-038c-4a8b-a63f-fa976bf4c4f2","name":"Wauna Viewpoint from Tooth Rock Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wauna_Viewpoint_from_Tooth_Rock_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Tooth_Rock_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wauna_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":4,"measure":"miles"},"elevationGain":{"value":1050,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.626Z","locations":{"trailStart":{"latitude":45.63364,"longitude":-121.95004}}},{"id":"eb72e082-6d8d-4bef-99c7-a1f6ffc9381d","name":"Whipple Creek Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Whipple_Creek_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Whipple_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Whipple_Creek_Grist_Mill"},"measures":{"difficulty":"Easy","distance":{"value":3.1,"measure":"miles"},"elevationGain":{"value":300,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.628Z","locations":{"trailStart":{"latitude":45.74498,"longitude":-122.69283}}},{"id":"1f1206a4-1bb5-4e06-ade3-6322ace257f9","name":"Whitaker Ponds Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Whitaker_Ponds_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Whitaker_Ponds_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":0.5,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.630Z","locations":{"trailStart":{"latitude":45.57391,"longitude":-122.61391}}},{"id":"80fc72ed-f2ec-4b07-88b0-586d60fc1370","name":"Wilderness Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wilderness_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Clark_Street_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Camassia_High_Meadow"},"measures":{"difficulty":"Easy","distance":{"value":2.2,"measure":"miles"},"elevationGain":{"value":390,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.631Z","locations":{"trailStart":{"latitude":45.3668,"longitude":-122.62388}}},{"id":"e6a1f917-bddb-464c-950a-6e199b811d0f","name":"Willamette Mission Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Willamette_Mission_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Filbert_Grove_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Willamette_Mission_Site"},"measures":{"difficulty":"Easy","distance":{"value":2.6,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.633Z","locations":{"trailStart":{"latitude":45.08148,"longitude":-123.05611}}},{"id":"3c6ca544-322c-4a50-b262-53a7c3dea89d","name":"Willapa Art Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Willapa_Art_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Willapa_Refuge_Trailhead","trailEnd":"http://www.oregonhikers.orgundefined"},"measures":{"difficulty":"Easy","distance":{"value":1.1,"measure":"miles"},"elevationGain":{"value":330,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.634Z","locations":{"trailStart":{"latitude":46.41454,"longitude":-123.93434}}},{"id":"eb264e57-308c-4894-94a4-2fca8dad351e","name":"Willard Springs Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Willard_Springs_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Willard_Springs_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Willard_Springs"},"measures":{"difficulty":"Easy","distance":{"value":2.3,"measure":"miles"},"elevationGain":{"value":55,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.636Z","locations":{"trailStart":{"latitude":45.9657,"longitude":-121.3464}}},{"id":"f0d1d3ac-a86a-47e8-b2f4-7c8ef9dadd9a","name":"Williams Creek-Hares Canyon Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Williams_Creek-Hares_Canyon_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hilltop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Caddywhomper_Viewpoint"},"measures":{"difficulty":"Moderate","distance":{"value":10.7,"measure":"miles"},"elevationGain":{"value":1910,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.637Z","locations":{"trailStart":{"latitude":45.7417,"longitude":-123.1861}}},{"id":"0243a660-aac1-482b-be3a-e4624a9a5596","name":"Willow Bar Islands Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Willow_Bar_Islands_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Willow_Bar_Islands_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Lower_Willow_Bar_Point"},"measures":{"difficulty":"Easy","distance":{"value":3,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.639Z","locations":{"trailStart":{"latitude":45.7309,"longitude":-122.7676}}},{"id":"306aee8e-70a1-45f9-ab87-0f6f50429d9e","name":"Willow Creek-Waterhouse Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Willow_Creek-Waterhouse_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Willow_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Apollo_Ridge_Park"},"measures":{"difficulty":"Easy","distance":{"value":5.2,"measure":"miles"},"elevationGain":{"value":170,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.640Z","locations":{"trailStart":{"latitude":45.5282,"longitude":-122.84208}}},{"id":"82a8afb1-bd6e-43cf-9239-177f95259b5a","name":"Wilson River Traverse Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wilson_River_Traverse_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Footbridge_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Keenig_Creek_Trailhead"},"measures":{"difficulty":"DifficultModerateEasy","distance":{"value":7.2,"measure":"miles"},"elevationGain":{"value":2485,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.642Z","locations":{"trailStart":{"latitude":45.56313,"longitude":-123.58491}}},{"id":"239c2a7e-150a-4404-ae83-6c3850dd997c","name":"Wilson River Wagon Road Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wilson_River_Wagon_Road_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Deyoe_Creek_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Stagecoach_Horse_Camp_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":11.6,"measure":"miles"},"elevationGain":{"value":1800,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.644Z","locations":{"trailStart":{"latitude":45.61428,"longitude":-123.36677}}},{"id":"721343cf-69b3-4244-bfcc-affcb71a3514","name":"Wind Mountain Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wind_Mountain_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wind_Mountain_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wind_Mountain"},"measures":{"difficulty":"Moderate","distance":{"value":2.5,"measure":"miles"},"elevationGain":{"value":1171,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.645Z","locations":{"trailStart":{"latitude":45.71342,"longitude":-121.75183}}},{"id":"cc321802-a004-4abb-94cb-6008b2f18a02","name":"Wolf Creek Trestle Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wolf_Creek_Trestle_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Cochran_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Wolf_Creek_Flats"},"measures":{"difficulty":"Moderate","distance":{"value":10,"measure":"miles"},"elevationGain":{"value":740,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.647Z","locations":{"trailStart":{"latitude":45.70453,"longitude":-123.41114}}},{"id":"d6f3757c-fd1f-48bc-bd19-ced791ddce7a","name":"Woodpecker Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Woodpecker_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Woodpecker_Loop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Woodpecker_Observation_Deck"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":105,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.648Z","locations":{"trailStart":{"latitude":44.41266,"longitude":-123.33221}}},{"id":"dc7294c5-5f8a-4dbb-b4a9-b5db896dc742","name":"Woodpecker loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Woodpecker_loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Woodpecker_Loop_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Woodpecker_Observation_Deck"},"measures":{"difficulty":"Easy","distance":{"value":1.2,"measure":"miles"},"elevationGain":{"value":105,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.650Z","locations":{"trailStart":{"latitude":44.41266,"longitude":-123.33221}}},{"id":"0da943b6-ed42-4af6-9921-e95b3588a029","name":"Woods Park Loop Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Woods_Park_Loop_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Woods_Park_South_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Woods_Creek_High_Bridge"},"measures":{"difficulty":"Easy","distance":{"value":2.1,"measure":"miles"},"elevationGain":{"value":210,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.660Z","locations":{"trailStart":{"latitude":45.45738,"longitude":-122.72323}}},{"id":"14a11992-1da3-4ade-a211-14a80e0f9f88","name":"Wygant Peak Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Wygant_Peak_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Mitchell_Point_Trailhead","trailEnd":"http://www.oregonhikers.org/w/index.php?title=Wygant_Peak&action=edit&redlink=1"},"measures":{"difficulty":"Moderate","distance":{"value":6,"measure":"miles"},"elevationGain":{"value":1200,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.662Z","locations":{"trailStart":{"latitude":45.70312,"longitude":-121.61859}}},{"id":"a35a6761-3f48-4219-8758-bc8d09cbe2e4","name":"Yachats 804 Trail Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Yachats_804_Trail_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Smelt_Sands_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Starr_Creek"},"measures":{"difficulty":"Easy","distance":{"value":1.7,"measure":"miles"},"elevationGain":{"value":20,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.663Z","locations":{"trailStart":{"latitude":44.3221,"longitude":-124.10566}}},{"id":"b723eee2-f37a-4cd9-96ba-2b1a33409c74","name":"Yaquina Estuary Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Yaquina_Estuary_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Hatfield_Marine_Science_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/King_Slough_Boardwalk"},"measures":{"difficulty":"Easy","distance":{"value":0.9,"measure":"miles"},"elevationGain":{"value":10,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.665Z","locations":{"trailStart":{"latitude":44.6232,"longitude":-124.04374}}},{"id":"fb1b8eb7-3855-4e43-9b6a-10499667dc9f","name":"Yaquina Head Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Yaquina_Head_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Yaquina_Head_Interpretive_Center_Trailhead","trailEnd":"http://www.oregonhikers.org/field_guide/Yaquina_Head_Lighthouse"},"measures":{"difficulty":"Easy","distance":{"value":3.4,"measure":"miles"},"elevationGain":{"value":490,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.666Z","locations":{"trailStart":{"latitude":44.67536,"longitude":-124.07417}}},{"id":"49b42604-2631-45e7-be96-1a0db0ad2c78","name":"Zane Grey Campsite Hike","urls":{"absoluteSource":"http://www.oregonhikers.org/field_guide/Zane_Grey_Campsite_Hike","trailStart":"http://www.oregonhikers.org/field_guide/Wright_Creek_Trailhead"},"measures":{"difficulty":"Moderate","distance":{"value":7.5,"measure":"miles"},"elevationGain":{"value":355,"measure":"feet"}},"updatedAt":"2016-11-27T00:45:39.668Z","locations":{"trailStart":{"latitude":43.3195,"longitude":-122.8092}}}],"updatedAt":"2016-11-27T00:45:39.669Z"}
 
 /***/ }),
-/* 383 */
+/* 385 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	"use strict";
 
-	var _degreeToRadians = __webpack_require__(384);
+	var _degreeToRadians = __webpack_require__(386);
 
 	var _degreeToRadians2 = _interopRequireDefault(_degreeToRadians);
 
-	var _milesFromKilometers = __webpack_require__(385);
+	var _milesFromKilometers = __webpack_require__(387);
 
 	var _milesFromKilometers2 = _interopRequireDefault(_milesFromKilometers);
 
@@ -35842,7 +52928,7 @@
 	};
 
 /***/ }),
-/* 384 */
+/* 386 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -35852,7 +52938,7 @@
 	};
 
 /***/ }),
-/* 385 */
+/* 387 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -35864,7 +52950,7 @@
 	};
 
 /***/ }),
-/* 386 */
+/* 388 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35873,17 +52959,19 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _List = __webpack_require__(360);
+	var _List = __webpack_require__(358);
 
-	var _directionsWalk = __webpack_require__(387);
+	var _directionsWalk = __webpack_require__(389);
 
 	var _directionsWalk2 = _interopRequireDefault(_directionsWalk);
 
-	var _RaisedButton = __webpack_require__(388);
+	var _RaisedButton = __webpack_require__(390);
 
 	var _RaisedButton2 = _interopRequireDefault(_RaisedButton);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 	var styles = {
 	    contentItem: { display: 'inline-block', marginRight: '10px' },
@@ -35891,7 +52979,9 @@
 	        'Easy': { color: '#01579B', display: 'inline-block', marginRight: '10px' },
 	        'Moderate': { color: '#FF6F00', display: 'inline-block', marginRight: '10px' },
 	        'Difficult': { color: '#D50000', display: 'inline-block', marginRight: '10px' }
-	    }
+	    },
+	    rightButtonStyle: { width: 50, height: 50, marginTop: 10 },
+	    trailTitleTruncated: _defineProperty({ fontSize: '1.1em', marginBottom: 6, width: 'auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, 'width', '80%')
 	};
 
 	module.exports = function (props) {
@@ -35899,17 +52989,18 @@
 
 
 	    var contentItems = [];
+
 	    if (trail.difficulty) {
 	        contentItems.push(_react2.default.createElement(
 	            'span',
-	            { style: styles.skill[trail.difficulty] },
+	            { key: 'skill', style: styles.skill[trail.difficulty] },
 	            trail.difficulty
 	        ));
 	    }
 	    if (trail.milesVal) {
 	        contentItems.push(_react2.default.createElement(
 	            'span',
-	            { style: styles.contentItem },
+	            { key: 'miles', style: styles.contentItem },
 	            _react2.default.createElement(
 	                'b',
 	                null,
@@ -35921,7 +53012,7 @@
 	    if (trail.distMiles) {
 	        contentItems.push(_react2.default.createElement(
 	            'span',
-	            null,
+	            { key: 'dist' },
 	            _react2.default.createElement(
 	                'b',
 	                null,
@@ -35935,11 +53026,10 @@
 
 	    return _react2.default.createElement(
 	        _List.ListItem,
-	        { key: trail.id,
-	            rightIconButton: _react2.default.createElement(_RaisedButton2.default, { primary: true, style: { width: 50, height: 50, marginTop: 10 }, className: 'green800-bg', icon: _react2.default.createElement(_directionsWalk2.default, null), target: '_blank', href: trailUrl }) },
+	        { rightIconButton: _react2.default.createElement(_RaisedButton2.default, { primary: true, style: styles.rightButtonStyle, className: 'green800-bg', icon: _react2.default.createElement(_directionsWalk2.default, null), target: '_blank', href: trailUrl }) },
 	        _react2.default.createElement(
 	            'div',
-	            { style: { fontSize: '1.1em', marginBottom: 6 } },
+	            { style: styles.trailTitleTruncated },
 	            trail.name
 	        ),
 	        _react2.default.createElement(
@@ -35951,7 +53041,7 @@
 	};
 
 /***/ }),
-/* 387 */
+/* 389 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35964,11 +53054,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _pure = __webpack_require__(340);
+	var _pure = __webpack_require__(347);
 
 	var _pure2 = _interopRequireDefault(_pure);
 
-	var _SvgIcon = __webpack_require__(347);
+	var _SvgIcon = __webpack_require__(354);
 
 	var _SvgIcon2 = _interopRequireDefault(_SvgIcon);
 
@@ -35988,7 +53078,7 @@
 	exports.default = MapsDirectionsWalk;
 
 /***/ }),
-/* 388 */
+/* 390 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35998,7 +53088,7 @@
 	});
 	exports.default = undefined;
 
-	var _RaisedButton = __webpack_require__(389);
+	var _RaisedButton = __webpack_require__(391);
 
 	var _RaisedButton2 = _interopRequireDefault(_RaisedButton);
 
@@ -36007,7 +53097,7 @@
 	exports.default = _RaisedButton2.default;
 
 /***/ }),
-/* 389 */
+/* 391 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -36020,7 +53110,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _simpleAssign = __webpack_require__(317);
+	var _simpleAssign = __webpack_require__(318);
 
 	var _simpleAssign2 = _interopRequireDefault(_simpleAssign);
 
@@ -36028,19 +53118,19 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _transitions = __webpack_require__(326);
+	var _transitions = __webpack_require__(321);
 
 	var _transitions2 = _interopRequireDefault(_transitions);
 
-	var _colorManipulator = __webpack_require__(269);
+	var _colorManipulator = __webpack_require__(270);
 
-	var _childUtils = __webpack_require__(320);
+	var _childUtils = __webpack_require__(324);
 
-	var _EnhancedButton = __webpack_require__(319);
+	var _EnhancedButton = __webpack_require__(323);
 
 	var _EnhancedButton2 = _interopRequireDefault(_EnhancedButton);
 
-	var _Paper = __webpack_require__(358);
+	var _Paper = __webpack_require__(356);
 
 	var _Paper2 = _interopRequireDefault(_Paper);
 
@@ -36458,24 +53548,6 @@
 	  muiTheme: _react.PropTypes.object.isRequired
 	};
 	exports.default = RaisedButton;
-
-/***/ }),
-/* 390 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _trails = __webpack_require__(382);
-
-	var _trails2 = _interopRequireDefault(_trails);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	module.exports = function () {
-	    return [].concat(_trails2.default.items).map(function (trail) {
-	        return Object.assign({}, trail);
-	    });
-	};
 
 /***/ })
 /******/ ]);
